@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from boptim import (
+from planexs import (
     BayesianOptimizer,
     Categorical,
     Choice,
@@ -162,7 +162,7 @@ class TestNonlinearConstraint:
     ) -> None:
         bo = self._optimizer()
 
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             for _ in range(4):
                 (point,) = bo.ask()
                 assert point["x"] * point["y"] ** 2 <= 50.0 * (1 + 1e-5)  # type: ignore[operator]
@@ -220,7 +220,7 @@ class TestNonlinearConstraint:
 
 class TestEqualityConstraint:
     """`LinearConstraint(..., "=")`: Ax cannot build a study with one in its own constraints,
-    so boptim keeps it out of Ax and enforces it in its own acquisition layer (ADR-0008).
+    so planexs keeps it out of Ax and enforces it in its own acquisition layer (ADR-0008).
     """
 
     @staticmethod
@@ -252,7 +252,7 @@ class TestEqualityConstraint:
     ) -> None:
         bo = self._mixture(seed=1)
 
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             for i in range(6):
                 (point,) = bo.ask() if i == 0 else bo.ask(alpha=0.3)
                 assert point["a"] + point["b"] + point["c"] == pytest.approx(1.0, abs=1e-5)  # type: ignore[operator]

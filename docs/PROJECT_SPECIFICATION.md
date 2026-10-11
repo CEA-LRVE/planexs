@@ -1,7 +1,7 @@
-# boptim: Project Specification
+# planexs: Project Specification
 
 **Status:** living document, v0.3.
-**Purpose:** this document is the ground truth for the boptim project. Any conversation or contributor (human or LLM) working on the project MUST treat it as authoritative. When something here is ambiguous or missing, ask rather than assume (section 12).
+**Purpose:** this document is the ground truth for the planexs project. Any conversation or contributor (human or LLM) working on the project MUST treat it as authoritative. When something here is ambiguous or missing, ask rather than assume (section 12).
 
 ---
 
@@ -15,15 +15,17 @@
 
 ## 1. Vision and scope
 
-### 1.1 What boptim is
+### 1.1 What planexs is
 
-boptim is a general-purpose, domain-agnostic toolkit for **sequential experimental design with probabilistic surrogate models**, Gaussian processes first. The caller describes what can be varied (the *search space*), what is measured (the *outcomes*) and what they want (a *goal*). boptim proposes which points to evaluate next, learns from the results, and reports what it has learned.
+planexs is a general-purpose, domain-agnostic toolkit for **sequential experimental design with probabilistic surrogate models**, Gaussian processes first. The caller describes what can be varied (the *search space*), what is measured (the *outcomes*) and what they want (a *goal*). planexs proposes which points to evaluate next, learns from the results, and reports what it has learned.
+
+The name stands for *PLANification EXpérimentale Séquentielle*, the French for sequential experimental design.
 
 Bayesian optimization is one goal among several. The same loop serves level-set estimation (finding the boundary where an outcome crosses a level, for example the boundary between two phases of a material), active learning (learning a surrogate as well as possible within a budget), feasibility search, calibration, and plain surrogate modelling with no loop at all. No outcome is privileged: nothing in the core assumes that the point of a study is to minimize a number.
 
-boptim must be comfortable at every scale without the caller classifying the problem in advance: a campaign of four or five extremely costly physical experiments, a few hundred machine-learning trials, or thousands of cheap evaluations (section 8).
+planexs must be comfortable at every scale without the caller classifying the problem in advance: a campaign of four or five extremely costly physical experiments, a few hundred machine-learning trials, or thousands of cheap evaluations (section 8).
 
-### 1.2 What boptim is not
+### 1.2 What planexs is not
 
 - Not a re-implementation, and not a thin re-wrapping, of BoTorch or GPyTorch. Tensor-level work stays in those libraries (section 1.4).
 - Not a neural-network training library and not a reinforcement-learning framework.
@@ -33,13 +35,13 @@ boptim must be comfortable at every scale without the caller classifying the pro
 
 ### 1.3 "Everything is possible" is a property of the architecture
 
-boptim cannot ship every acquisition function, kernel or goal. What it guarantees is this: anything that fits the loop *probabilistic model of the outcomes -> score of candidate points -> choice of points -> observation* can be added by writing components and registering them, without changing boptim's core. The guarantee is tested, not promised: the reference use cases (section 7) include one that runs on components defined entirely outside the package.
+planexs cannot ship every acquisition function, kernel or goal. What it guarantees is this: anything that fits the loop *probabilistic model of the outcomes -> score of candidate points -> choice of points -> observation* can be added by writing components and registering them, without changing planexs' core. The guarantee is tested, not promised: the reference use cases (section 7) include one that runs on components defined entirely outside the package.
 
 A request that cannot be satisfied this way reveals a design defect. The remedy is to move or add a seam (sections 3.3 and 3.10), never to special-case the request inside the core.
 
 ### 1.4 Relationship to the engines
 
-- **BoTorch and GPyTorch are the engine.** They own model classes, kernels, likelihoods, acquisition functions, acquisition optimizers, sampling and fitting. boptim's contracts reuse their native interfaces: a surrogate is, or exposes, a BoTorch `Model`; an acquisition is a BoTorch `AcquisitionFunction`. Where the engine already has a class, boptim registers a builder for it instead of re-implementing it. New mathematics that boptim has to write (for example a level-set acquisition function that the engine lacks) is written as a native engine subclass, so that it works with the engine's own optimizers.
+- **BoTorch and GPyTorch are the engine.** They own model classes, kernels, likelihoods, acquisition functions, acquisition optimizers, sampling and fitting. planexs' contracts reuse their native interfaces: a surrogate is, or exposes, a BoTorch `Model`; an acquisition is a BoTorch `AcquisitionFunction`. Where the engine already has a class, planexs registers a builder for it instead of re-implementing it. New mathematics that planexs has to write (for example a level-set acquisition function that the engine lacks) is written as a native engine subclass, so that it works with the engine's own optimizers.
 - **Ax is optional.** It is one possible policy adapter (section 5.9), installed through an extra. Only the `adapters` layer may import `ax.*`, and the core MUST import and run without Ax installed.
 - **Other engines** (scikit-learn, JAX, ...) are outside the core. A plugin may adapt one by satisfying the surrogate contract.
 
@@ -66,10 +68,10 @@ Requirements are stated at the generality the architecture must support. A requi
 | FR13 | Give parameters defaults and discrete steps. |
 | FR14 | Declare conditional parameters (parameters that only exist when another parameter takes a given value). |
 | FR15 | Constrain observed outcomes (for example a throughput that must stay above a floor) as part of a goal. |
-| FR16 | Reach the underlying engine objects and supply custom components without forking boptim. |
+| FR16 | Reach the underlying engine objects and supply custom components without forking planexs. |
 | FR17 | Constrain the inputs with nonlinear expressions that survive saving and reloading. |
 | FR18 | Select every component by name in configuration: surrogate (with its kernel, likelihood, transforms and fitting procedure), acquisition, acquisition optimizer, design, goal, analysis, stopping criterion, policy and repository. |
-| FR19 | Register new components of any kind from user code or from an external package, with no change to boptim. |
+| FR19 | Register new components of any kind from user code or from an external package, with no change to planexs. |
 | FR20 | Estimate level sets and boundaries of an outcome, for continuous outcomes and for binary (label) outcomes. |
 | FR21 | Learn a surrogate efficiently with no optimization target (active learning, exploration). |
 | FR22 | Use the surrogate alone: fit, predict, draw samples and run analyses without an ask/tell loop. |
@@ -77,7 +79,7 @@ Requirements are stated at the generality the architecture must support. A requi
 | FR24 | Support several outcome kinds (continuous and binary first), extensible by plugins. |
 | FR25 | Validate that the chosen components are compatible when a study is built, with actionable errors. |
 | FR26 | Expose and record every policy value: no hidden numeric or behavioural constant. |
-| FR27 | Allow policies that boptim does not implement (for example Ax) as optional adapters honouring the same lifecycle. |
+| FR27 | Allow policies that planexs does not implement (for example Ax) as optional adapters honouring the same lifecycle. |
 | FR28 | Provide stopping criteria as components. |
 
 ---
@@ -110,7 +112,7 @@ A *policy value* is any number, string, flag or heuristic that changes numerical
 
 ### 3.5 Reuse the engine; do not wrap or re-implement it
 
-If BoTorch, GPyTorch or Ax already does something, boptim registers a builder for it. boptim writes its own mathematics only when no engine class exists, and then as a native engine subclass. Do not mirror an engine class with a parallel abstraction, and do not invent engine API: names and signatures are verified against the installed versions (section 10.9).
+If BoTorch, GPyTorch or Ax already does something, planexs registers a builder for it. planexs writes its own mathematics only when no engine class exists, and then as a native engine subclass. Do not mirror an engine class with a parallel abstraction, and do not invent engine API: names and signatures are verified against the installed versions (section 10.9).
 
 ### 3.6 Fail early, and name the problem
 
@@ -182,7 +184,7 @@ These terms are canonical. Do not invent new names for the same concepts.
 
 | Layer | Responsibility | May depend on |
 |---|---|---|
-| `core` | Registries and the kind table, component metadata, capability tags and the compatibility check, the component configuration base, errors, random-number derivation, runtime settings, plugin discovery. | nothing in boptim |
+| `core` | Registries and the kind table, component metadata, capability tags and the compatibility check, the component configuration base, errors, random-number derivation, runtime settings, plugin discovery. | nothing in planexs |
 | `domain` | Parameters, constraints, outcomes, trials, observations, search space, problem. Pure data, validation and serialization. | `core` |
 | `encoding` | Parameter and constraint encoding rules, the search-space encoder, encoded constraints, feasible sampling, the expression compiler. | `core`, `domain` |
 | `surrogates` | Surrogate contract and builders, nested kinds (kernels, likelihoods, outcome transforms, fitters), the fitted-surrogate wrapper, prediction results, the cache. | `core`, `domain`, `encoding` |
@@ -196,7 +198,7 @@ These terms are canonical. Do not invent new names for the same concepts.
 | `persistence` | Snapshot document, repository contract and built-ins, migrations, reproducibility metadata. | `core`, `domain` |
 | `config` | Study-level configuration and its loaders. | every registry layer |
 | `study` | The `Study` facade. | `core`, `domain`, `goals`, `policies`, `analyses`, `stopping`, `persistence`, `config` |
-| `adapters` | Optional adapters to third-party systems (Ax). | boptim's public contracts, plus the third-party package |
+| `adapters` | Optional adapters to third-party systems (Ax). | planexs' public contracts, plus the third-party package |
 
 A lower layer never imports a higher one. `core` and `domain` import no machine-learning library (torch, BoTorch, GPyTorch, Ax); `adapters` are never imported by the core except through plugin discovery. The rules are checked in CI (section 10.5). Persistence holds configuration as plain JSON-compatible data, which is why it does not depend on `config`.
 
@@ -273,7 +275,7 @@ A **stopping criterion** is a registered evaluation of the study state that answ
 
 ### 5.11 Persistence and reproducibility
 
-A study is saved as one JSON document, human-inspectable (FR11, FR12). It contains: a format version; the study name; the problem; the goal; the **resolved** policy, analysis and stopping configuration; the full trial history with every state and reason; the number of asks so far; reproducibility metadata (study seed, versions of boptim and of the tracked libraries, creation time); a manifest of the registered component names in use (with plugin versions where known); and, where a component provides one, its exported opaque state (for example an adapter's own client state).
+A study is saved as one JSON document, human-inspectable (FR11, FR12). It contains: a format version; the study name; the problem; the goal; the **resolved** policy, analysis and stopping configuration; the full trial history with every state and reason; the number of asks so far; reproducibility metadata (study seed, versions of planexs and of the tracked libraries, creation time); a manifest of the registered component names in use (with plugin versions where known); and, where a component provides one, its exported opaque state (for example an adapter's own client state).
 
 Loading rebuilds an equivalent study from the document alone. In the same environment, a reloaded study makes the same next suggestions as the uninterrupted one would have, up to documented hardware nondeterminism. Loading fails with a clear error that names any component missing from the registries and, when known, the plugin that provides it. A library-version mismatch is reported, not ignored. A snapshot is data: loading it never executes code from the file. Format changes ship with migrations so that older documents stay loadable. A repository (the storage medium) is a registered component: JSON files first and an in-memory repository for tests; others, such as a SQL store, can be added without touching the study.
 
@@ -289,11 +291,11 @@ Randomness: one study seed, recorded in the snapshot, feeds a stable derivation 
 
 **Population.** A decorated component is registered only when its module has been imported. Every subpackage's `__init__` MUST import each of its concrete modules, and a test checks this.
 
-**Plugins.** An external package registers components by decorating them and is discovered through an entry-point group, or loaded explicitly by module name. A plugin needs no change to boptim and may extend the capability vocabulary. Plugins are trusted code; this is documented.
+**Plugins.** An external package registers components by decorating them and is discovered through an entry-point group, or loaded explicitly by module name. A plugin needs no change to planexs and may extend the capability vocabulary. Plugins are trusted code; this is documented.
 
 ### 5.13 Escape hatches
 
-The native objects are always reachable (FR16). The study's current surrogate exposes the BoTorch model the policy is actually using, never a different one. The policy object is accessible, and an adapter exposes its own client. Anything obtained this way is outside what boptim validates or keeps in sync, and the documentation says so. Writing a custom component is the preferred escape hatch, because it keeps persistence, reproducibility and compatibility checking.
+The native objects are always reachable (FR16). The study's current surrogate exposes the BoTorch model the policy is actually using, never a different one. The policy object is accessible, and an adapter exposes its own client. Anything obtained this way is outside what planexs validates or keeps in sync, and the documentation says so. Writing a custom component is the preferred escape hatch, because it keeps persistence, reproducibility and compatibility checking.
 
 ---
 
@@ -386,7 +388,7 @@ None is scheduled. The architecture MUST NOT make any of them impossible, and im
 
 ### 9.1 Package map
 
-The package layout mirrors the layers of section 5.1: `src/boptim/<layer>/`, plus the top-level `logging_config.py` and the public, lazily loaded re-exports in `__init__.py`. Other directories:
+The package layout mirrors the layers of section 5.1: `src/planexs/<layer>/`, plus the top-level `logging_config.py` and the public, lazily loaded re-exports in `__init__.py`. Other directories:
 
 - `tests/` mirrors `src/` (`tests/unit/<layer>/`), with `tests/integration/` for cross-layer tests and `tests/use_cases/` for the reference use cases of section 7.
 - `examples/` holds runnable walkthroughs (at least one per reference use case), and `examples/plugins/` shows components that live in external packages.
@@ -514,7 +516,7 @@ Third-party names and signatures are verified against the installed version befo
 
 ### 10.10 Errors and logging
 
-Every error raised by the library derives from one base class and carries a message that names the component, the field and a fix. Loggers are `logging.getLogger(__name__)` and are children of the `boptim` logger, which carries a `NullHandler`; library code never configures handlers. Library code never calls `print` (examples and scripts may print their results).
+Every error raised by the library derives from one base class and carries a message that names the component, the field and a fix. Loggers are `logging.getLogger(__name__)` and are children of the `planexs` logger, which carries a `NullHandler`; library code never configures handlers. Library code never calls `print` (examples and scripts may print their results).
 
 ### 10.11 Testing
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from boptim import Derived, Fixed
-from boptim.domain.parameters.Choice import Choice
+from planexs import Derived, Fixed
+from planexs.domain.parameters.Choice import Choice
 
 
 class TestFixed:

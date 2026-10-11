@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from boptim import LinearConstraint
-from boptim.domain.constraints.constraintFromDict import constraintFromDict
+from planexs import LinearConstraint
+from planexs.domain.constraints.constraintFromDict import constraintFromDict
 
 
 class TestLinearConstraintRoundTrip:

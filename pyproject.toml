@@ -1,11 +1,11 @@
 [project]
-name = "boptim"
+name = "planexs"
 version = "0.1.0"
 description = "A general-purpose, domain-agnostic Bayesian Optimization library."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "TBD" } # Section 1.4: license is not set for this draft.
-authors = [{ name = "boptim contributors" }]
+authors = [{ name = "planexs contributors" }]
 keywords = ["bayesian-optimization", "optimization", "machine-learning", "ax", "botorch"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -20,7 +20,7 @@ classifiers = [
 # `botorch`, `gpytorch`, and `torch` transitively; they are still listed
 # explicitly since `backends/ax/AxBackend.py` and `backends/OptimizationBackend.py`
 # import `botorch` directly (ADR-0001), so a resolver failure on that
-# transitive chain should surface as a boptim dependency problem, not a
+# transitive chain should surface as a planexs dependency problem, not a
 # mysterious `ImportError` two layers down.
 dependencies = [
     "ax-platform>=1.2,<2.0",
@@ -86,16 +86,16 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D1"]
 ignore = [
-    "N999", # invalid module name -> boptim names a file after its one public symbol, so a
+    "N999", # invalid module name -> planexs names a file after its one public symbol, so a
             # class lives in `CamelCase.py` and a function in `camelCase.py` (section 10)
-    "N802", # function name should be lowercase -> boptim uses camelCase (section 10)
-    "N803", # argument name should be lowercase -> boptim's snake_case arguments are fine;
+    "N802", # function name should be lowercase -> planexs uses camelCase (section 10)
+    "N803", # argument name should be lowercase -> planexs' snake_case arguments are fine;
              # this also suppresses false positives on camelCase methods' `self`-adjacent args
     "N806", # variable in function should be lowercase -> local camelCase-named helpers
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["boptim"]
+known-first-party = ["planexs"]
 
 # "D1" only checks that a docstring exists (section 10: mandatory on every public class and
 # function). The Google convention keeps the style rules that would otherwise apply
@@ -110,12 +110,12 @@ convention = "google"
 # mypy --strict (section 1.4, section 10). Third-party stubs for Ax/BoTorch/
 # GPyTorch are incomplete in practice; `ignore_missing_imports` is scoped
 # narrowly to just those packages rather than relaxed globally, so strict
-# checking still applies to all of boptim's own code.
+# checking still applies to all of planexs' own code.
 # --------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.11"
 strict = true
-packages = ["boptim"]
+packages = ["planexs"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
@@ -124,7 +124,7 @@ ignore_missing_imports = true
 
 # numpy's own type stubs use Python 3.12 syntax (`type` statements), which mypy rejects while
 # `python_version` is 3.11 (the project's minimum), and that one syntax error stops all
-# checking. boptim does not use numpy directly, so its stubs are skipped rather than parsed.
+# checking. planexs does not use numpy directly, so its stubs are skipped rather than parsed.
 [[tool.mypy.overrides]]
 module = ["numpy", "numpy.*"]
 follow_imports = "skip"
@@ -132,7 +132,7 @@ follow_imports_for_stubs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=boptim --cov-report=term-missing"
+addopts = "--cov=planexs --cov-report=term-missing"
 
 [tool.coverage.run]
-source = ["src/boptim"]
+source = ["src/planexs"]

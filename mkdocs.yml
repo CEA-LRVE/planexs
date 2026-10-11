@@ -1,4 +1,4 @@
-site_name: boptim
+site_name: planexs
 site_description: A general-purpose, domain-agnostic Bayesian Optimization library for Python.
 docs_dir: docs
 theme:

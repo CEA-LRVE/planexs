@@ -16,7 +16,7 @@ import pytest
 
 pytest.importorskip("ax")
 
-from boptim import BayesianOptimizer, Real
+from planexs import BayesianOptimizer, Real
 
 
 def dummySphere(x: float, y: float) -> float:

@@ -8,16 +8,16 @@ from typing import Any
 import pytest
 import torch
 
-from boptim import AlphaAcquisitionStrategy, LinearConstraint, Real, SearchSpace
-from boptim.acquisition.EncodedConstraints import EncodedConstraints
-from boptim.acquisition.sampleFeasibleEncoded import (
+from planexs import AlphaAcquisitionStrategy, LinearConstraint, Real, SearchSpace
+from planexs.acquisition.EncodedConstraints import EncodedConstraints
+from planexs.acquisition.sampleFeasibleEncoded import (
     DEFAULT_POLYTOPE_BURN_IN,
     DEFAULT_POLYTOPE_THINNING,
     sampleFeasibleEncoded,
 )
-from boptim.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
-_SAMPLER_MODULE = "boptim.acquisition.sampleFeasibleEncoded"
+_SAMPLER_MODULE = "planexs.acquisition.sampleFeasibleEncoded"
 
 
 def _mixture() -> SearchSpace:
@@ -104,11 +104,11 @@ class TestStrategyConfiguration:
     def test_the_optimizers_own_starting_points_get_them_too(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from boptim import Metric, Objective, Trial
-        from boptim.models.buildSurrogateModel import buildSurrogateModel
-        from boptim.models.encodeTrials import encodeTrials
+        from planexs import Metric, Objective, Trial
+        from planexs.models.buildSurrogateModel import buildSurrogateModel
+        from planexs.models.encodeTrials import encodeTrials
 
-        module = importlib.import_module("boptim.acquisition.AlphaAcquisitionStrategy")
+        module = importlib.import_module("planexs.acquisition.AlphaAcquisitionStrategy")
         seen: list[dict[str, Any]] = []
         original = module.optimize_acqf
 
@@ -144,9 +144,9 @@ class TestSeeding:
 
     @staticmethod
     def _model_and_space():  # type: ignore[no-untyped-def]
-        from boptim import Metric, Objective, Trial
-        from boptim.models.buildSurrogateModel import buildSurrogateModel
-        from boptim.models.encodeTrials import encodeTrials
+        from planexs import Metric, Objective, Trial
+        from planexs.models.buildSurrogateModel import buildSurrogateModel
+        from planexs.models.encodeTrials import encodeTrials
 
         space = SearchSpace([Real("x", 0.0, 1.0)])
         objective = Objective([Metric("f", minimize=True)])

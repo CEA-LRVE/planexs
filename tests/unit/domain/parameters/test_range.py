@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from boptim import Integer, Real
-from boptim.domain.parameters.Range import Range
+from planexs import Integer, Real
+from planexs.domain.parameters.Range import Range
 
 
 class TestRange:

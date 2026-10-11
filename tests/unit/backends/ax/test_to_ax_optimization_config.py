@@ -1,14 +1,14 @@
 """Unit tests for `toAxOptimizationConfig`.
 
-Pure string-rendering logic over boptim's own `Metric`/`Objective` domain
+Pure string-rendering logic over planexs' own `Metric`/`Objective` domain
 objects: does not import `ax.*`, so these tests run without a real Ax
 install.
 """
 
 from __future__ import annotations
 
-from boptim import Metric, Objective, OutcomeConstraint
-from boptim.backends.ax.toAxOptimizationConfig import toAxOptimizationConfig
+from planexs import Metric, Objective, OutcomeConstraint
+from planexs.backends.ax.toAxOptimizationConfig import toAxOptimizationConfig
 
 
 class TestSingleObjective:

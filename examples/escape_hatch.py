@@ -4,7 +4,7 @@ Demonstrates the two escape hatches `BayesianOptimizer` exposes for anything
 its high-level facade does not cover (design philosophy #2, section 1.3):
 
 - `axClient`: the live `ax.api.client.Client` instance backing this optimizer.
-  Section 4.7 lists several real Ax features boptim's facade does not wrap yet
+  Section 4.7 lists several real Ax features planexs' facade does not wrap yet
   (closed-loop `run_trials`, `attach_baseline`, `StorageConfig`, ...); any of
   them is reachable through this property. This script calls
   `get_next_trials` directly on it, chosen because its signature is
@@ -23,8 +23,8 @@ from __future__ import annotations
 
 import logging
 
-from boptim import BayesianOptimizer, Real
-from boptim.logging_config import configureLogging
+from planexs import BayesianOptimizer, Real
+from planexs.logging_config import configureLogging
 
 logger = logging.getLogger(__name__)
 
@@ -46,19 +46,19 @@ def main() -> None:
         name="escape-hatch-demo",
     )
 
-    # A handful of trials, told through boptim's own ask()/tell(), so Ax has
+    # A handful of trials, told through planexs' own ask()/tell(), so Ax has
     # enough data for both escape hatches below to have something to show.
     for point in bo.ask(n_points=5):
         bo.tell(point, {"objective": sphere(**point)})
-    print(f"Told {bo.n_trials} trial(s) via boptim's own ask()/tell().")
+    print(f"Told {bo.n_trials} trial(s) via planexs' own ask()/tell().")
 
     # --- axClient: escape hatch #1 ------------------------------------------
-    # Anything reached through axClient is outside what boptim validates or
+    # Anything reached through axClient is outside what planexs validates or
     # keeps in sync with its own Trial history (ADR-0005's own caveat).
     # get_next_trials, like BayesianOptimizer.ask(), attaches a new RUNNING
     # trial in Ax's own bookkeeping; a real caller mixing axClient calls with
-    # boptim's own ask()/tell() should eventually complete or abandon it, the
-    # same way boptim's own ask()/tell() pairing does internally
+    # planexs' own ask()/tell() should eventually complete or abandon it, the
+    # same way planexs' own ask()/tell() pairing does internally
     # (AxBackend.attachTrial).
     ax_suggestion = bo.axClient.get_next_trials(max_trials=1)
     print(f"Ax suggested directly via axClient.get_next_trials(): {ax_suggestion}")

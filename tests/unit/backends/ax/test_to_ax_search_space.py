@@ -14,8 +14,8 @@ pytest.importorskip("ax")
 
 from ax.api.configs import ChoiceParameterConfig, DerivedParameterConfig, RangeParameterConfig
 
-from boptim import Categorical, Derived, Fixed, Real, SearchSpace
-from boptim.backends.ax.toAxSearchSpace import toAxSearchSpace
+from planexs import Categorical, Derived, Fixed, Real, SearchSpace
+from planexs.backends.ax.toAxSearchSpace import toAxSearchSpace
 
 
 class TestToAxSearchSpace:

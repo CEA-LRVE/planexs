@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from boptim import BayesianOptimizer, PredictionUnavailableError, Real
+from planexs import BayesianOptimizer, PredictionUnavailableError, Real
 
 
 def _bowl(x: float, y: float) -> float:
@@ -24,7 +24,7 @@ def _optimizer() -> BayesianOptimizer:
     )
 
 
-def test_ax_reports_that_it_has_no_model_yet_with_boptims_own_error() -> None:
+def test_ax_reports_that_it_has_no_model_yet_with_planexss_own_error() -> None:
     bo = _optimizer()
     bo.tell({"x": 0.1, "y": 0.9}, {"objective": _bowl(0.1, 0.9)})
     bo.tell({"x": 0.9, "y": 0.1}, {"objective": _bowl(0.9, 0.1)})

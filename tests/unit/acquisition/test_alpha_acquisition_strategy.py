@@ -11,7 +11,7 @@ import torch
 from botorch.acquisition.objective import ScalarizedPosteriorTransform
 from botorch.models.model import Model
 
-from boptim import (
+from planexs import (
     AlphaAcquisitionStrategy,
     Boolean,
     Categorical,
@@ -27,9 +27,9 @@ from boptim import (
     SearchSpace,
     Trial,
 )
-from boptim.models.buildSurrogateModel import buildSurrogateModel
-from boptim.models.encodeTrials import encodeTrials
-from boptim.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.models.buildSurrogateModel import buildSurrogateModel
+from planexs.models.encodeTrials import encodeTrials
+from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 Parameterization = dict[str, float | int | str | bool]
 
@@ -392,7 +392,7 @@ class TestConstraints:
     def test_a_rounding_that_breaks_a_constraint_is_repaired_to_the_nearest_feasible_neighbor(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        from boptim.acquisition.EncodedConstraints import EncodedConstraints
+        from planexs.acquisition.EncodedConstraints import EncodedConstraints
 
         space = SearchSpace(
             [Integer("a", 0, 10), Integer("b", 0, 10)],
@@ -407,7 +407,7 @@ class TestConstraints:
         assert not bool(constraints.isFeasible(encoder.snapColumns(relaxed)))
 
         with caplog.at_level(
-            logging.WARNING, logger="boptim.acquisition.AlphaAcquisitionStrategy"
+            logging.WARNING, logger="planexs.acquisition.AlphaAcquisitionStrategy"
         ):
             point = _strategy()._resolveCandidate(None, encoder, constraints, relaxed, seed=0)  # type: ignore[arg-type]
 
@@ -455,7 +455,7 @@ class TestConstraints:
         )
 
         with caplog.at_level(
-            logging.WARNING, logger="boptim.acquisition.AlphaAcquisitionStrategy"
+            logging.WARNING, logger="planexs.acquisition.AlphaAcquisitionStrategy"
         ):
             points = strategy.suggest(model, objective, space, 0.0, 2, seed=0)
 

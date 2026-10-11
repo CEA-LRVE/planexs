@@ -7,7 +7,7 @@ import math
 import pytest
 import torch
 
-from boptim import (
+from planexs import (
     Boolean,
     Categorical,
     Choice,
@@ -18,7 +18,7 @@ from boptim import (
     Real,
     SearchSpace,
 )
-from boptim.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _mixedSpace() -> SearchSpace:

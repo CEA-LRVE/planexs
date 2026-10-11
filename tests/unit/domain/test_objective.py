@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from boptim import Metric, Objective, OutcomeConstraint
+from planexs import Metric, Objective, OutcomeConstraint
 
 
 class TestObjective:

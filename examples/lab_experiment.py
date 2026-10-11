@@ -26,8 +26,8 @@ from __future__ import annotations
 import logging
 import os
 
-from boptim import AxBackend, BayesianOptimizer, Categorical, Real
-from boptim.logging_config import configureLogging
+from planexs import AxBackend, BayesianOptimizer, Categorical, Real
+from planexs.logging_config import configureLogging
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def runReactorExperiment(temperature: float, pressure: float, catalyst: str) -> 
     return the measured yield (or whatever quantity `objective` represents).
     """
     # A toy response surface, only so this script produces plausible-looking
-    # numbers when run standalone; it has no bearing on boptim's own logic.
+    # numbers when run standalone; it has no bearing on planexs' own logic.
     catalyst_bonus = {"A": 0.00, "B": 0.05, "C": -0.02}[catalyst]
     return max(
         0.0,
@@ -75,7 +75,7 @@ def main() -> None:
         backend=backend,
     )
 
-    # Seed the study with runs already carried out before boptim was involved
+    # Seed the study with runs already carried out before planexs was involved
     # (FR3): a real campaign almost always starts with some prior knowledge.
     known_runs = [
         ({"temperature": 180.0, "pressure": 3.0, "catalyst": "A"}, 0.41),

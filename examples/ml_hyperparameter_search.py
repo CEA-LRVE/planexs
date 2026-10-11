@@ -25,8 +25,8 @@ from __future__ import annotations
 import logging
 import math
 
-from boptim import BayesianOptimizer, Categorical, Choice, Integer, Real
-from boptim.logging_config import configureLogging
+from planexs import BayesianOptimizer, Categorical, Choice, Integer, Real
+from planexs.logging_config import configureLogging
 
 N_ROUNDS = 5
 BATCH_SIZE = 3

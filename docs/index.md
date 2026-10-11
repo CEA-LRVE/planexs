@@ -1,4 +1,4 @@
-# boptim
+# planexs
 
 A general-purpose, domain-agnostic Bayesian Optimization library for Python, built on top of
 [Ax](https://ax.dev) and [BoTorch](https://botorch.org).

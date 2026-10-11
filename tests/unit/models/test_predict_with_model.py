@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from boptim.models.buildSurrogateModel import buildSurrogateModel
-from boptim.models.predictWithModel import predictWithModel
+from planexs.models.buildSurrogateModel import buildSurrogateModel
+from planexs.models.predictWithModel import predictWithModel
 
 
 @pytest.fixture(scope="module")

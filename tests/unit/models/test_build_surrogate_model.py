@@ -7,10 +7,10 @@ import logging
 import pytest
 import torch
 
-from boptim import Categorical, Metric, Objective, Real, SearchSpace, Trial
-from boptim.models.buildSurrogateModel import buildSurrogateModel
-from boptim.models.encodeTrials import encodeTrials
-from boptim.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs import Categorical, Metric, Objective, Real, SearchSpace, Trial
+from planexs.models.buildSurrogateModel import buildSurrogateModel
+from planexs.models.encodeTrials import encodeTrials
+from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _data(n: int = 8, m: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
@@ -83,12 +83,12 @@ class TestBuildSurrogateModel:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         x, y = _data(n=3)
-        with caplog.at_level(logging.INFO, logger="boptim.models.buildSurrogateModel"):
+        with caplog.at_level(logging.INFO, logger="planexs.models.buildSurrogateModel"):
             buildSurrogateModel(x, y, minimum_points_for_free_fit=5)
         assert "low-confidence" in caplog.text
 
         caplog.clear()
-        with caplog.at_level(logging.INFO, logger="boptim.models.buildSurrogateModel"):
+        with caplog.at_level(logging.INFO, logger="planexs.models.buildSurrogateModel"):
             buildSurrogateModel(x, y, minimum_points_for_free_fit=3)
         assert caplog.text == ""
 
@@ -135,7 +135,7 @@ class TestEncodeTrials:
             Trial({"x": 2.0, "c": "a"}, {"f": 2.0}),
         ]
 
-        with caplog.at_level(logging.WARNING, logger="boptim.models.encodeTrials"):
+        with caplog.at_level(logging.WARNING, logger="planexs.models.encodeTrials"):
             _, _, train_yvar = encodeTrials(self._encoder(), objective, trials)
 
         assert train_yvar is None

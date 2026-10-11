@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from boptim import NonlinearConstraint
-from boptim.acquisition.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
+from planexs import NonlinearConstraint
+from planexs.acquisition.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 
 
 def _point(*values: float) -> torch.Tensor:

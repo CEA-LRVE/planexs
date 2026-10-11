@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from boptim import Boolean, Categorical, Derived, Integer, LinearConstraint, Real, SearchSpace
+from planexs import Boolean, Categorical, Derived, Integer, LinearConstraint, Real, SearchSpace
 
 
 class TestSearchSpace:

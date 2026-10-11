@@ -6,7 +6,7 @@ property behavior, error handling) without depending on a real Ax install:
 `BayesianOptimizer(..., backend=FakeBackend())` bypasses `AxBackend` entirely.
 
 Named `fake_backend.py` (snake_case), not `FakeBackend.py`: section 10's
-file-naming rule applies to `src/boptim/`'s public API surface, not test
+file-naming rule applies to `src/planexs/`'s public API surface, not test
 helper modules, and pytest's own collection conventions expect
 `test_*.py`/plain snake_case module names under `tests/`.
 """
@@ -15,10 +15,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from boptim.backends.OptimizationBackend import OptimizationBackend
-from boptim.domain.Objective import Objective
-from boptim.domain.SearchSpace import SearchSpace
-from boptim.domain.Trial import Trial
+from planexs.backends.OptimizationBackend import OptimizationBackend
+from planexs.domain.Objective import Objective
+from planexs.domain.SearchSpace import SearchSpace
+from planexs.domain.Trial import Trial
 
 
 class FakeBackend(OptimizationBackend):

@@ -11,8 +11,8 @@ import json
 
 import pytest
 
-from boptim import Boolean, Categorical, Choice, Derived, Fixed, Integer, Range, Real
-from boptim.domain.parameters.parameterFromDict import parameterFromDict
+from planexs import Boolean, Categorical, Choice, Derived, Fixed, Integer, Range, Real
+from planexs.domain.parameters.parameterFromDict import parameterFromDict
 
 
 def _roundTrip(parameter):  # type: ignore[no-untyped-def]

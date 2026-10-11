@@ -1,7 +1,7 @@
 """Unit tests for `JsonStudyRepository`.
 
 Round-trips a `StudySnapshot` built directly (not via a real `AxBackend`), so
-these tests exercise the JSON save/load of boptim's own domain objects and
+these tests exercise the JSON save/load of planexs' own domain objects and
 `ReproducibilityMetadata` without needing a real Ax install. `backend_state`
 here is a small, arbitrary JSON-compatible dict standing in for whatever a
 real `AxBackend.exportState()` would have produced.
@@ -12,10 +12,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from boptim import Categorical, LinearConstraint, Metric, Objective, Real, SearchSpace, Trial
-from boptim.domain.StudySnapshot import StudySnapshot
-from boptim.persistence.JsonStudyRepository import JsonStudyRepository
-from boptim.persistence.ReproducibilityMetadata import ReproducibilityMetadata
+from planexs import Categorical, LinearConstraint, Metric, Objective, Real, SearchSpace, Trial
+from planexs.domain.StudySnapshot import StudySnapshot
+from planexs.persistence.JsonStudyRepository import JsonStudyRepository
+from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata
 
 
 def _snapshot() -> StudySnapshot:
@@ -40,9 +40,9 @@ def _snapshot() -> StudySnapshot:
         ],
         reproducibility=ReproducibilityMetadata(
             random_seed=42,
-            library_versions={"boptim": "0.1.0"},
+            library_versions={"planexs": "0.1.0"},
             created_at=datetime(2026, 9, 25, tzinfo=UTC),
-            boptim_version="0.1.0",
+            planexs_version="0.1.0",
         ),
         backend_state={"fake": "ax-client-json-goes-here"},
     )
@@ -87,7 +87,7 @@ class TestJsonStudyRepository:
         reloaded = JsonStudyRepository().load(path)
 
         assert reloaded.reproducibility.random_seed == 42
-        assert reloaded.reproducibility.boptim_version == "0.1.0"
+        assert reloaded.reproducibility.planexs_version == "0.1.0"
 
     def test_round_trips_opaque_backend_state(self, tmp_path: Path) -> None:
         snapshot = _snapshot()

@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 from fake_backend import FakeBackend  # local test double, tests/unit/api/fake_backend.py
 
-from boptim import (
+from planexs import (
     AcquisitionStrategy,
     BayesianOptimizer,
     Categorical,
@@ -29,7 +29,7 @@ from boptim import (
     Real,
     SearchSpace,
 )
-from boptim.api.BayesianOptimizer import (
+from planexs.api.BayesianOptimizer import (
     DEFAULT_ALPHA_WHEN_FORCED,
     MIN_TRIALS_FOR_MODEL,
 )
@@ -319,7 +319,7 @@ class TestAskWithAlpha:
             parameters=[Real("x", 0.0, 1.0)], backend=FakeBackend(), acquisition_strategy=spy
         )
         kinds = []
-        with caplog.at_level(logging.INFO, logger="boptim.api.BayesianOptimizer"):
+        with caplog.at_level(logging.INFO, logger="planexs.api.BayesianOptimizer"):
             for _ in range(MIN_TRIALS_FOR_MODEL + 1):
                 bo.ask(alpha=0.5)
                 kinds.append(spy.calls[-1]["kind"])
@@ -373,7 +373,7 @@ class TestAskWithAlpha:
             backend=FakeBackend(),
         )
 
-        with caplog.at_level(logging.WARNING, logger="boptim.api.BayesianOptimizer"):
+        with caplog.at_level(logging.WARNING, logger="planexs.api.BayesianOptimizer"):
             bo.ask(alpha=0.5)
             assert "OutcomeConstraints" in caplog.text
             caplog.clear()
@@ -419,7 +419,7 @@ class TestNonlinearConstraintSwitch:
     ) -> None:
         bo = self._optimizer(nonlinear=nonlinear)
 
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask(alpha=alpha)
 
         switch_warnings = [
@@ -444,14 +444,14 @@ class TestNonlinearConstraintSwitch:
             backend=backend,
         )
 
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask()
 
         assert backend.suggest_default_calls == 1 and caplog.text == ""
 
     def test_every_forced_call_warns_again(self, caplog: pytest.LogCaptureFixture) -> None:
         bo = self._optimizer(nonlinear=True)
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask()
             bo.ask()
         assert len([r for r in caplog.records if "NonlinearConstraint" in r.getMessage()]) == 2
@@ -513,7 +513,7 @@ class TestEqualityConstraintSwitch:
         backend = _CountingBackend()
         bo = self._mixture(backend)
 
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask()
 
         [record] = [r for r in caplog.records if "equality LinearConstraint" in r.getMessage()]
@@ -525,7 +525,7 @@ class TestEqualityConstraintSwitch:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         bo = self._mixture()
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask(alpha=0.4)
         assert caplog.text == ""
 
@@ -560,7 +560,7 @@ class TestEqualityConstraintSwitch:
             ],
             backend=FakeBackend(),
         )
-        with caplog.at_level(logging.WARNING, logger="boptim"):
+        with caplog.at_level(logging.WARNING, logger="planexs"):
             bo.ask()
         [record] = [r for r in caplog.records if "DEFAULT_ALPHA_WHEN_FORCED" in r.getMessage()]
         # named once each, in the order they were declared
@@ -582,7 +582,7 @@ class _NoModelBackend(FakeBackend):
 
 
 def _countFits(monkeypatch: pytest.MonkeyPatch) -> list[int]:
-    module = importlib.import_module("boptim.api.BayesianOptimizer")
+    module = importlib.import_module("planexs.api.BayesianOptimizer")
 
     fits: list[int] = []
     original = module.buildSurrogateModel
@@ -596,7 +596,7 @@ def _countFits(monkeypatch: pytest.MonkeyPatch) -> list[int]:
 
 
 class TestPredictWithoutABackendModel:
-    """`predict()` falls back to boptim's own surrogate while the backend has none."""
+    """`predict()` falls back to planexs' own surrogate while the backend has none."""
 
     @staticmethod
     def _optimizer(backend: FakeBackend | None = None) -> BayesianOptimizer:
@@ -667,11 +667,11 @@ class TestPredictWithoutABackendModel:
         bo = self._optimizer()
         self._tell(bo, [0.0, 2.0, 4.0])
 
-        with caplog.at_level(logging.INFO, logger="boptim.api.BayesianOptimizer"):
+        with caplog.at_level(logging.INFO, logger="planexs.api.BayesianOptimizer"):
             bo.predict({"x": 1.0})
             bo.predict({"x": 2.0})
 
-        assert caplog.text.count("predicting with boptim's own surrogate") == 1
+        assert caplog.text.count("predicting with planexs' own surrogate") == 1
 
     def test_every_metric_of_a_multi_objective_study_is_predicted(self) -> None:
         objective = Objective([Metric("cost", minimize=True), Metric("util", minimize=False)])

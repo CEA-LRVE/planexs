@@ -1,12 +1,14 @@
-# boptim
+# planexs
 
 A general-purpose, domain-agnostic Bayesian Optimization library for Python, built on top of
 [Ax](https://ax.dev) and [BoTorch](https://botorch.org).
 
-`boptim` is equally comfortable with a campaign of 4-5 extremely costly physical-experiment
+`planexs` is equally comfortable with a campaign of 4-5 extremely costly physical-experiment
 evaluations, a few hundred ML hyperparameter-tuning trials, or thousands of cheap, fast
 evaluations, without the caller having to pre-classify which case they are in. See
 [`PROJECT_SPECIFICATION.md`](./PROJECT_SPECIFICATION.md) for the full design.
+
+The name stands for *PLANification EXpérimentale Séquentielle*, the French for sequential experimental design.
 
 ## Status
 
@@ -27,7 +29,7 @@ Phase 1 implemented:
 
 Phase 2 adds:
 
-- `ask(n_points=..., alpha=...)` (FR5, FR10): boptim's own acquisition layer, a blend of
+- `ask(n_points=..., alpha=...)` (FR5, FR10): planexs' own acquisition layer, a blend of
   exploitation and exploration weighted by `alpha`, with batches chosen sequentially. It fits
   its own surrogate model from the trial history (ADR-0007) and handles log scales, integer
   grids, ordered and categorical choices, and conditional parameters.
@@ -36,7 +38,7 @@ Phase 2 adds:
   `ask()` with no `alpha` switches to the custom layer and logs a warning (ADR-0006). The same
   goes for an equality `LinearConstraint` such as a mixture summing to one, which Ax cannot
   enforce either (ADR-0008).
-- `predict()` works from the second trial on: it uses boptim's own surrogate while Ax, still in
+- `predict()` works from the second trial on: it uses planexs' own surrogate while Ax, still in
   its initial space-filling phase, has no model yet.
 
 Known limits of the custom layer in this phase: it does not enforce `OutcomeConstraint`s (a
@@ -59,7 +61,7 @@ robustness work and an acquisition layer that reasons about `dependent_parameter
 uv sync
 ```
 
-This installs `boptim` and its pinned dependencies (`ax-platform`, `botorch`, `gpytorch`,
+This installs `planexs` and its pinned dependencies (`ax-platform`, `botorch`, `gpytorch`,
 `torch`, `pydantic`) into a local virtual environment. For development (tests, lint, type
 checking, docs):
 
@@ -70,7 +72,7 @@ uv sync --extra dev --extra docs
 ## Quickstart
 
 ```python
-from boptim import BayesianOptimizer, Real, Integer, Categorical, Boolean
+from planexs import BayesianOptimizer, Real, Integer, Categorical, Boolean
 
 bo = BayesianOptimizer(
     parameters=[

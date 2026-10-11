@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from botorch.models.model import Model
 
-from boptim import BayesianOptimizer, Real
+from planexs import BayesianOptimizer, Real
 
 
 def _optimizer() -> BayesianOptimizer:

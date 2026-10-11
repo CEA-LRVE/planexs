@@ -1,10 +1,10 @@
-"""Which constraints only boptim's own acquisition layer can enforce (ADR-0006, ADR-0008)."""
+"""Which constraints only planexs' own acquisition layer can enforce (ADR-0006, ADR-0008)."""
 
 from __future__ import annotations
 
 import pytest
 
-from boptim import LinearConstraint, NonlinearConstraint
+from planexs import LinearConstraint, NonlinearConstraint
 
 
 class TestRequiresCustomAcquisitionLayer:

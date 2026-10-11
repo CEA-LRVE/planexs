@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from boptim import Boolean, Categorical
-from boptim.domain.parameters.Choice import Choice
+from planexs import Boolean, Categorical
+from planexs.domain.parameters.Choice import Choice
 
 
 class TestChoice:

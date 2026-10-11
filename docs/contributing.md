@@ -54,7 +54,7 @@ arrows (`→`): use `->` instead.
 ## Modularity
 
 One responsibility per file; one class per file. No god-files: a base class, its registry, and
-every concrete strategy each get their own file (see `src/boptim/` for what this looks like in
+every concrete strategy each get their own file (see `src/planexs/` for what this looks like in
 practice: `parameters/`, `constraints/`, `acquisition/` each split this way).
 
 ## Docstrings

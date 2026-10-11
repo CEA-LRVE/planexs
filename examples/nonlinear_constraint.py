@@ -7,13 +7,13 @@ constraint can express:
 
     flow ** 2 / diameter ** 4 <= 2.0
 
-Ax's own `parameter_constraints` are linear only, so boptim enforces this one in
+Ax's own `parameter_constraints` are linear only, so planexs enforces this one in
 its own acquisition layer (ADR-0006). Demonstrates:
 
 - Declaring the constraint as an expression string, so the study still saves and
   reloads like any other (FR11).
 - The automatic switch: `ask()` with no `alpha` would normally use Ax's own
-  strategy, which cannot enforce this constraint, so boptim switches to its own
+  strategy, which cannot enforce this constraint, so planexs switches to its own
   layer and logs a warning saying so. Passing `alpha` explicitly is the way to
   choose the exploration/exploitation trade-off yourself, and it silences the
   warning.
@@ -29,8 +29,8 @@ import logging
 import tempfile
 from pathlib import Path
 
-from boptim import BayesianOptimizer, NonlinearConstraint, Real
-from boptim.logging_config import configureLogging
+from planexs import BayesianOptimizer, NonlinearConstraint, Real
+from planexs.logging_config import configureLogging
 
 PRESSURE_DROP_LIMIT = 2.0
 
@@ -67,7 +67,7 @@ def main() -> None:
         random_seed=0,
     )
 
-    # 1) No alpha: boptim switches to its own layer and warns (ADR-0006). Look for
+    # 1) No alpha: planexs switches to its own layer and warns (ADR-0006). Look for
     #    the WARNING line in the output below.
     print("ask() with no alpha (watch for the warning):")
     (first,) = bo.ask()
@@ -107,7 +107,7 @@ def _evaluate(
     """Evaluates and tells one candidate; returns `(value, flow, diameter)`."""
     flow, diameter = float(candidate["flow"]), float(candidate["diameter"])
     drop = pressureDrop(flow, diameter)
-    assert drop <= PRESSURE_DROP_LIMIT * (1 + 1e-5), "boptim returned an infeasible point"
+    assert drop <= PRESSURE_DROP_LIMIT * (1 + 1e-5), "planexs returned an infeasible point"
     value = throughputPerCost(flow, diameter)
     bo.tell(candidate, {"objective": value})
     print(

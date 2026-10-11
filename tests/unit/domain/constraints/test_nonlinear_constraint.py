@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from boptim import LinearConstraint, NonlinearConstraint, Real, SearchSpace
-from boptim.domain.constraints.constraintFromDict import constraintFromDict
-from boptim.domain.constraints.validateExpression import (
+from planexs import LinearConstraint, NonlinearConstraint, Real, SearchSpace
+from planexs.domain.constraints.constraintFromDict import constraintFromDict
+from planexs.domain.constraints.validateExpression import (
     ALLOWED_EXPRESSION_FUNCTIONS,
     MAX_EXPRESSION_LENGTH,
     validateExpression,

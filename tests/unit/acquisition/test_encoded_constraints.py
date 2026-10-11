@@ -7,7 +7,7 @@ import math
 import pytest
 import torch
 
-from boptim import (
+from planexs import (
     Categorical,
     Choice,
     Fixed,
@@ -17,9 +17,9 @@ from boptim import (
     Real,
     SearchSpace,
 )
-from boptim.acquisition.EncodedConstraints import EncodedConstraints
-from boptim.acquisition.sampleFeasibleEncoded import sampleFeasibleEncoded
-from boptim.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.acquisition.EncodedConstraints import EncodedConstraints
+from planexs.acquisition.sampleFeasibleEncoded import sampleFeasibleEncoded
+from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _build(space: SearchSpace) -> tuple[SearchSpaceEncoder, EncodedConstraints]:

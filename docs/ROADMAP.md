@@ -1,20 +1,20 @@
 # Roadmap
 
 **Status:** living document, v0.1. Update each task's status when it completes, and refresh the baseline (section 2.1) at each release.
-**Baseline:** commit `f5829e4` (version 0.1.0, five commits, no tag), measured on 2026-10-09. The measurements are static; the dynamic ones belong to task P0-02.
+**Baseline:** commit `f5829e4` (version 0.1.0, five commits, no tag), measured on 2026-10-09. The static measurements come from that commit. The dynamic ones (tests, coverage, mypy, ruff, documentation build) were taken by task P0-02 on 2026-10-11 at commit `d1c0b46` (section 2.1).
 **Authority:** the [project specification](PROJECT_SPECIFICATION.md) is the ground truth. When this file and the specification disagree, the specification wins, and the disagreement is a bug to fix in one of the two files. Open decisions are asked, never guessed (specification 11 and 12): every task that depends on one names it (`D-n`), and section 17 lists them all with a proposed default.
 
 ---
 
 ## 1. At a glance
 
-boptim 0.1.0 is a Bayesian-optimization library built on Ax, with a custom BoTorch acquisition layer for what Ax cannot do. It works, and its parameter and constraint model, its search-space encoder and its constraint machinery are worth keeping. Its architecture cannot reach the scope of the specification: the objective is the centre of the domain, Ax is the foundation, the surrogate and the acquisition are hard-wired, two engines and two surrogates live side by side, and policy values are hidden constants.
+The code at version 0.1.0, named boptim until the rename of D-1, is a Bayesian-optimization library built on Ax, with a custom BoTorch acquisition layer for what Ax cannot do. It works, and its parameter and constraint model, its search-space encoder and its constraint machinery are worth keeping. Its architecture cannot reach the scope of the specification: the objective is the centre of the domain, Ax is the foundation, the surrogate and the acquisition are hard-wired, two engines and two surrogates live side by side, and policy values are hidden constants.
 
 **Decision recorded here: refactor the core, keep the periphery, do not restart.** The new architecture is built beside the old code, and the old path is deleted only once the twelve reference use cases pass on the new one (section 2.3).
 
 | Phase | Theme | Outcome | Tasks |
 |---|---|---|---|
-| 0 | Guardrails | CI, checkers, fixed documentation entry points | 7 (6 S, 1 M) |
+| 0 | Guardrails | CI, checkers, fixed documentation entry points | 8 (7 S, 1 M) |
 | 1 | Core mechanics | Registries, capabilities, configuration, plugins, layering check | 17 (14 S, 3 M) |
 | 2 | Domain generalization | Pure, registry-driven domain; legacy types isolated | 12 (10 S, 2 M) |
 | 3 | Encoding and surrogates | Encoder under `encoding/`, surrogate kind, GP and classifier builders | 17 (14 S, 3 M) |
@@ -27,7 +27,7 @@ boptim 0.1.0 is a Bayesian-optimization library built on Ax, with a custom BoTor
 | 10 | Input extensibility and the Ax adapter | Registry-driven inputs, Ax as an optional adapter | 10 (6 S, 4 M) |
 | 11 | Cleanup and release | Legacy deleted, documentation, release 0.2.0 | 15 (15 S, 0 M) |
 
-The plan has 145 tasks (104 of size S and 41 of size M). There is no larger size, on purpose (section 3.1): a task is small enough to be finished completely, tests and documentation included, in one sitting.
+The plan has 146 tasks (105 of size S and 41 of size M). There is no larger size, on purpose (section 3.1): a task is small enough to be finished completely, tests and documentation included, in one sitting.
 
 **Order.** Phase 0 and Phase 1 come first, in order. Phases 2 and 3 can then start in parallel (P3-01 to P3-05 only need Phase 1); the surrogate tasks of Phase 3 need the domain of Phase 2. Phase 4 needs Phases 2 and 3 (designs use the feasible sampler), Phase 5 needs Phases 3 and 4, and Phase 6 needs Phase 5. Phases 7 and 8 can proceed in parallel after Phase 6. Phase 9 needs everything before it, Phase 10 follows Phase 9, and Phase 11 closes the plan.
 
@@ -39,17 +39,18 @@ The plan has 145 tasks (104 of size S and 41 of size M). There is no larger size
 
 ### 2.1 Baseline
 
-Static measurements on a fresh clone. The heavy dependencies (torch, botorch, ax) were not installed for this audit, so test results, coverage and mypy are 'not measured' here; task P0-02 measures them and replaces those lines.
+Static measurements on a fresh clone of `f5829e4` (2026-10-09), completed by the dynamic measurements of task P0-02, taken on 2026-10-11 at commit `d1c0b46` (upstream `0491e04` plus the P0-01 fix; tree `8338ba65fe60`). The measurements ran on a fresh clone of a local commit of that same change (`9fdaa09`, before the owner's commit existed): its tree is identical to that of `d1c0b46`, so every number below holds for `d1c0b46`. Environment and commands: Appendix A. Paths and module names in this section use the current name `planexs`; commits `f5829e4`, `0491e04` and `d1c0b46` were made under the former name `boptim` (D-1).
 
 | Check | Result |
 |---|---|
 | Commit and version | `f5829e4` ("phase 2"), 5 commits, version 0.1.0, no tag. `pyproject.toml` declares the license as TBD. |
-| Source | 5,823 lines in 58 files under `src/boptim`. |
-| Tests | 29 test files with 359 test functions (4,535 lines). Results and coverage: not measured (P0-02). |
-| ruff | 1 finding with ruff 0.17.0 (E501 in `examples/nonlinear_constraint.py`). `ruff format --check`: 109 files already formatted. |
-| Naming check | `scripts/check_naming_convention.py` reports 1 violation: `src/boptim/domain/parameters/parameter.py` is tracked in lowercase while every import says `Parameter`. A fresh clone cannot import the package on a case-sensitive filesystem (P0-01). |
-| mypy | Not measured (P0-02). |
+| Source | 5,823 lines in 58 files under `src/planexs`. |
+| Tests | 29 test files with 359 test functions (4,535 lines), collected by pytest as 425 tests (parametrization). Measured at `d1c0b46`: 425 passed, 0 failed, 0 skipped, 65 warnings, in 167 s on one CPU. The 65 warnings are 15 distinct messages: 14 are raised inside ax (8), botorch (3), torch, linear_operator and gpytorch, and 1 at `tests/unit/acquisition/test_encoded_constraints.py:143` (a tensor with `requires_grad` converted to a scalar). Coverage (`--cov=planexs`, set in `pyproject.toml`): 94.55% (1,667 of 1,763 statements), with 42 of 58 files at 100%. Two files are at 0%: `backends/ax/fromAxSearchSpace.py` (39 statements) and `logging_config.py` (13). |
+| ruff | Measured at `d1c0b46` with ruff 0.16.9 (the version locked in `uv.lock`) and with ruff 0.17.0 (the version of the static baseline): identical results. `ruff check .`: 1 finding, E501 in `examples/nonlinear_constraint.py:91` (109 columns, limit 95), exit 1. `ruff format --check .`: 1 file would be reformatted and 109 are already formatted, exit 1. The file is `docs/PROJECT_SPECIFICATION.md` (line 447): ruff also formats the Python blocks of Markdown files, and the illustrative snippet added in `0491e04` is not in its format. At `f5829e4` all 109 files were formatted. P0-08 fixes both failures. |
+| Naming check | `scripts/check_naming_convention.py` reports 1 violation: `src/planexs/domain/parameters/parameter.py` is tracked in lowercase while every import says `Parameter`. A fresh clone cannot import the package on a case-sensitive filesystem (P0-01). |
+| mypy | mypy 2.3.1 with `strict = true` from `pyproject.toml`: 0 errors (`Success: no issues found in 58 source files`), exit 0. |
 | CI | None: there is no `.github/` directory, although specification 10.13 requires CI. |
+| Documentation build | `mkdocs build --strict` exits 1 with 3 warnings: links in `docs/index.md` to `../PROJECT_SPECIFICATION.md` and `../README.md`, and a link in `docs/changelogs/CHANGELOG.md` to `../../scripts/cut_release.py`, do not resolve. `PROJECT_SPECIFICATION.md`, `ROADMAP.md` and `changelogs/changelog-v0.1.0.md` are not in `nav` (information only). P0-07 covers it. |
 | Policy values | 39 numeric literals outside {0, 1, -1, 2} in 11 of the 58 files. About 30 are policy values (restarts, sample counts, tolerances, caps, seed constants), 6 are tensor axis indices and 3 are unit-cube midpoints. The most: the encoder (7), the alpha strategy (6) and the feasible sampler (6). |
 | Hard-wired engine choices | `SingleTaskGP`, `Standardize`, `ExactMarginalLogLikelihood`, `fit_gpytorch_mll`, `SobolQMCNormalSampler`, `optimize_acqf`, `optimize_acqf_mixed` and `ScalarizedPosteriorTransform` are named inside algorithms in 5 files. |
 | Closed dispatch | 9 files branch on concrete parameter or constraint classes, or on their type tags (the encoder, the encoded constraints, both `...FromDict` functions, the parameter encoding, the facade and the Ax mapping files). |
@@ -179,16 +180,16 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 **Size:** S | **Needs:** none | **Spec:** 10.2 | **Status:** done
 
-**Do.** `git ls-files` tracks `src/boptim/domain/parameters/parameter.py` in lowercase, while every import and the naming rule expect `Parameter.py`. On a case-sensitive filesystem a fresh clone cannot import the package. Rename the tracked file with `git mv` through a temporary name (so that the case change is recorded on any filesystem) and fix any remaining reference.
+**Do.** `git ls-files` tracks `src/planexs/domain/parameters/parameter.py` in lowercase, while every import and the naming rule expect `Parameter.py`. On a case-sensitive filesystem a fresh clone cannot import the package. Rename the tracked file with `git mv` through a temporary name (so that the case change is recorded on any filesystem) and fix any remaining reference.
 
 **Done when.**
 - [ ] `git ls-files` lists `Parameter.py` and no lowercase variant;
 - [ ] `python scripts/check_naming_convention.py` exits 0;
-- [ ] in a fresh clone on Linux with the dependencies installed, `python -c 'import boptim'` succeeds (paste the output in the report).
+- [ ] in a fresh clone on Linux with the dependencies installed, `python -c 'import planexs'` succeeds (paste the output in the report).
 
 ### P0-02. Measure the dynamic baseline
 
-**Size:** S | **Needs:** P0-01 | **Spec:** 10.13 | **Status:** todo
+**Size:** S | **Needs:** P0-01 | **Spec:** 10.13 | **Status:** done
 
 **Do.** Install the project (`uv sync --extra dev --extra docs`), then run `pytest` with coverage, `mypy`, `ruff check .` and `ruff format --check .`. Record in section 2.1 of this file, replacing the 'not measured' lines: the number of tests and failures, the coverage percentage, the mypy error count, the commit hash and the date. Change no code in this task.
 
@@ -198,7 +199,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-03. Add the CI workflow
 
-**Size:** S | **Needs:** P0-02 | **Spec:** 10.13 | **Decision:** D-6 | **Status:** todo
+**Size:** S | **Needs:** P0-02, P0-08 | **Spec:** 10.13 | **Decision:** D-6 | **Status:** todo
 
 **Do.** Add `.github/workflows/ci.yaml`, triggered on push and on pull request, using `uv`. Three jobs: `lint` (`ruff check .`, `ruff format --check .`, `scripts/check_naming_convention.py`), `types` (`mypy`) and `tests` (`pytest` with coverage, failing under a floor one point below the coverage measured in P0-02), on the Python versions of D-6. Add a status badge to `README.md`.
 
@@ -221,7 +222,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 **Size:** M | **Needs:** P0-03 | **Spec:** 3.4, 10.7 | **Decision:** D-5 | **Status:** todo
 
-**Do.** Create `scripts/check_policy_values.py` (standard library only, AST based). It reports every numeric literal other than 0, 1, -1 and 2 (any spelling: `0.0`, `1.0`, `2.0`) in `src/boptim`, except in files whose single public symbol is a configuration schema (class name ending in `Config`, where defaults legitimately live). A literal is exempt when its line carries `# structural: <reason>` with a non-empty reason. Each violation prints file, line, value and position (module level, signature default, function body). Add `--baseline FILE` (fail on violations absent from the file and on entries that no longer exist) and `--write-baseline`.
+**Do.** Create `scripts/check_policy_values.py` (standard library only, AST based). It reports every numeric literal other than 0, 1, -1 and 2 (any spelling: `0.0`, `1.0`, `2.0`) in `src/planexs`, except in files whose single public symbol is a configuration schema (class name ending in `Config`, where defaults legitimately live). A literal is exempt when its line carries `# structural: <reason>` with a non-empty reason. Each violation prints file, line, value and position (module level, signature default, function body). Add `--baseline FILE` (fail on violations absent from the file and on entries that no longer exist) and `--write-baseline`.
 
 **Done when.**
 - [ ] unit tests cover allowed literals, negative numbers, the marker with and without a reason, the configuration-file exclusion, signature defaults, and the baseline add and stale cases;
@@ -236,7 +237,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 **Done when.**
 - [ ] CI runs the check;
-- [ ] adding a numeric literal to a file under `src/boptim` makes the job fail (state the evidence);
+- [ ] adding a numeric literal to a file under `src/planexs` makes the job fail (state the evidence);
 - [ ] the baseline file starts with a comment saying that entries are only ever removed.
 
 ### P0-07. Fix the documentation entry points
@@ -250,11 +251,27 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 - [ ] `mkdocs build --strict` passes with both documents in the navigation;
 - [ ] the README no longer states phase numbers or test counts.
 
+### P0-08. Make ruff pass on the current tree
+
+**Size:** S | **Needs:** P0-02 | **Spec:** 10.1, 10.13 | **Status:** todo
+
+**Do.** P0-02 measured that `ruff check .` and `ruff format --check .` both exit 1 on the current tree (section 2.1), so the `lint` job of P0-03 would fail on its first run. Fix both with the smallest change and no change of behaviour:
+1. `examples/nonlinear_constraint.py:91` is 109 columns wide for a limit of 95 (E501). Split that f-string into two adjacent f-strings, breaking at the space before `(limit ...)`: the printed text is identical. The file is rewritten in P11-06, which keeps its own scope.
+2. `ruff format` also formats the Python blocks inside Markdown files, and wants to reflow the illustrative `MyBoundaryScoreBuilder` snippet of section 9.2 of `docs/PROJECT_SPECIFICATION.md` (a line number would go stale: it was line 447 when P0-02 measured it). Add a `[tool.ruff.format]` table with `exclude = ["*.md"]` to `pyproject.toml`, with a comment saying that Markdown is not formatted by ruff and why. This option adds to ruff's global exclusions and does not touch linting. Do not edit the specification: it is the ground truth, and P0-07 puts its copy in `docs/`.
+
+**Done when.**
+- [ ] `ruff check .` and `ruff format --check .` both exit 0 with the ruff version locked in `uv.lock` (paste both outputs);
+- [ ] a deliberately mis-formatted scratch `.py` file is still reported by `ruff format --check`, and a scratch line longer than 95 columns is still reported by `ruff check` (evidence that neither the exclusion nor the fix weakens the checks);
+- [ ] `mypy` still reports 0 errors and `pytest` still reports 425 passed;
+- [ ] the change touches exactly two files, `pyproject.toml` and `examples/nonlinear_constraint.py`, and the specification is unchanged.
+
+**Note.** Added by P0-02, which checked this remedy on a throwaway copy: both ruff commands exit 0, mypy is unchanged, 5 lines changed. It is a proposal until the owner accepts the pull request that adds this card.
+
 ---
 
 ## 6. Phase 1: Core mechanics
 
-Record the architecture decisions, then build the `core` layer: the error hierarchy, registries and the kind table, capability tags and the compatibility check, component configuration with nesting and resolution, configuration files, plugin discovery, random-number derivation and runtime settings. Add the layering checker. The `core` layer imports nothing from the rest of boptim and no machine-learning library.
+Record the architecture decisions, then build the `core` layer: the error hierarchy, registries and the kind table, capability tags and the compatibility check, component configuration with nesting and resolution, configuration files, plugin discovery, random-number derivation and runtime settings. Add the layering checker. The `core` layer imports nothing from the rest of planexs and no machine-learning library.
 
 **Exit criteria.** A toy component kind can be defined, registered, configured from YAML, compatibility-checked and discovered from a plugin, with tests, using nothing but `core`; the layering check runs in CI.
 
@@ -262,7 +279,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 **Size:** S | **Needs:** P0-07 | **Spec:** 5, 11 | **Status:** todo
 
-**Do.** Scaffold the ADR with `scripts/new_adr.py` (it takes the next number). Record the decision of the specification: boptim is organized around a study, a goal and a policy made of registered components; Ax stops being the foundation and becomes an optional adapter; the custom acquisition layer becomes ordinary components. Options considered: keep Ax as the foundation and add features on top; wrap BoTorch directly without registries; the design of the specification. Set the status line of ADR-0001, 0005, 0006, 0007 and 0008 to 'Superseded by ADR-0009' (status lines only; their text is untouched). Add the ADR to `mkdocs.yml`.
+**Do.** Scaffold the ADR with `scripts/new_adr.py` (it takes the next number). Record the decision of the specification: planexs is organized around a study, a goal and a policy made of registered components; Ax stops being the foundation and becomes an optional adapter; the custom acquisition layer becomes ordinary components. Its context section also records the rename of the project from boptim to planexs (D-1, decided on 2026-10-11). Options considered: keep Ax as the foundation and add features on top; wrap BoTorch directly without registries; the design of the specification. Set the status line of ADR-0001, 0005, 0006, 0007 and 0008 to 'Superseded by ADR-0009' (status lines only; their text is untouched). Add the ADR to `mkdocs.yml`.
 
 **Done when.**
 - [ ] every section of the ADR template is filled, with no placeholder text;
@@ -301,11 +318,11 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 **Size:** S | **Needs:** P1-02 | **Spec:** 3.6, 10.10 | **Status:** todo
 
-**Do.** Create the `core` package with `BoptimError` and its subclasses `ConfigError`, `RegistryError`, `CompatibilityError` and `ModelNotReadyError`, one class per file. Every error carries a message and optional structured hints (component name, field path, suggestion) that `str()` renders on separate lines.
+**Do.** Create the `core` package with `PlanexsError` and its subclasses `ConfigError`, `RegistryError`, `CompatibilityError` and `ModelNotReadyError`, one class per file. Every error carries a message and optional structured hints (component name, field path, suggestion) that `str()` renders on separate lines.
 
 **Done when.**
-- [ ] tests cover inheritance from `BoptimError` and rendering with and without each hint;
-- [ ] `core/__init__.py` has a docstring stating the layer's rule: it imports nothing from boptim and no machine-learning library.
+- [ ] tests cover inheritance from `PlanexsError` and rendering with and without each hint;
+- [ ] `core/__init__.py` has a docstring stating the layer's rule: it imports nothing from planexs and no machine-learning library.
 
 ### P1-06. Registry and the kind table
 
@@ -433,7 +450,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 Make the domain a pure, registry-driven description of problems: parameter and constraint types, outcomes and outcome kinds, trials with a lifecycle, observations, problems and their facts. The old classes that the new design replaces are renamed `Legacy*` so that the old path keeps working until Phase 11.
 
-**Exit criteria.** `boptim.core` and `boptim.domain` import no machine-learning library; the legacy path still works under its `Legacy*` names; parameter and constraint types are registered.
+**Exit criteria.** `planexs.core` and `planexs.domain` import no machine-learning library; the legacy path still works under its `Legacy*` names; parameter and constraint types are registered.
 
 ### P2-01. ADR-0012: outcomes, trials and observations
 
@@ -465,7 +482,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 **Do.** Move `Range.toAxKwargs`, `Choice.toAxKwargs`, `Derived.toAxKwargs`, `LinearConstraint.toAxParameterConstraintString` and `LegacyOutcomeConstraint.toAxOutcomeConstraintString` into functions under `backends/ax` (one function per file, next to `toAxSearchSpace.py` and `toAxOptimizationConfig.py`), and update callers and tests. `requires_custom_acquisition_layer` on constraints stays for now because the legacy path uses it; new code must not use it, and P11-03 deletes it.
 
 **Done when.**
-- [ ] no file under `domain/` mentions Ax (`git grep -iw ax src/boptim/domain` is empty);
+- [ ] no file under `domain/` mentions Ax (`git grep -iw ax src/planexs/domain` is empty);
 - [ ] the legacy tests pass.
 
 ### P2-04. Parameter-type registry
@@ -540,17 +557,17 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 **Size:** S | **Needs:** P2-02 | **Spec:** 8, 3.9 | **Status:** todo
 
-**Do.** `boptim/__init__.py` imports every layer eagerly, so `import boptim.domain` imports torch. Make the re-exports lazy (a module-level `__getattr__`, with imports under `TYPE_CHECKING` for type checkers) and keep `__all__` and `__version__`.
+**Do.** `planexs/__init__.py` imports every layer eagerly, so `import planexs.domain` imports torch. Make the re-exports lazy (a module-level `__getattr__`, with imports under `TYPE_CHECKING` for type checkers) and keep `__all__` and `__version__`.
 
 **Done when.**
-- [ ] importing `boptim` leaves `torch` out of `sys.modules` (test in a subprocess);
+- [ ] importing `planexs` leaves `torch` out of `sys.modules` (test in a subprocess);
 - [ ] every name in `__all__` still imports (test), and mypy strict still sees the names.
 
 ### P2-12. Domain and core purity tests
 
 **Size:** S | **Needs:** P2-11, P2-03 | **Spec:** 3.9, 10.11 | **Status:** todo
 
-**Do.** Add tests that import `boptim.core` and `boptim.domain` in a fresh subprocess and assert that `torch`, `botorch`, `gpytorch` and `ax` are not in `sys.modules`, and that `boptim.core` imports no other boptim layer.
+**Do.** Add tests that import `planexs.core` and `planexs.domain` in a fresh subprocess and assert that `torch`, `botorch`, `gpytorch` and `ax` are not in `sys.modules`, and that `planexs.core` imports no other planexs layer.
 
 **Done when.**
 - [ ] both tests pass, and both fail when a forbidden import is added to a scratch module (state the evidence).
@@ -1422,7 +1439,7 @@ One task per reference use case of specification section 7. These tests are the 
 
 **Done when.**
 - [ ] test and example exist and pass;
-- [ ] a check shows that no file under `src/boptim` was edited for this use case.
+- [ ] a check shows that no file under `src/planexs` was edited for this use case.
 
 ### P9-12. UC-12: opaque policies
 
@@ -1526,7 +1543,7 @@ Finish the registry-driven design on the input side (parameter and constraint en
 
 **Size:** S | **Needs:** P10-07 | **Spec:** 1.4, 10.9 | **Decision:** D-3 | **Status:** todo
 
-**Do.** Move `ax-platform` from `dependencies` to an `ax` extra in `pyproject.toml`, refresh the lock file with uv, and add a test that imports `boptim` and builds a default study in a subprocess where `ax` is blocked by an import hook. Add a CI job that installs the extra and runs the adapter tests.
+**Do.** Move `ax-platform` from `dependencies` to an `ax` extra in `pyproject.toml`, refresh the lock file with uv, and add a test that imports `planexs` and builds a default study in a subprocess where `ax` is blocked by an import hook. Add a CI job that installs the extra and runs the adapter tests.
 
 **Done when.**
 - [ ] the blocked-import test passes;
@@ -1584,7 +1601,7 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 
 **Size:** S | **Needs:** P11-03 | **Spec:** 8, 10.4 | **Status:** todo
 
-**Do.** Rewrite the lazy exports of `boptim/__init__.py` for the public surface: `Study`, parameters and constraints, outcomes, trials, the goal configurations, the registration decorators of every kind, `loadPlugins`, the errors and `__version__`. Add a test that lists the exported names and a test that every export has a docstring.
+**Do.** Rewrite the lazy exports of `planexs/__init__.py` for the public surface: `Study`, parameters and constraints, outcomes, trials, the goal configurations, the registration decorators of every kind, `loadPlugins`, the errors and `__version__`. Add a test that lists the exported names and a test that every export has a docstring.
 
 **Done when.**
 - [ ] the names test and the docstring test pass;
@@ -1660,7 +1677,7 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 
 **Size:** S | **Needs:** P11-05, P11-06, P11-07, P11-08, P11-09, P11-10 | **Spec:** 0, 10.12 | **Status:** todo
 
-**Do.** Rewrite `README.md` (what boptim is, a ten-line example, links) and refresh `docs/contributing.md`. Every `section N` mention left in `src`, `tests`, `examples` and `scripts` (43 at baseline, all pointing to the old specification's numbering) must point to a section that exists in the current specification, or be removed with the code it annotated.
+**Do.** Rewrite `README.md` (what planexs is, a ten-line example, links) and refresh `docs/contributing.md`. Every `section N` mention left in `src`, `tests`, `examples` and `scripts` (43 at baseline, all pointing to the old specification's numbering) must point to a section that exists in the current specification, or be removed with the code it annotated.
 
 **Done when.**
 - [ ] a test scans for `section N` references and fails on one that does not exist in the specification;
@@ -1679,14 +1696,14 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 
 **Size:** S | **Needs:** P11-12 | **Spec:** 10.13 | **Decision:** D-11 | **Status:** todo
 
-**Do.** Apply the license chosen in D-11: the `LICENSE` file, the `license` field of `pyproject.toml` (it says TBD today), classifiers, keywords, authors, and a project description that matches the scope of the specification (revisit the package name if D-1 decided to rename).
+**Do.** Apply the license chosen in D-11: the `LICENSE` file, the `license` field of `pyproject.toml` (it says TBD today), classifiers, keywords, authors, and a project description that matches the scope of the specification. The package name is settled (D-1: planexs). The `Homepage`, `Documentation` and `Changelog` URLs of `pyproject.toml` still use the former repository name `boptim`: update them if the repository has been renamed by then.
 
 **Done when.**
 - [ ] the license file and the metadata agree; `uv build` succeeds and the built metadata passes `twine check`.
 
 ### P11-15. Release 0.2.0
 
-**Size:** S | **Needs:** P11-12, P11-13, P11-14 | **Spec:** 10.13 | **Decision:** D-1 | **Status:** todo
+**Size:** S | **Needs:** P11-12, P11-13, P11-14 | **Spec:** 10.13 | **Status:** todo
 
 **Do.** Run `scripts/cut_release.py 0.2.0 '<summary>'` (it scaffolds `docs/changelogs/changelog-v0.2.0.md`, updates the changelog index and bumps the version in `pyproject.toml`) and write the changelog: the new architecture, the template's Added, Changed and Fixed sections, a Removed section that gives the replacement for each removed API, and migration notes. Tag after the merge (the script does not touch git). Refresh section 2.1 of this roadmap with the new measurements.
 
@@ -1703,7 +1720,7 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 
 | ID | Question | Options | Proposed | Blocks |
 |---|---|---|---|---|
-| D-1 | **Package name.** `boptim` is narrower than the scope: sequential design with surrogates, of which optimization is one goal. | keep; rename before 0.2.0 | Keep for now; revisit when P11-14 applies the metadata. | P11-14, P11-15 |
+| D-1 | **Package name.** `boptim` was narrower than the scope: sequential design with surrogates, of which optimization is one goal. | keep; rename before 0.2.0 | **Decided by the owner on 2026-10-11: `planexs`**, for PLANification EXpérimentale Séquentielle. Applied by the rename change: package, imports, identifiers, configuration, living documents. ADR-0001 to ADR-0008 and the 0.1.0 changelog keep the former name, as historical records. The GitHub URLs in `pyproject.toml` keep it until the repository is renamed. ADR-0009 (P1-01) records the decision. | none (decided) |
 | D-2 | **Compatibility with the 0.1.0 API.** Remove the old facade and backends, and do not load 0.1.0 snapshots. | no shim; a shim for one release | No shim: five commits and no tag, so a shim costs more than it protects. | P11-01, P11-02, P11-03 |
 | D-3 | **Ax.** Keep an optional Ax adapter, or drop Ax altogether. | optional extra; drop | Optional extra, ported in Phase 10 once the use cases pass. | P10-07 to P10-10 |
 | D-4 | **Configuration formats.** Which file formats, and whether to depend on Hydra. | JSON only; JSON and YAML; Hydra | JSON natively and YAML through PyYAML as a core dependency; no Hydra dependency (configurations are plain data, so Hydra and OmegaConf users can feed them). | P1-11 |
@@ -1712,7 +1729,7 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 | D-7 | **Outcome kinds in the first release.** | continuous and binary; more | Continuous and binary. Ordinal, count and categorical outcomes arrive as plugins or later tasks. | P2-01, P2-06 |
 | D-8 | **First catalogue of built-in components.** | as in the plan; larger | Those named in Phases 3 to 7. Anything else is a plugin or a new task. | none |
 | D-9 | **Default recipes.** Which components each goal uses by default. | as in P6-07 and P6-08; others | As proposed in those tasks. The owner reviews them after Phase 9, with the numbers recorded by the use-case tests. | none (review after Phase 9) |
-| D-10 | **Plugin entry-point group name.** | any | `boptim.plugins`. | P1-02, P1-12 |
+| D-10 | **Plugin entry-point group name.** | any | `planexs.plugins`. | P1-02, P1-12 |
 | D-11 | **License.** | for example MIT, Apache-2.0 or CeCILL | The owner chooses. | P11-14 |
 | D-12 | **Runtime defaults.** dtype, device, deterministic flag. | as proposed; others | float64, CPU, deterministic flag off. | P1-14 |
 | D-13 | **Horizon use cases** (specification 7.3). Which, if any, to schedule after 0.2.0. | none; some | None before 0.2.0 is released. | none |
@@ -1768,6 +1785,7 @@ Every task is done when:
 
 - **Date and commit.** 2026-10-09, `f5829e4` (version 0.1.0).
 - **Environment.** A Linux container whose network access is limited to package indexes. The project's heavy dependencies were not installed, so nothing that imports torch, botorch or ax was run.
-- **Measured.** File and line counts with `find`, `wc` and `grep`; ruff 0.17.0 (`ruff check .` and `ruff format --check .`) with the repository's configuration; `scripts/check_naming_convention.py`; a one-off AST scan of `src/boptim` for numeric literals outside {0, 1, -1, 2} (the script is not part of the repository; P0-05 makes the check permanent); `git ls-files` and `grep` for the case defect, the closed dispatch points, the hard-wired engine names, the typography and the `section N` references.
-- **Not measured.** Test results, coverage and mypy (P0-02).
-- **Caveats.** The project does not pin ruff, so its counts may differ with another version. The literal count excludes strings, booleans and heuristics hidden behind 0, 1 or 2.
+- **Measured.** File and line counts with `find`, `wc` and `grep`; ruff 0.17.0 (`ruff check .` and `ruff format --check .`) with the repository's configuration; `scripts/check_naming_convention.py`; a one-off AST scan of `src/planexs` for numeric literals outside {0, 1, -1, 2} (the script is not part of the repository; P0-05 makes the check permanent); `git ls-files` and `grep` for the case defect, the closed dispatch points, the hard-wired engine names, the typography and the `section N` references.
+- **Not measured at that date.** Test results, coverage and mypy: measured by P0-02, see the next bullet.
+- **Dynamic measurements (P0-02).** 2026-10-11, fresh clone of tree `8338ba65fe60` (commit `d1c0b46`; run on the local commit `9fdaa09`, same tree), Linux x86_64, Python 3.12.3, uv 0.11.7. Install: `uv sync --locked --extra dev --extra docs` (the command of the task card with `--locked`, which fails instead of rewriting `uv.lock` when it is stale; `uv.lock` was left unchanged). Locked versions: torch 2.14.0+cu130, botorch 0.18.1, gpytorch 1.15.2, ax-platform 1.3.1, pydantic 2.13.5, pytest 9.1.1, mypy 2.3.1, ruff 0.16.9. Commands: `pytest` (coverage options come from `pyproject.toml`, plus a JSON coverage report for the exact percentage), `mypy`, `ruff check .`, `ruff format --check .` and `mkdocs build --strict`; ruff 0.17.0 was also run through `uvx` for comparison. The static counts re-run on the same tree matched the baseline exactly (29 test files, 359 test functions, 4,535 test lines, 58 source files, 5,823 source lines). The measurements changed no file of the repository.
+- **Caveats.** The project does not pin ruff in `pyproject.toml` (`uv.lock` does), so its counts may differ with another version; P0-02 found ruff 0.16.9 and 0.17.0 identical on the current tree. The literal count excludes strings, booleans and heuristics hidden behind 0, 1 or 2.

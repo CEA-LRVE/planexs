@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from boptim import BayesianOptimizer, Metric, Objective, OutcomeConstraint, Real, SearchSpace
+from planexs import BayesianOptimizer, Metric, Objective, OutcomeConstraint, Real, SearchSpace
 
 _OBJECTIVES = {
     "single": (Objective([Metric("a", minimize=True)]), ["a"]),
@@ -55,7 +55,7 @@ def test_a_reloaded_study_still_knows_its_metrics(
     path = tmp_path / "study.json"
     bo.save(path)
 
-    with caplog.at_level(logging.WARNING, logger="boptim"):
+    with caplog.at_level(logging.WARNING, logger="planexs"):
         reloaded = BayesianOptimizer.load(path)
         importance = reloaded.parameterImportance()
 
