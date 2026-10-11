@@ -177,7 +177,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-01. Fix the file-name case defect
 
-**Size:** S | **Needs:** none | **Spec:** 10.2 | **Status:** todo
+**Size:** S | **Needs:** none | **Spec:** 10.2 | **Status:** done
 
 **Do.** `git ls-files` tracks `src/boptim/domain/parameters/parameter.py` in lowercase, while every import and the naming rule expect `Parameter.py`. On a case-sensitive filesystem a fresh clone cannot import the package. Rename the tracked file with `git mv` through a temporary name (so that the case change is recorded on any filesystem) and fix any remaining reference.
 
