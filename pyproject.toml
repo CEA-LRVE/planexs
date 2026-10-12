@@ -136,3 +136,17 @@ addopts = "--cov=planexs --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["src/planexs"]
+
+# The coverage floor. It is written here and nowhere else: pytest-cov reads `fail_under` from
+# this table, so `pytest` fails under the same number locally and in CI
+# (.github/workflows/ci.yaml does not repeat it).
+#
+# Value: one point below the 94.55% that task P0-02 measured at commit d1c0b46. The margin
+# absorbs ordinary churn; losing tests, or adding untested code, does not fit in it.
+#
+# It may only go up. Raise it when coverage rises. Never lower it to make a change pass: add
+# the missing tests instead.
+[tool.coverage.report]
+fail_under = 93.55
+# Two decimals, so that the report prints 94.55 (not 95) and reads on the same scale as the floor.
+precision = 2

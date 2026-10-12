@@ -1,5 +1,7 @@
 # planexs
 
+[![CI](https://github.com/CEA-LRVE/planexs/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/CEA-LRVE/planexs/actions/workflows/ci.yaml)
+
 A general-purpose, domain-agnostic Bayesian Optimization library for Python, built on top of
 [Ax](https://ax.dev) and [BoTorch](https://botorch.org).
 

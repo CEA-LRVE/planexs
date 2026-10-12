@@ -1,0 +1,104 @@
+# Continuous integration (specification 10.13, roadmap task P0-03).
+#
+# Three independent jobs, each run on every Python version of decision D-6 (3.11 and 3.12,
+# the versions declared in pyproject.toml) with the dependency versions pinned in uv.lock:
+#
+#   lint  - ruff check, ruff format --check, the file-name rule
+#   types - mypy (strict, configured in pyproject.toml)
+#   tests - pytest with coverage
+#
+# The coverage floor is NOT written here: it is `fail_under` in pyproject.toml, which
+# pytest-cov reads, so `pytest` fails under the same number locally and in CI.
+#
+# The uv cache is disabled on purpose (`enable-cache: false`). Every package in uv.lock is a
+# prebuilt wheel (nothing is built from source), and setup-uv's cache pruning drops exactly
+# such wheels, so a cache would save nothing. Left unpruned it would hold torch and its CUDA
+# libraries (about 3 GB of wheels) per Python version against GitHub's default 10 GB budget per
+# repository. Revisit this if the install time becomes a problem.
+#
+# Later tasks extend this file: the policy-value check (P0-06), the layering check (P1-16)
+# and the documentation build (after P0-07).
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same ref supersedes the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The version P0-02 measured the baseline with. Bump it deliberately, not by accident.
+  CI_UV_VERSION: "0.11.7"
+
+jobs:
+  lint:
+    name: lint (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.CI_UV_VERSION }}
+          python-version: ${{ matrix.python-version }}
+          enable-cache: false
+      # Only the dev tools: neither the project nor torch is needed to lint.
+      - name: Install the lint tools
+        run: uv sync --locked --only-group dev
+      - name: ruff check
+        run: uv run --no-sync ruff check .
+      - name: ruff format --check
+        run: uv run --no-sync ruff format --check .
+      - name: File-name rule (specification 10.2)
+        run: uv run --no-sync python scripts/check_naming_convention.py
+
+  types:
+    name: types (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.CI_UV_VERSION }}
+          python-version: ${{ matrix.python-version }}
+          enable-cache: false
+      # The full environment: mypy follows the real torch, botorch and ax packages.
+      - name: Install the project and its dev tools
+        run: uv sync --locked
+      - name: mypy
+        run: uv run --no-sync mypy
+
+  tests:
+    name: tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.CI_UV_VERSION }}
+          python-version: ${{ matrix.python-version }}
+          enable-cache: false
+      - name: Install the project and its dev tools
+        run: uv sync --locked
+      # Coverage options come from `addopts` in pyproject.toml; the floor is
+      # `[tool.coverage.report] fail_under` in the same file.
+      - name: pytest with coverage
+        run: uv run --no-sync pytest
