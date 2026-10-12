@@ -210,7 +210,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-04. Add the typography guard
 
-**Size:** S | **Needs:** P0-03 | **Spec:** 10.3 | **Status:** todo
+**Size:** S | **Needs:** P0-03 | **Spec:** 10.3 | **Status:** done
 
 **Do.** Add `tests/unit/test_typography.py`: scan the git-tracked `.py`, `.md`, `.yaml` and `.toml` files for the em dash and the unicode right arrow, ignoring occurrences inside inline code spans (so that the rule itself can be documented). Fix what it finds: 3 em dashes in `docs/changelogs/changelog-v0.1.0.md` (punctuation-only edits to a released changelog are allowed for this one-time sweep); the other hits are in the old specification, which the new one replaces.
 

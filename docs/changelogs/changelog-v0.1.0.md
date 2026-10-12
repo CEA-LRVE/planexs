@@ -1,4 +1,4 @@
-# v0.1.0 — 2026-09-25
+# v0.1.0 (2026-09-25)
 
 Phase 1 of the roadmap: **Foundation (domain model + Ax-backed default flow)**.
 
@@ -19,9 +19,9 @@ Phase 1 of the roadmap: **Foundation (domain model + Ax-backed default flow)**.
   `alpha` raises `NotImplementedError` until Phase 2), `predict()` (FR7, FR8),
   `parameterImportance()` (FR6), `n_trials`/`paretoFront`, `save()`/`load()` (FR11, FR12), and
   the `axClient`/`fitModel()` escape hatches (FR16, ADR-0005).
-- `JsonStudyRepository` (`boptim.persistence`): saves/loads a whole study — domain objects,
+- `JsonStudyRepository` (`boptim.persistence`): saves/loads a whole study: domain objects,
   full trial history, and `ReproducibilityMetadata` (random seed, library versions, creation
-  time) — as a single JSON file, wrapping Ax's own `Client.save_to_json_file`/
+  time), as a single JSON file, wrapping Ax's own `Client.save_to_json_file`/
   `load_from_json_file` for the Ax-backed portion of the state (FR11, FR12).
 - `examples/lab_experiment.py` and `examples/escape_hatch.py`.
 - ADR-0001, ADR-0002, ADR-0005, ADR-0006 written in full; ADR-0003, ADR-0004 stubbed
