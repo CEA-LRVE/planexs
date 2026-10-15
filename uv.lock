@@ -2492,7 +2492,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9,<3.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.16.9" },
     { name = "torch", specifier = ">=2.4" },
 ]
 provides-extras = ["dev", "docs"]
@@ -2502,7 +2502,7 @@ dev = [
     { name = "mypy", specifier = ">=1.11" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.6" },
+    { name = "ruff", specifier = "==0.16.9" },
 ]
 
 [[package]]

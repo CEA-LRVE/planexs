@@ -1,7 +1,8 @@
 # Continuous integration (specification 10.13, roadmap task P0-03).
 #
-# Three independent jobs, each run on every Python version of decision D-6 (3.11 and 3.12,
-# the versions declared in pyproject.toml) with the dependency versions pinned in uv.lock:
+# Three independent jobs, each run on every Python version of decision D-6 (3.11 and 3.13)
+# with the dependency versions pinned in uv.lock. ruff is pinned exactly in pyproject.toml as
+# well (decision D-6), so that formatting never changes under a contributor:
 #
 #   lint  - ruff check, ruff format --check, the file-name rule
 #   types - mypy (strict, configured in pyproject.toml)
@@ -44,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -68,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -88,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0

@@ -501,7 +501,7 @@ Section 3.4 states the rule. The mechanism:
 
 - `scripts/check_policy_values.py` finds numeric literals other than 0, 1, -1 and 2 (any numeric spelling) in library code. Files whose single public symbol is a configuration schema (a class named `...Config`) are where defaults legitimately live and are not scanned. Tests and scripts are not scanned.
 - A literal is exempt when its line carries `# structural: <reason>` with a non-empty reason (for example `# structural: tensor axis`, `# structural: unit-cube midpoint`). The marker is for mathematical definitions only; using it on a tunable value is a defect that review must catch.
-- The check is a ratchet against a baseline file. A new violation fails the check, and so does a stale baseline entry: entries are only ever removed. The baseline MUST be empty before the first release of the new architecture.
+- The check is a ratchet against a baseline file. A new violation fails the check, and so does a stale baseline entry: entries are only ever removed. Writing the baseline creates it or removes entries; adding entries to an existing one is not done unless `--allow-additions` is given, for a deliberate re-baseline such as a file move. The baseline MUST be empty before the first release of the new architecture.
 - The check cannot see strings, booleans or rules hidden behind an allowed literal. Review is the control for those.
 
 ### 10.8 Configuration

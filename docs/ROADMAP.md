@@ -220,7 +220,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-05. Write the policy-value checker
 
-**Size:** M | **Needs:** P0-03 | **Spec:** 3.4, 10.7 | **Decision:** D-5 | **Status:** todo
+**Size:** M | **Needs:** P0-03 | **Spec:** 3.4, 10.7 | **Decision:** D-5 | **Status:** done
 
 **Do.** Create `scripts/check_policy_values.py` (standard library only, AST based). It reports every numeric literal other than 0, 1, -1 and 2 (any spelling: `0.0`, `1.0`, `2.0`) in `src/planexs`, except in files whose single public symbol is a configuration schema (class name ending in `Config`, where defaults legitimately live). A literal is exempt when its line carries `# structural: <reason>` with a non-empty reason. Each violation prints file, line, value and position (module level, signature default, function body). Add `--baseline FILE` (fail on violations absent from the file and on entries that no longer exist) and `--write-baseline`.
 
@@ -228,6 +228,8 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 - [ ] unit tests cover allowed literals, negative numbers, the marker with and without a reason, the configuration-file exclusion, signature defaults, and the baseline add and stale cases;
 - [ ] on the current tree it reports 39 violations in 11 files (section 2.1), or the report explains each difference;
 - [ ] the script's docstring states what it cannot see (strings, booleans, rules hidden behind 0, 1 or 2) and that review covers them.
+
+**Note.** `--write-baseline` creates the baseline or removes entries from it; adding entries to an existing baseline is not done unless `--allow-additions` is given, for a deliberate re-baseline such as a file move.
 
 ### P0-06. Wire the policy-value baseline into CI
 
@@ -1724,8 +1726,8 @@ Delete the legacy path, rebuild the public surface, port the examples, finish th
 | D-2 | **Compatibility with the 0.1.0 API.** Remove the old facade and backends, and do not load 0.1.0 snapshots. | no shim; a shim for one release | No shim: five commits and no tag, so a shim costs more than it protects. | P11-01, P11-02, P11-03 |
 | D-3 | **Ax.** Keep an optional Ax adapter, or drop Ax altogether. | optional extra; drop | Optional extra, ported in Phase 10 once the use cases pass. | P10-07 to P10-10 |
 | D-4 | **Configuration formats.** Which file formats, and whether to depend on Hydra. | JSON only; JSON and YAML; Hydra | JSON natively and YAML through PyYAML as a core dependency; no Hydra dependency (configurations are plain data, so Hydra and OmegaConf users can feed them). | P1-11 |
-| D-5 | **Policy-value exemptions.** Which literals the checker lets through. | stricter; as proposed | 0, 1, -1 and 2 in any numeric spelling; `# structural: <reason>` for other structural constants; configuration-schema files exempt. | P0-05, P1-03 |
-| D-6 | **CI matrix.** Python and dependency versions. | one version; several; newest dependencies too | Python 3.11 and 3.12 (the declared classifiers) with the locked dependency versions; a job on the newest versions added later. | P0-03 |
+| D-5 | **Policy-value exemptions.** Which literals the checker lets through. | stricter; as proposed | **Decided by the owner on 2026-10-13: as proposed.** 0, 1, -1 and 2 in any numeric spelling; `# structural: <reason>` for other structural constants; configuration-schema files exempt. What the checker cannot see (a number that defines a tunable value behind 0, 1 or 2, strings, booleans) is governed by the rule of specification 3.4 and by review, not by automated detection. The owner also confirmed (option A) that a literal default in a signature is a policy value, as specification 3.4 and 10.8 say, and may ask to revisit that if the options-object style proves too heavy for the Python API. Applied by P0-05; ADR-0011 (P1-03) records it. | none (decided) |
+| D-6 | **CI matrix.** Python and dependency versions. | one version; several; newest dependencies too | **Decided by the owner on 2026-10-13: Python 3.11 and 3.13, ruff pinned exactly.** The locked dependency versions, ruff also pinned to `ruff==0.16.9` in `pyproject.toml`; no job on the newest dependencies for now. Applied in `.github/workflows/ci.yaml` (P0-03) and `pyproject.toml`. The classifiers still declare 3.11 and 3.12: P11-14 settles them. | none (decided) |
 | D-7 | **Outcome kinds in the first release.** | continuous and binary; more | Continuous and binary. Ordinal, count and categorical outcomes arrive as plugins or later tasks. | P2-01, P2-06 |
 | D-8 | **First catalogue of built-in components.** | as in the plan; larger | Those named in Phases 3 to 7. Anything else is a plugin or a new task. | none |
 | D-9 | **Default recipes.** Which components each goal uses by default. | as in P6-07 and P6-08; others | As proposed in those tasks. The owner reviews them after Phase 9, with the numbers recorded by the use-case tests. | none (review after Phase 9) |
