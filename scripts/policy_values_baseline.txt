@@ -1,0 +1,49 @@
+# Policy-value baseline (specification 10.7): the literal policy values that the
+# library still contains, accepted for now.
+#
+# Entries are only ever removed. Delete the line of an entry when the literal it lists
+# is gone: a stale entry fails the check, and so does a violation that is not listed.
+# Do not add an entry to silence the check: move the value into a configuration schema.
+# This file must be empty before the first release of the new architecture.
+#
+# One entry per line: <path> :: <scope> :: <position> :: <value>. Regenerate with
+# `python scripts/check_policy_values.py --baseline <this file> --write-baseline`.
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 10
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 200
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 256
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 32
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 512
+src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 512
+src/planexs/acquisition/EncodedConstraints.py :: EncodedConstraints.isFeasible :: signature default :: 1e-06
+src/planexs/acquisition/ExplorationExploitationAcquisition.py :: <module> :: module level :: 1e-12
+src/planexs/acquisition/ExplorationExploitationAcquisition.py :: <module> :: module level :: 256
+src/planexs/acquisition/ExplorationExploitationAcquisition.py :: ExplorationExploitationAcquisition._normalizedExploitation :: function body :: -2
+src/planexs/acquisition/ExplorationExploitationAcquisition.py :: ExplorationExploitationAcquisition._normalizedExploration :: function body :: -3
+src/planexs/acquisition/ExplorationExploitationAcquisition.py :: ExplorationExploitationAcquisition.forward :: function body :: -2
+src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: <module> :: module level :: 128
+src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: <module> :: module level :: 1e-12
+src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition._normalizedExploration :: function body :: -2
+src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition._normalizedExploration :: function body :: -3
+src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition.forward :: function body :: -2
+src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 10
+src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 200
+src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 25
+src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 8
+src/planexs/acquisition/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: function body :: 64
+src/planexs/acquisition/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: signature default :: 1e-06
+src/planexs/api/BayesianOptimizer.py :: <module> :: module level :: 31
+src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer.__init__ :: function body :: 31
+src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer._askWithAlpha :: function body :: 1000003
+src/planexs/backends/ax/AxBackend.py :: AxBackend.__init__ :: function body :: 31
+src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 1000
+src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 200
+src/planexs/domain/parameters/Range.py :: Range._validate_default :: function body :: 1e-09
+src/planexs/models/SearchSpaceEncoder.py :: SearchSpaceEncoder.categoricalFixedFeatures :: function body :: 20
+src/planexs/models/SearchSpaceEncoder.py :: SearchSpaceEncoder.roundingNeighbors :: signature default :: 8
+src/planexs/models/SearchSpaceEncoder.py :: SearchSpaceEncoder.snapColumns :: function body :: 0.5
+src/planexs/models/SearchSpaceEncoder.py :: _floorAndCeil :: function body :: 1e-09
+src/planexs/models/SearchSpaceEncoder.py :: _readValue :: function body :: 0.5
+src/planexs/models/SearchSpaceEncoder.py :: _snapRaw :: function body :: 1e-09
+src/planexs/models/SearchSpaceEncoder.py :: _writeCenter :: function body :: 0.5
+src/planexs/models/buildSurrogateModel.py :: <module> :: module level :: 1e-10
+src/planexs/models/buildSurrogateModel.py :: buildSurrogateModel :: signature default :: 5
