@@ -26,6 +26,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 HEADER_FIELDS = ("Status", "Date", "Deciders")
@@ -362,3 +364,15 @@ class TestRealTree:
         }
         assert {a.file_name for a in loadAdrs(REPO_ROOT / "docs" / "adr")} == on_disk
         assert len(on_disk) >= 9
+
+    def test_adr_0010_names_the_entry_point_group_of_decision_d_10(self) -> None:
+        # The card says the group name is "chosen in D-10": the ADR and the roadmap row must
+        # agree, so that answering D-10 differently cannot leave the ADR behind.
+        roadmap = (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        row = next(line for line in roadmap.split("\n") if line.startswith("| D-10 |"))
+        group = re.search(r"`([a-z_]+(?:\.[a-z_]+)+)`", row.split("|")[4])
+        assert group is not None, "no group name found in the Proposed column of D-10"
+        adr = {a.number: a for a in loadAdrs(REPO_ROOT / "docs" / "adr")}[10]
+        if adr.status.startswith("Superseded"):
+            pytest.skip("ADR-0010 is superseded: a later ADR owns the group name")
+        assert group.group(1) in "\n".join(adr.lines)

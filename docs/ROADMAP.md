@@ -290,7 +290,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-02. ADR-0010: registries, capability tags and stable names
 
-**Size:** S | **Needs:** P1-01 | **Spec:** 3.3, 3.7, 5.12 | **Decision:** D-10 | **Status:** todo
+**Size:** S | **Needs:** P1-01 | **Spec:** 3.3, 3.7, 5.12 | **Decision:** D-10 | **Status:** done
 
 **Do.** Record: one registry per component kind; decorator registration; names that are permanent identifiers, with a `_vN` suffix for behaviour changes; needs and supports tags with rejection of unknown tags; a compatibility check when a study is built; plugin discovery by entry point (group name chosen in D-10); the population rule. Options considered: Hydra-style import paths as the only mechanism (names would not be stable and capabilities need metadata; may be added later as a level-3 convenience), inheritance with factory methods, plain dictionaries.
 
