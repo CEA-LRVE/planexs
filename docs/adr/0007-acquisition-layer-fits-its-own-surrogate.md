@@ -1,6 +1,6 @@
 # ADR-0007: The acquisition layer fits its own surrogate model from boptim's trial history
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0009
 **Date:** 2026-09-30
 **Deciders:** [project owner]
 **Refines:** ADR-0001 (the "fitted-model handoff" between Ax and the acquisition layer)

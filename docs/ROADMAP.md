@@ -279,7 +279,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-01. ADR-0009: study, policy and component architecture
 
-**Size:** S | **Needs:** P0-07 | **Spec:** 5, 11 | **Status:** todo
+**Size:** S | **Needs:** P0-07 | **Spec:** 5, 11 | **Status:** done
 
 **Do.** Scaffold the ADR with `scripts/new_adr.py` (it takes the next number). Record the decision of the specification: planexs is organized around a study, a goal and a policy made of registered components; Ax stops being the foundation and becomes an optional adapter; the custom acquisition layer becomes ordinary components. Its context section also records the rename of the project from boptim to planexs (D-1, decided on 2026-10-11). Options considered: keep Ax as the foundation and add features on top; wrap BoTorch directly without registries; the design of the specification. Set the status line of ADR-0001, 0005, 0006, 0007 and 0008 to 'Superseded by ADR-0009' (status lines only; their text is untouched). Add the ADR to `mkdocs.yml`.
 

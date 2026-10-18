@@ -19,6 +19,7 @@ nav:
       - "ADR-0006: NonlinearConstraint forces custom layer": adr/0006-nonlinear-constraint-forces-custom-layer.md
       - "ADR-0007: The acquisition layer fits its own surrogate": adr/0007-acquisition-layer-fits-its-own-surrogate.md
       - "ADR-0008: Equality LinearConstraint forces custom layer": adr/0008-equality-linear-constraint-forces-custom-layer.md
+      - "ADR-0009: Study, policy and component architecture": adr/0009-study-policy-and-component-architecture.md
   - Changelog: changelogs/CHANGELOG.md
 
 # mkdocstrings-based API reference generation (from docstrings, section 3's

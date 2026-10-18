@@ -1,6 +1,6 @@
 # ADR-0001: Hybrid Ax + BoTorch architecture
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0009
 **Date:** 2026-09-23
 **Deciders:** [project owner]
 

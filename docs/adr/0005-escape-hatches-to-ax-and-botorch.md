@@ -1,6 +1,6 @@
 # ADR-0005: Escape hatches to Ax and BoTorch
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0009
 **Date:** 2026-09-23
 **Deciders:** [project owner]
 

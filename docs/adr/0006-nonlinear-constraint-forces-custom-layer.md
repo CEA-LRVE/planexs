@@ -1,6 +1,6 @@
 # ADR-0006: `NonlinearConstraint` forces the custom acquisition layer, with a warning
 
-**Status:** Accepted (implemented in Phase 2)
+**Status:** Superseded by ADR-0009
 **Date:** 2026-09-23
 **Deciders:** [project owner]
 

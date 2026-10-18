@@ -1,6 +1,6 @@
 # ADR-0008: An equality `LinearConstraint` also forces the custom acquisition layer
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0009
 **Date:** 2026-10-01
 **Deciders:** [project owner]
 **Extends:** ADR-0006 (the scope of "a constraint Ax cannot enforce")
