@@ -3,10 +3,11 @@
 A general-purpose, domain-agnostic Bayesian Optimization library for Python, built on top of
 [Ax](https://ax.dev) and [BoTorch](https://botorch.org).
 
-See the [project specification](../PROJECT_SPECIFICATION.md) for the full design, the
-[README](../README.md) for install and quickstart instructions, and [`docs/adr/`](./adr) for
-the architectural decisions behind it.
+Start with the [project specification](PROJECT_SPECIFICATION.md), the ground truth for the
+design, and the [roadmap](ROADMAP.md), which holds the plan and the status of each task. The
+architectural decisions behind the code are the ADRs listed under Architecture Decisions in
+the navigation. Install and quickstart instructions are in the
+[README](https://github.com/CEA-LRVE/planexs#readme).
 
-This site (full `mkdocstrings`-built API reference, navigation, and theming) is a Phase 4
-("Polish, docs, packaging") deliverable; this page is a placeholder so `mkdocs serve` has
-something to build from Phase 1 onward.
+The API reference generated from the docstrings is not published on this site yet: the
+roadmap schedules it (task P11-11).

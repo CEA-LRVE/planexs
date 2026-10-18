@@ -244,7 +244,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-07. Fix the documentation entry points
 
-**Size:** S | **Needs:** P0-01 | **Spec:** 11 | **Status:** todo
+**Size:** S | **Needs:** P0-01 | **Spec:** 11 | **Status:** done
 
 **Do.** Copy the new `PROJECT_SPECIFICATION.md` and `ROADMAP.md` into `docs/`. In `README.md`, replace the status section (it describes the old phases and test counts) with a short status line that points to the roadmap, and repair the links to the specification (`./PROJECT_SPECIFICATION.md` does not resolve from the repository root). Add both documents to the `mkdocs.yml` navigation.
 
