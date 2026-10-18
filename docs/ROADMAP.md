@@ -233,7 +233,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-06. Wire the policy-value baseline into CI
 
-**Size:** S | **Needs:** P0-05 | **Spec:** 10.7 | **Status:** todo
+**Size:** S | **Needs:** P0-05 | **Spec:** 10.7 | **Status:** done
 
 **Do.** Generate `scripts/policy_values_baseline.txt` from the current tree and run `check_policy_values.py --baseline` in the `lint` job. Edit no source file: the 39 entries disappear as the files that hold them are rewritten or deleted, and each later task that removes one deletes its line.
 
@@ -255,7 +255,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-08. Make ruff pass on the current tree
 
-**Size:** S | **Needs:** P0-02 | **Spec:** 10.1, 10.13 | **Status:** todo
+**Size:** S | **Needs:** P0-02 | **Spec:** 10.1, 10.13 | **Status:** done
 
 **Do.** P0-02 measured that `ruff check .` and `ruff format --check .` both exit 1 on the current tree (section 2.1), so the `lint` job of P0-03 would fail on its first run. Fix both with the smallest change and no change of behaviour:
 1. `examples/nonlinear_constraint.py:91` is 109 columns wide for a limit of 95 (E501). Split that f-string into two adjacent f-strings, breaking at the space before `(limit ...)`: the printed text is identical. The file is rewritten in P11-06, which keeps its own scope.

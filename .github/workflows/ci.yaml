@@ -4,7 +4,7 @@
 # with the dependency versions pinned in uv.lock. ruff is pinned exactly in pyproject.toml as
 # well (decision D-6), so that formatting never changes under a contributor:
 #
-#   lint  - ruff check, ruff format --check, the file-name rule
+#   lint  - ruff check, ruff format --check, the file-name rule, the policy-value ratchet
 #   types - mypy (strict, configured in pyproject.toml)
 #   tests - pytest with coverage
 #
@@ -17,8 +17,8 @@
 # libraries (about 3 GB of wheels) per Python version against GitHub's default 10 GB budget per
 # repository. Revisit this if the install time becomes a problem.
 #
-# Later tasks extend this file: the policy-value check (P0-06), the layering check (P1-16)
-# and the documentation build (after P0-07).
+# Later tasks extend this file: the layering check (P1-16) and the documentation build
+# (after P0-07).
 
 name: CI
 
@@ -62,6 +62,11 @@ jobs:
         run: uv run --no-sync ruff format --check .
       - name: File-name rule (specification 10.2)
         run: uv run --no-sync python scripts/check_naming_convention.py
+      # Standard library only, so the dev-only environment above is enough. A numeric literal
+      # that is not in the baseline fails, and so does a baseline entry whose literal is gone:
+      # the baseline only ever shrinks (specification 10.7, roadmap task P0-06).
+      - name: Policy-value ratchet (specification 10.7)
+        run: uv run --no-sync python scripts/check_policy_values.py --baseline scripts/policy_values_baseline.txt
 
   types:
     name: types (py${{ matrix.python-version }})

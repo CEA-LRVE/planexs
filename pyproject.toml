@@ -83,6 +83,13 @@ dev = [
 line-length = 95
 target-version = "py311"
 
+[tool.ruff.format]
+# ruff also formats the Python blocks inside Markdown files. The illustrative snippets of
+# docs/PROJECT_SPECIFICATION.md are not meant to be in ruff's format, and that document is the
+# ground truth, so it is not edited to please a formatter. This option adds to ruff's global
+# exclusions for formatting only: linting and the formatting of .py files are unchanged.
+exclude = ["*.md"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D1"]
 ignore = [

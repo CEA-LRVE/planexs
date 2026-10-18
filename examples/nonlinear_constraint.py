@@ -88,7 +88,8 @@ def main() -> None:
         f"pressure drop={pressureDrop(flow, diameter):.3f} (limit {PRESSURE_DROP_LIMIT})"
         f"\nBest predicted: flow={pred_best_flow:.2f}, diameter={pred_best_diameter:.2f}, "
         f"throughput per cost={pred_best_value:.3f}, "
-        f"pressure drop={pressureDrop(pred_best_flow, pred_best_diameter):.3f} (limit {PRESSURE_DROP_LIMIT})"
+        f"pressure drop={pressureDrop(pred_best_flow, pred_best_diameter):.3f} "
+        f"(limit {PRESSURE_DROP_LIMIT})"
     )
 
     # 3) The constraint is part of the saved study and is still enforced after a reload.
