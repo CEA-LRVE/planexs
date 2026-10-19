@@ -4,7 +4,8 @@ Architectural decisions live in `docs/adr/`. Specification 11 says that when a d
 changes, a new ADR supersedes the old one, that the old one's status line says so, and that its
 text is not edited. This guard checks what a reviewer would otherwise check by eye:
 
-- every ADR is listed in the `mkdocs.yml` navigation;
+- every ADR is listed in the `mkdocs.yml` navigation, and the label of a live ADR no longer
+  says "to write";
 - every ADR has its `Status`, `Date` and `Deciders` header lines, and its title carries the
   number of its file;
 - supersession is recorded in both directions: an ADR whose status is `Superseded by ADR-N`
@@ -48,6 +49,8 @@ _SECTION = re.compile(r"^## (.+?)\s*$")
 _SUPERSEDED_BY = re.compile(r"^Superseded by ADR-(\d{4})\b")
 _ADR_ID = re.compile(r"ADR-(\d{4})")
 _NAVIGATION_TARGET = re.compile(r":\s+adr/(\S+\.md)\s*$", re.MULTILINE)
+#: A navigation entry of an ADR: its label (quoted or not) and its file name.
+_NAVIGATION_ENTRY = re.compile(r'^\s*-\s+"?(.+?)"?:\s+adr/(\S+\.md)\s*$', re.MULTILINE)
 #: Leftovers of the template that mean a section was never filled in.
 _PLACEHOLDERS: dict[str, re.Pattern[str]] = {
     "an HTML comment": re.compile(r"<!--"),
@@ -126,6 +129,11 @@ def navigationTargets(mkdocs_text: str) -> set[str]:
     return set(_NAVIGATION_TARGET.findall(mkdocs_text))
 
 
+def navigationLabels(mkdocs_text: str) -> dict[str, str]:
+    """The navigation label of each ADR file listed in a `mkdocs.yml`."""
+    return {file: label for label, file in _NAVIGATION_ENTRY.findall(mkdocs_text)}
+
+
 def _listedNumbers(supersedes_line: str) -> set[int]:
     """The ADR numbers named in the value of a `Supersedes` header line."""
     return {int(number) for number in _ADR_ID.findall(supersedes_line)}
@@ -145,11 +153,14 @@ def findProblems(adr_directory: Path, mkdocs_text: str) -> list[str]:
     adrs = loadAdrs(adr_directory)
     by_number = {adr.number: adr for adr in adrs}
     listed = navigationTargets(mkdocs_text)
+    labels = navigationLabels(mkdocs_text)
     problems: list[str] = []
 
     for adr in adrs:
         if adr.file_name not in listed:
             problems.append(f"{adr.label}: not listed in the mkdocs navigation")
+        if not adr.is_historical and "to write" in labels.get(adr.file_name, "").lower():
+            problems.append(f"{adr.label}: its navigation label still says 'to write'")
         for field in HEADER_FIELDS:
             if not adr.header.get(field):
                 problems.append(f"{adr.label}: no '{field}' header line")
@@ -215,9 +226,12 @@ def writeAdr(
     return path
 
 
-def navigationFor(*numbers: int) -> str:
-    """A `mkdocs.yml` navigation listing the ADRs `numbers`."""
-    entries = "".join(f'      - "ADR-{n:04d}": adr/{n:04d}-decision.md\n' for n in numbers)
+def navigationFor(*numbers: int, labels: dict[int, str] | None = None) -> str:
+    """A `mkdocs.yml` navigation listing the ADRs `numbers`, with optional custom labels."""
+    shown = labels or {}
+    entries = "".join(
+        f'      - "{shown.get(n, f"ADR-{n:04d}")}": adr/{n:04d}-decision.md\n' for n in numbers
+    )
     return "nav:\n  - Architecture Decisions:\n" + entries
 
 
@@ -336,6 +350,36 @@ class TestFindProblems:
         writeAdr(tmp_path, 4, supersedes="ADR-0001, ADR-0002, ADR-0003")
         assert findProblems(tmp_path, navigationFor(1, 2, 3, 4)) == []
 
+    def test_a_live_adr_whose_navigation_label_still_says_to_write_is_reported(
+        self, tmp_path: Path
+    ) -> None:
+        writeAdr(tmp_path, 1)
+        navigation = navigationFor(1, labels={1: "ADR-0001: Decision (to write)"})
+        assert findProblems(tmp_path, navigation) == [
+            "ADR-0001: its navigation label still says 'to write'"
+        ]
+
+    def test_a_stub_may_keep_to_write_in_its_navigation_label(self, tmp_path: Path) -> None:
+        writeAdr(tmp_path, 1, status="Proposed (to write in full)", sections=("Context",))
+        navigation = navigationFor(1, labels={1: "ADR-0001: Decision (to write)"})
+        assert findProblems(tmp_path, navigation) == []
+
+
+class TestNavigationLabels:
+    def test_a_quoted_label_with_a_colon_is_read_whole(self) -> None:
+        text = '      - "ADR-0003: Pydantic domain models (to write)": adr/0003-x.md\n'
+        assert navigationLabels(text) == {
+            "0003-x.md": "ADR-0003: Pydantic domain models (to write)"
+        }
+
+    def test_an_unquoted_label_is_read_and_other_entries_are_ignored(self) -> None:
+        text = (
+            "  - Home: index.md\n"
+            "  - Overview: adr/0001-x.md\n"
+            "  - Spec: PROJECT_SPECIFICATION.md\n"
+        )
+        assert navigationLabels(text) == {"0001-x.md": "Overview"}
+
 
 class TestRealTree:
     def realProblems(self) -> list[str]:
@@ -353,9 +397,12 @@ class TestRealTree:
         for number in named:
             assert adrs[number].status == "Superseded by ADR-0009", adrs[number].label
 
-    def test_adr_0009_is_a_live_record_and_therefore_complete(self) -> None:
-        adr = {a.number: a for a in loadAdrs(REPO_ROOT / "docs" / "adr")}[9]
-        assert not adr.is_historical
+    @pytest.mark.parametrize("number", [3, 9, 10, 11])
+    def test_an_adr_written_in_full_is_a_live_record_and_therefore_complete(
+        self, number: int
+    ) -> None:
+        adr = {a.number: a for a in loadAdrs(REPO_ROOT / "docs" / "adr")}[number]
+        assert not adr.is_historical, f"{adr.label} is still a stub or superseded"
         assert set(TEMPLATE_SECTIONS) <= set(adr.sections)
 
     def test_the_scan_sees_every_adr_file_of_the_directory(self) -> None:

@@ -13,7 +13,7 @@ nav:
   - Architecture Decisions:
       - "ADR-0001: Hybrid Ax + BoTorch architecture": adr/0001-hybrid-ax-botorch-architecture.md
       - "ADR-0002: uv over setuptools": adr/0002-uv-over-setuptools.md
-      - "ADR-0003: Pydantic domain models (to write)": adr/0003-pydantic-domain-models.md
+      - "ADR-0003: Pydantic domain models": adr/0003-pydantic-domain-models.md
       - "ADR-0004: JSON persistence format (to write)": adr/0004-json-persistence-format.md
       - "ADR-0005: Escape hatches to Ax and BoTorch": adr/0005-escape-hatches-to-ax-and-botorch.md
       - "ADR-0006: NonlinearConstraint forces custom layer": adr/0006-nonlinear-constraint-forces-custom-layer.md

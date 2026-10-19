@@ -309,7 +309,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-04. Complete ADR-0003
 
-**Size:** S | **Needs:** P1-01 | **Spec:** 3.9, 11 | **Status:** todo
+**Size:** S | **Needs:** P1-01 | **Spec:** 3.9, 11 | **Status:** done
 
 **Do.** ADR-0003 is a stub marked 'to write in full'. Write it from the stub: context (a domain independent of every engine), decision (Pydantic v2 models), options (dataclasses, attrs, plain dictionaries), consequences, including the purity rule of specification 3.9. Mark it Accepted and remove 'to write' from its title in `mkdocs.yml`.
 
