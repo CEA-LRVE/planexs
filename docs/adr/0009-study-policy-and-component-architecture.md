@@ -27,7 +27,8 @@ later ADRs recorded what happened at the seam between the two halves:
 The measurements of the roadmap baseline (roadmap section 2.1, commit `f5829e4`) show the
 same pattern in the code: 39 numeric literals outside {0, 1, -1, 2} in 11 of 58 source files,
 about 30 of them policy values (restarts, sample counts, tolerances, caps, seed constants)
-that the caller cannot change; engine classes (`SingleTaskGP`, `Standardize`,
+hidden in the code (most cannot be set at all, and the few that can are not saved with a
+study); engine classes (`SingleTaskGP`, `Standardize`,
 `fit_gpytorch_mll`, `optimize_acqf` and others) named inside algorithms in 5 files; and 9
 files that branch on concrete parameter or constraint classes, so that a new kind of
 parameter or constraint cannot be added without editing them.

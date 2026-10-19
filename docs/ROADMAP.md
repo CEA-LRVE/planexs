@@ -300,7 +300,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-03. ADR-0011: policy values, resolved configuration, seeds
 
-**Size:** S | **Needs:** P1-01 | **Spec:** 3.4, 3.7, 5.11, 10.7 | **Decision:** D-5 | **Status:** todo
+**Size:** S | **Needs:** P1-01 | **Spec:** 3.4, 3.7, 5.11, 10.7 | **Decision:** D-5 | **Status:** done
 
 **Do.** Record: the policy-value rule and its exemptions; the resolved configuration stored in snapshots; the derivation of all random streams from one study seed; the ratchet checker and its baseline. Options considered: named module constants (rejected: unreachable by the caller), a global settings object (rejected: hidden state), configuration schemas with a single documented default (chosen).
 

@@ -21,6 +21,7 @@ nav:
       - "ADR-0008: Equality LinearConstraint forces custom layer": adr/0008-equality-linear-constraint-forces-custom-layer.md
       - "ADR-0009: Study, policy and component architecture": adr/0009-study-policy-and-component-architecture.md
       - "ADR-0010: Registries, capability tags and stable names": adr/0010-registries-capability-tags-and-stable-names.md
+      - "ADR-0011: Policy values, resolved configuration and seeds": adr/0011-policy-values-resolved-configuration-and-seeds.md
   - Changelog: changelogs/CHANGELOG.md
 
 # mkdocstrings-based API reference generation (from docstrings, section 3's
