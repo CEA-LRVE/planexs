@@ -318,7 +318,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-05. Error hierarchy
 
-**Size:** S | **Needs:** P1-02 | **Spec:** 3.6, 10.10 | **Status:** todo
+**Size:** S | **Needs:** P1-02 | **Spec:** 3.6, 10.10 | **Status:** done
 
 **Do.** Create the `core` package with `PlanexsError` and its subclasses `ConfigError`, `RegistryError`, `CompatibilityError` and `ModelNotReadyError`, one class per file. Every error carries a message and optional structured hints (component name, field path, suggestion) that `str()` renders on separate lines.
 
