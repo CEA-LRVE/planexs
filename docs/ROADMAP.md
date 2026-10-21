@@ -328,7 +328,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-06. Registry and the kind table
 
-**Size:** S | **Needs:** P1-05 | **Spec:** 5.12, 10.6 | **Status:** todo
+**Size:** S | **Needs:** P1-05 | **Spec:** 5.12, 10.6 | **Status:** done
 
 **Do.** Add `core/Registry.py`: a typed registry for one component kind. It registers a name (a duplicate or an invalid name raises `RegistryError`), looks a name up (an unknown name raises `RegistryError` listing the available names), lists names sorted and tests membership. A valid name is lowercase snake_case with an optional `_vN` suffix; the pattern is defined once. Add `core/defineKind.py` to create a registry by kind name and record it in a table (a duplicate kind is an error), and a function to enumerate all kinds, so that tests and the compatibility check can iterate over them.
 
@@ -339,7 +339,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-07. Component entry and capability vocabulary
 
-**Size:** S | **Needs:** P1-06 | **Spec:** 5.12 | **Status:** todo
+**Size:** S | **Needs:** P1-06 | **Spec:** 5.12 | **Status:** done
 
 **Do.** Add `core/ComponentEntry.py` (the record a registry stores: name, builder, configuration schema, description, needs, supports) and `core/CapabilityVocabulary.py` (the documented set of known tags: register a tag with a one-line description, check a tag, list tags by group). Tags are lowercase `group:name` strings. `Registry` validates the tags of an entry against the vocabulary when it registers it; an unknown tag raises `RegistryError` that lists the known tags of the same group. The vocabulary starts empty: each task that needs tags registers them.
 
