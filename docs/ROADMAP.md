@@ -349,7 +349,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-08. Compatibility check
 
-**Size:** M | **Needs:** P1-07 | **Spec:** 3.6, 5.12 | **Status:** todo
+**Size:** M | **Needs:** P1-07 | **Spec:** 3.6, 5.12 | **Status:** done
 
 **Do.** Add the compatibility check to `core`. Participants (the problem, the goal and the components of a policy) are represented by their needs and supports. Every need must be supported by some participant. On failure raise one `CompatibilityError` that lists all unmet needs (not just the first), who needs each, and, for each need, the registered components (looked up in the kind table) that support it. A participant may compute its needs and supports from its own validated configuration.
 
