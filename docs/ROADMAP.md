@@ -359,7 +359,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-09. Component configuration and resolution
 
-**Size:** S | **Needs:** P1-07 | **Spec:** 5.12, 10.8 | **Status:** todo
+**Size:** S | **Needs:** P1-07 | **Spec:** 5.12, 10.8 | **Status:** done
 
 **Do.** Add `core/ComponentConfig.py` (Pydantic base class: a `type` field holding the registered name, unknown fields rejected) and a resolver that turns a mapping `{type: name, ...}` and a registry into the entry and the validated configuration. Errors name the registry, the offending field and the available names.
 
