@@ -388,7 +388,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-12. Plugin discovery
 
-**Size:** S | **Needs:** P1-06 | **Spec:** 5.12 | **Decision:** D-10 | **Status:** todo
+**Size:** S | **Needs:** P1-06 | **Spec:** 5.12 | **Decision:** D-10 | **Status:** done
 
 **Do.** Add `loadPlugins`: import every entry point of the group chosen in D-10, plus module names passed explicitly. A failing plugin raises `RegistryError` naming the plugin and the original error. Calling it twice is harmless.
 
