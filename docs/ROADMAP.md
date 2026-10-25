@@ -378,7 +378,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-11. Configuration files
 
-**Size:** S | **Needs:** P1-10 | **Spec:** 5.12, 10.8 | **Decision:** D-4 | **Status:** todo
+**Size:** S | **Needs:** P1-10 | **Spec:** 5.12, 10.8 | **Decision:** D-4 | **Status:** done
 
 **Do.** Add loading and dumping of configurations as JSON and YAML (PyYAML, declared as a dependency, D-4) through plain dictionaries, then validation by the resolver. Syntax errors and duplicate keys raise `ConfigError` with the file name and, when available, the line.
 
