@@ -6,6 +6,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 import pytest
+from nested_config_schemas import NESTED_COMPONENTS
 from pydantic import BaseModel, ConfigDict
 
 from planexs.core.CapabilityVocabulary import CapabilityVocabulary
@@ -75,3 +76,27 @@ def isolatedVocabulary(monkeypatch: pytest.MonkeyPatch) -> CapabilityVocabulary:
     vocabulary = CapabilityVocabulary()
     monkeypatch.setattr("planexs.core.CapabilityVocabulary._DEFAULT_VOCABULARY", vocabulary)
     return vocabulary
+
+
+@pytest.fixture
+def nestedKinds(isolatedKindTable: KindTable) -> KindTable:
+    """An isolated kind table with the kinds and components of `nested_config_schemas`.
+
+    Six kinds (kernel, design, surrogate, analysis, policy, stopping), each with its components
+    registered under the name their schema pins as its `type`. The registries are reached with
+    `nestedKinds.registry("policy")` and the like, and the fields marked `ComponentOf` in those
+    schemas find them through the same table.
+    """
+    for kind, schemas in NESTED_COMPONENTS.items():
+        registry = isolatedKindTable.define(kind)
+        for schema in schemas:
+            name = schema.model_fields["type"].default
+            registry.register(
+                ComponentEntry(
+                    name=name,
+                    builder=dummyBuilder,
+                    config_schema=schema,
+                    description=f"The {name} component.",
+                )
+            )
+    return isolatedKindTable

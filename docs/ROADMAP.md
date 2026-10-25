@@ -368,7 +368,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-10. Nested components and resolved configuration
 
-**Size:** M | **Needs:** P1-09 | **Spec:** 3.4, 5.12 | **Status:** todo
+**Size:** M | **Needs:** P1-09 | **Spec:** 3.4, 5.12 | **Status:** done
 
 **Do.** Let a configuration field hold another component of a declared kind (the field names the registry; a single component or a list of components of that kind), resolved when the parent is validated, to any depth. Add a function returning the fully resolved configuration (a plain JSON-compatible dictionary with every default and every nested `type` written out) and a function rebuilding the validated objects from it. Validation errors carry the full path (for example `policy.surrogate.kernel.nu`).
 
