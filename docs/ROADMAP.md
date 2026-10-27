@@ -408,7 +408,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-14. Runtime settings
 
-**Size:** S | **Needs:** P1-09 | **Spec:** 8, 10.8 | **Decision:** D-12 | **Status:** todo
+**Size:** S | **Needs:** P1-09 | **Spec:** 8, 10.8 | **Decision:** D-12 | **Status:** done
 
 **Do.** Add `core/RuntimeConfig.py`: dtype name (`float32` or `float64`), device name and a deterministic-algorithms flag, with the defaults of D-12 and documented fields. It holds names only; converting them to torch objects belongs to `encoding` (P3-02).
 
