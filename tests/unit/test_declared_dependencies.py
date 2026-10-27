@@ -60,3 +60,28 @@ class TestYamlDependency:
         package = lock.split('\nname = "planexs"\n', 1)[1].split("\n[[package]]\n", 1)[0]
         assert '{ name = "pyyaml", specifier = ">=6.0,<7.0" }' in package
         assert 'name = "types-pyyaml"\nversion = ' in lock
+
+
+class TestNumpyDependency:
+    """The random-number tree (`core/RngTree.py`) uses numpy directly: it is declared."""
+
+    def test_numpy_is_a_dependency_of_the_package(self) -> None:
+        assert "numpy" in packageNames(pyproject()["project"]["dependencies"])
+
+    def test_it_is_bounded_below_and_above(self) -> None:
+        (requirement,) = [
+            r for r in pyproject()["project"]["dependencies"] if r.lower().startswith("numpy")
+        ]
+        # `SeedSequence` and `Generator` need 1.17; 1.26 is the first with Python 3.12 wheels.
+        assert re.search(r">=\s*1\.26", requirement), requirement
+        assert re.search(r"<\s*3", requirement), requirement
+
+    def test_it_is_not_an_optional_extra(self) -> None:
+        extras = pyproject()["project"]["optional-dependencies"]
+        for name, requirements in extras.items():
+            assert "numpy" not in packageNames(requirements), name
+
+    def test_the_lock_file_records_the_requirement(self) -> None:
+        lock = (ROOT / "uv.lock").read_text(encoding="utf-8")
+        package = lock.split('\nname = "planexs"\n', 1)[1].split("\n[[package]]\n", 1)[0]
+        assert '{ name = "numpy", specifier = ">=1.26,<3.0" }' in package

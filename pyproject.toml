@@ -28,6 +28,9 @@ dependencies = [
     "gpytorch>=1.14,<2.0",
     "torch>=2.4",
     "pydantic>=2.9,<3.0",
+    # The derivation of random streams (`core/RngTree.py`) uses numpy's `SeedSequence`; torch and
+    # botorch need numpy too, but the core uses it directly, so it is declared here.
+    "numpy>=1.26,<3.0",
     # Configuration files in YAML (D-4); JSON needs nothing beyond the standard library.
     "pyyaml>=6.0,<7.0",
 ]
@@ -135,7 +138,8 @@ ignore_missing_imports = true
 
 # numpy's own type stubs use Python 3.12 syntax (`type` statements), which mypy rejects while
 # `python_version` is 3.11 (the project's minimum), and that one syntax error stops all
-# checking. planexs does not use numpy directly, so its stubs are skipped rather than parsed.
+# checking. Its stubs are skipped rather than parsed, so what numpy returns is typed `Any`
+# (`core/RngTree.py` is the one module that uses it directly, and converts to `int` itself).
 [[tool.mypy.overrides]]
 module = ["numpy", "numpy.*"]
 follow_imports = "skip"

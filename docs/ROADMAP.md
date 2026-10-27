@@ -398,7 +398,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-13. Random-number tree
 
-**Size:** S | **Needs:** P1-05 | **Spec:** 3.7, 5.11 | **Status:** todo
+**Size:** S | **Needs:** P1-05 | **Spec:** 3.7, 5.11 | **Status:** done
 
 **Do.** Add `core/RngTree.py`: from one study seed, derive child seeds keyed by (ask index, component path) with `numpy.random.SeedSequence`, hashing the path with a stable function (never Python's randomized `hash`). Expose integer seeds and numpy generators; torch generators are built in `encoding` (P3-02) from these integers. When no seed is given, entropy is drawn from the operating system through `SeedSequence()` and returned so that it can be recorded. No literal derivation constants.
 
