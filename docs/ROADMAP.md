@@ -418,7 +418,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-15. Registry contract tests
 
-**Size:** S | **Needs:** P1-10 | **Spec:** 10.6, 10.11 | **Status:** todo
+**Size:** S | **Needs:** P1-10 | **Spec:** 10.6, 10.11 | **Status:** done
 
 **Do.** Add `tests/unit/core/test_registry_contract.py`, parametrized over every kind in the kind table. For every registered entry: a valid name; a configuration schema that is a `ComponentConfig` subclass whose every field has a non-empty description; needs and supports that exist in the vocabulary; a callable builder; a non-empty description. Add a completeness test: every module under a kind's package that contains a registration decorator is imported by the package `__init__`. Today the table holds test doubles; later tasks add real kinds and are covered automatically.
 
