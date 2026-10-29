@@ -428,7 +428,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-16. Layering checker
 
-**Size:** M | **Needs:** P1-05, P0-03 | **Spec:** 5.1, 10.5 | **Status:** todo
+**Size:** M | **Needs:** P1-05, P0-03 | **Spec:** 5.1, 10.5 | **Status:** done
 
 **Do.** Create `scripts/check_layering.py` (standard library, AST) with its rules in `scripts/layers.toml`: the dependency table of specification 5.1; no `ax`, `torch`, `botorch` or `gpytorch` import in `core` and `domain`; no `ax` import outside `adapters` and the legacy `backends`. Legacy packages (`api`, `backends`, `models`, `analysis`) form a `legacy` group that may import anything and that nothing outside the legacy group, the top-level package and the tests may import. The file lists `known_violations` (for example `domain` importing `persistence`, fixed in P2-02, and the current `acquisition` package importing `models`); entries are removed as they are fixed, and a stale entry fails the check.
 

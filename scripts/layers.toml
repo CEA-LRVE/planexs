@@ -1,0 +1,114 @@
+# The layering rules that `scripts/check_layering.py` enforces (specification 5.1, 10.5).
+#
+# Read `check_layering.py`'s docstring for what is checked, what counts as an import and what
+# the check cannot see. This file only holds the rules, so that changing them never means
+# changing code.
+#
+# A "unit" below is a package directly under `src/planexs`: a layer or a legacy package.
+
+# ---------------------------------------------------------------------------------------------
+# The layers: the dependency table of specification 5.1. Each layer may import itself and the
+# layers it lists, and no other layer. A lower layer never imports a higher one, and the
+# check refuses a table in which the layers depend on each other in a cycle.
+#
+# A layer may be listed before its directory exists: the layers of later phases are written
+# here already, so that the first file of a new layer is checked from the start.
+# ---------------------------------------------------------------------------------------------
+[layers]
+core = []
+domain = ["core"]
+encoding = ["core", "domain"]
+surrogates = ["core", "domain", "encoding"]
+goals = ["core", "domain"]
+designs = ["core", "domain", "encoding"]
+acquisition = ["core", "domain", "encoding", "surrogates", "goals"]
+optimizers = ["core", "domain", "encoding", "acquisition"]
+analyses = ["core", "domain", "encoding", "surrogates", "goals"]
+stopping = ["core", "domain", "surrogates", "goals", "analyses"]
+# Specification 5.1: "every layer above".
+policies = [
+  "core", "domain", "encoding", "surrogates", "goals", "designs", "acquisition", "optimizers",
+  "analyses", "stopping",
+]
+persistence = ["core", "domain"]
+# Specification 5.1: "every registry layer", that is every layer that defines a kind, down to
+# `persistence` (the repository kind). `study` is the only layer that depends on `config`.
+config = [
+  "core", "domain", "encoding", "surrogates", "goals", "designs", "acquisition", "optimizers",
+  "analyses", "stopping", "policies", "persistence",
+]
+study = ["core", "domain", "goals", "policies", "analyses", "stopping", "persistence", "config"]
+# Specification 5.1 says "planexs' public contracts, plus the third-party package". Read here as
+# the contracts of every layer that defines one (so an adapter can implement a policy, an
+# analysis or a repository), and not the two facades: `config` loads configurations and
+# `study` drives them, and both sit above the plugins that adapters are.
+adapters = [
+  "core", "domain", "encoding", "surrogates", "goals", "designs", "acquisition", "optimizers",
+  "analyses", "stopping", "policies", "persistence",
+]
+
+# ---------------------------------------------------------------------------------------------
+# The legacy packages: the 0.1.0 architecture, kept until Phase 11 deletes it (roadmap
+# section 2.3). They may import anything. Nothing outside this group, the top-level package
+# and the tests may import them.
+# ---------------------------------------------------------------------------------------------
+[legacy]
+packages = ["api", "backends", "models", "analysis"]
+
+# ---------------------------------------------------------------------------------------------
+# Where third-party libraries may be imported (specification 1.4, 5.1, 10.5).
+# ---------------------------------------------------------------------------------------------
+[[library_rules]]
+libraries = ["ax", "torch", "botorch", "gpytorch"]
+forbidden_in = ["core", "domain"]
+reason = "core and domain import no machine-learning library (specification 5.1, 10.5)"
+
+[[library_rules]]
+libraries = ["ax"]
+allowed_only_in = ["adapters", "backends"]
+reason = "only adapters import Ax; the legacy backends package is the exception until Phase 11 deletes it (specification 1.4, 10.5)"
+
+# ---------------------------------------------------------------------------------------------
+# Known violations: code of the 0.1.0 architecture that breaks a rule above, until the roadmap
+# task that fixes it. Each entry names the importing module, what it imports (a unit, a
+# library, or `planexs` for the top-level package), the task, and the reason.
+#
+# Entries are only ever removed. The check fails on a violation that is not listed (it is new)
+# and on an entry that matches nothing any more (it is stale: delete it). Do not add an entry to
+# silence a new violation; see the docstring of `check_layering.py`.
+# ---------------------------------------------------------------------------------------------
+
+# StudySnapshot imports ReproducibilityMetadata, which lives in persistence (a layer above
+# domain). P2-02 renames the class LegacyStudySnapshot and moves it to persistence.
+[[known_violations]]
+importer = "planexs.domain.StudySnapshot"
+imported = "persistence"
+fixed_by = "P2-02"
+reason = "the legacy snapshot, in domain, imports ReproducibilityMetadata from persistence"
+
+# The four modules below are the legacy alpha layer. They import the search-space encoder and the
+# expression compiler from `models`, a legacy package. P3-01 moves those two files to
+# `encoding/`, which `acquisition` may depend on.
+[[known_violations]]
+importer = "planexs.acquisition.AlphaAcquisitionStrategy"
+imported = "models"
+fixed_by = "P3-01"
+reason = "imports SearchSpaceEncoder from the legacy models package"
+
+[[known_violations]]
+importer = "planexs.acquisition.EncodedConstraints"
+imported = "models"
+fixed_by = "P3-01"
+reason = "imports SearchSpaceEncoder from the legacy models package"
+
+[[known_violations]]
+importer = "planexs.acquisition.sampleFeasibleEncoded"
+imported = "models"
+fixed_by = "P3-01"
+reason = "imports SearchSpaceEncoder from the legacy models package"
+
+[[known_violations]]
+importer = "planexs.acquisition.toBotorchNonlinearConstraints"
+imported = "models"
+fixed_by = "P3-01"
+reason = "imports compileExpression from the legacy models package"
