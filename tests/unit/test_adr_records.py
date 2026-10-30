@@ -41,6 +41,14 @@ TEMPLATE_SECTIONS = (
     "Consequences",
     "Action items",
 )
+#: The states of a trial (specification 5.4), in the order the table of ADR-0012 lists them.
+TRIAL_STATES = ("pending", "completed", "failed", "abandoned")
+#: The only legal transitions of a trial: a pending trial is reported, fails or is withdrawn.
+LEGAL_TRIAL_TRANSITIONS = {
+    ("pending", "completed"),
+    ("pending", "failed"),
+    ("pending", "abandoned"),
+}
 
 _FILE_NAME = re.compile(r"^(\d{4})-.+\.md$")
 _TITLE = re.compile(r"^# ADR-(\d{4}):")
@@ -397,13 +405,32 @@ class TestRealTree:
         for number in named:
             assert adrs[number].status == "Superseded by ADR-0009", adrs[number].label
 
-    @pytest.mark.parametrize("number", [3, 9, 10, 11])
+    @pytest.mark.parametrize("number", [3, 9, 10, 11, 12])
     def test_an_adr_written_in_full_is_a_live_record_and_therefore_complete(
         self, number: int
     ) -> None:
         adr = {a.number: a for a in loadAdrs(REPO_ROOT / "docs" / "adr")}[number]
         assert not adr.is_historical, f"{adr.label} is still a stub or superseded"
         assert set(TEMPLATE_SECTIONS) <= set(adr.sections)
+
+    def test_adr_0012_transition_table_lists_every_pair_of_states_and_its_legality(
+        self,
+    ) -> None:
+        # P2-01 asks for the table of legal trial-state transitions: each of the sixteen
+        # ordered pairs of the four states, once, with whether it is legal. Specification 5.4
+        # allows exactly three: pending to completed, to failed and to abandoned.
+        adr = {a.number: a for a in loadAdrs(REPO_ROOT / "docs" / "adr")}[12]
+        rows: dict[tuple[str, str], list[str]] = {}
+        for line in adr.lines:
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) >= 3 and cells[0] in TRIAL_STATES and cells[1] in TRIAL_STATES:
+                rows.setdefault((cells[0], cells[1]), []).append(cells[2])
+        every_pair = {(a, b) for a in TRIAL_STATES for b in TRIAL_STATES}
+        assert set(rows) == every_pair, "a pair of states is missing from the table"
+        assert all(len(answers) == 1 for answers in rows.values()), "a pair is listed twice"
+        assert all(answer in ("yes", "no") for (answer,) in rows.values())
+        legal = {pair for pair, (answer,) in rows.items() if answer == "yes"}
+        assert legal == LEGAL_TRIAL_TRANSITIONS
 
     def test_the_scan_sees_every_adr_file_of_the_directory(self) -> None:
         on_disk = {

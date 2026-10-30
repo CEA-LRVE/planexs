@@ -438,7 +438,7 @@ Record the architecture decisions, then build the `core` layer: the error hierar
 
 ### P1-17. Contributor documentation
 
-**Size:** S | **Needs:** P1-03, P1-15, P0-06, P1-16 | **Spec:** 10, 12 | **Status:** todo
+**Size:** S | **Needs:** P1-03, P1-15, P0-06, P1-16 | **Spec:** 10, 12 | **Status:** done
 
 **Do.** Update `docs/contributing.md`: add the registry rules (10.6), the policy-value rule and the `# structural:` marker (10.7), the options-object rule (10.8), the new-component checklist (10.14) and the request check (12.2), and say how to run each checker. Keep the existing naming and typography sections.
 
@@ -456,7 +456,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-01. ADR-0012: outcomes, trials and observations
 
-**Size:** S | **Needs:** P1-01 | **Spec:** 5.4 | **Decision:** D-7 | **Status:** todo
+**Size:** S | **Needs:** P1-01 | **Spec:** 5.4 | **Decision:** D-7 | **Status:** done
 
 **Do.** Record: outcomes with registered kinds (continuous and binary first, D-7); trials with a lifecycle and stable identifiers; observations typed per outcome kind with optional noise; direction and weights live in goals, not in outcomes. Options considered: keep `Metric` (a name plus a direction) as the outcome; free-form dictionaries for observations. Include the table of legal trial-state transitions.
 
