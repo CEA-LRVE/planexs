@@ -1,13 +1,13 @@
-"""Maps a planexs `Objective` to Ax's `objective`/`outcome_constraints` strings."""
+"""Maps a planexs `LegacyObjective` to Ax's `objective`/`outcome_constraints` strings."""
 
 from __future__ import annotations
 
-from planexs.domain.Metric import Metric
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyMetric import LegacyMetric
+from planexs.domain.LegacyObjective import LegacyObjective
 
 
-def toAxOptimizationConfig(objective: Objective) -> tuple[str, list[str]]:
-    """Maps a planexs `Objective` to the `(objective, outcome_constraints)`
+def toAxOptimizationConfig(objective: LegacyObjective) -> tuple[str, list[str]]:
+    """Maps a planexs `LegacyObjective` to the `(objective, outcome_constraints)`
     strings/string-list `Client.configure_optimization` expects, weighted or
     unweighted as appropriate.
 
@@ -15,7 +15,7 @@ def toAxOptimizationConfig(objective: Objective) -> tuple[str, list[str]]:
     https://ax.readthedocs.io/en/stable/api.html): a metric is maximized by
     default, and minimized by prepending its name with `"-"`.
 
-    Three cases, matching `Objective`'s own docstring (design philosophy #3:
+    Three cases, matching `LegacyObjective`'s own docstring (design philosophy #3:
     single-objective is the N = 1 case of multi-objective, not a separate
     code path):
 
@@ -45,7 +45,7 @@ def toAxOptimizationConfig(objective: Objective) -> tuple[str, list[str]]:
     return objective_string, outcome_constraint_strings
 
 
-def _signedMetricName(metric: Metric) -> str:
+def _signedMetricName(metric: LegacyMetric) -> str:
     """Names a metric the way Ax's objective strings do: a leading `-` means minimize.
 
     Args:

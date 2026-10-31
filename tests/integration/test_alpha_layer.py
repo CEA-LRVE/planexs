@@ -19,10 +19,10 @@ from planexs import (
     Choice,
     Derived,
     Integer,
+    LegacyMetric,
+    LegacyObjective,
     LinearConstraint,
-    Metric,
     NonlinearConstraint,
-    Objective,
     Real,
     SearchSpace,
 )
@@ -131,7 +131,9 @@ class TestAlphaLoop:
                 bo.tell(point, {"objective": point["total"]})  # type: ignore[dict-item]
 
     def test_multi_objective_suggestions_are_accepted_by_ax(self) -> None:
-        objective = Objective([Metric("cost", minimize=True), Metric("util", minimize=False)])
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)]
+        )
         bo = BayesianOptimizer(
             parameters=SearchSpace([Real("x", 0.0, 1.0), Real("y", 0.0, 1.0)]),
             objective=objective,

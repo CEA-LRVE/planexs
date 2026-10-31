@@ -78,14 +78,6 @@ reason = "only adapters import Ax; the legacy backends package is the exception 
 # silence a new violation; see the docstring of `check_layering.py`.
 # ---------------------------------------------------------------------------------------------
 
-# StudySnapshot imports ReproducibilityMetadata, which lives in persistence (a layer above
-# domain). P2-02 renames the class LegacyStudySnapshot and moves it to persistence.
-[[known_violations]]
-importer = "planexs.domain.StudySnapshot"
-imported = "persistence"
-fixed_by = "P2-02"
-reason = "the legacy snapshot, in domain, imports ReproducibilityMetadata from persistence"
-
 # The four modules below are the legacy alpha layer. They import the search-space encoder and the
 # expression compiler from `models`, a legacy package. P3-01 moves those two files to
 # `encoding/`, which `acquisition` may depend on.

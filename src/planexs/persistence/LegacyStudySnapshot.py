@@ -6,26 +6,22 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.Trial import Trial
-
-# ReproducibilityMetadata lives under persistence/ (section 5.1's package
-# layout), not domain/, since it is a persistence-format concern (FR12)
-# rather than a modeling concept an optimization backend needs. Importing it
-# here is safe (no import cycle): ReproducibilityMetadata itself has zero
-# planexs dependencies, so domain's "zero ML dependencies" rule (section 4.1)
-# is preserved in spirit; it is the one deliberate exception to domain/ never
-# importing from a sibling top-level package.
 from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata
 
 
-class StudySnapshot(BaseModel):
+class LegacyStudySnapshot(BaseModel):
     """Everything needed to fully reconstruct a `BayesianOptimizer`: its
     search space, objective, constraints, trial history, and reproducibility
     metadata. The unit that `persistence/` reads and writes. Wraps, rather
     than duplicates, whatever Ax's own `Client.save_to_json_file` already
     captures; see section 5.6.
+
+    Legacy type of the 0.1.0 architecture: it lives in `persistence/`, the layer that owns
+    the snapshot format and `ReproducibilityMetadata`, and is kept only until roadmap task
+    P11-03 deletes it. New code must not use it.
 
     Attributes:
         name: The study's name (mirrors `BayesianOptimizer.__init__`'s own
@@ -35,8 +31,8 @@ class StudySnapshot(BaseModel):
             `backend_state`) so that `default`/`dependent_parameters`
             metadata that Ax's own snapshot does not carry a field for
             round-trips exactly (FR11, FR12).
-        objective: The full `Objective`, including weights and
-            `OutcomeConstraint`s.
+        objective: The full `LegacyObjective`, including weights and
+            `LegacyOutcomeConstraint`s.
         trials: The complete trial history, in the order they were told to
             the optimizer (FR12: "full trial history ... not just the final
             state").
@@ -59,8 +55,8 @@ class StudySnapshot(BaseModel):
 
     name: str
     search_space: SearchSpace
-    objective: Objective
-    trials: list[Trial]
+    objective: LegacyObjective
+    trials: list[LegacyTrial]
     reproducibility: ReproducibilityMetadata
     backend_state: dict[str, Any]
     backend_kind: str = "ax"
@@ -69,8 +65,8 @@ class StudySnapshot(BaseModel):
         self,
         name: str,
         search_space: SearchSpace,
-        objective: Objective,
-        trials: list[Trial],
+        objective: LegacyObjective,
+        trials: list[LegacyTrial],
         reproducibility: ReproducibilityMetadata,
         backend_state: dict[str, Any],
         backend_kind: str = "ax",

@@ -16,9 +16,9 @@ from __future__ import annotations
 from typing import Any
 
 from planexs.backends.OptimizationBackend import OptimizationBackend
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.Trial import Trial
 
 
 class FakeBackend(OptimizationBackend):
@@ -26,16 +26,16 @@ class FakeBackend(OptimizationBackend):
 
     def __init__(self) -> None:
         self.created_search_space: SearchSpace | None = None
-        self.created_objective: Objective | None = None
-        self.attached_trials: list[Trial] = []
+        self.created_objective: LegacyObjective | None = None
+        self.attached_trials: list[LegacyTrial] = []
         self.exported_state_calls = 0
         self._next_trial_index = 0
 
-    def createExperiment(self, search_space: SearchSpace, objective: Objective) -> None:
+    def createExperiment(self, search_space: SearchSpace, objective: LegacyObjective) -> None:
         self.created_search_space = search_space
         self.created_objective = objective
 
-    def attachTrial(self, trial: Trial) -> int:
+    def attachTrial(self, trial: LegacyTrial) -> int:
         index = self._next_trial_index
         self._next_trial_index += 1
         self.attached_trials.append(trial)
@@ -55,10 +55,10 @@ class FakeBackend(OptimizationBackend):
     def computeSensitivity(self) -> dict[str, dict[str, float]]:
         return {"objective": {"x": 1.0}}
 
-    def getParetoFrontier(self) -> list[Trial]:
+    def getParetoFrontier(self) -> list[LegacyTrial]:
         return list(self.attached_trials)
 
-    def getBestTrial(self) -> Trial | None:
+    def getBestTrial(self) -> LegacyTrial | None:
         return self.attached_trials[-1] if self.attached_trials else None
 
     def exportState(self) -> dict[str, Any]:

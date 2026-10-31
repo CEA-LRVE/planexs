@@ -104,7 +104,7 @@ class TestStrategyConfiguration:
     def test_the_optimizers_own_starting_points_get_them_too(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from planexs import Metric, Objective, Trial
+        from planexs import LegacyMetric, LegacyObjective, LegacyTrial
         from planexs.models.buildSurrogateModel import buildSurrogateModel
         from planexs.models.encodeTrials import encodeTrials
 
@@ -118,7 +118,7 @@ class TestStrategyConfiguration:
 
         monkeypatch.setattr(module, "optimize_acqf", recording)
         space = _mixture()
-        objective = Objective([Metric("f", minimize=True)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=True)])
         strategy = AlphaAcquisitionStrategy(
             num_restarts=2,
             raw_samples=32,
@@ -128,7 +128,7 @@ class TestStrategyConfiguration:
             polytope_thinning=5,
         )
         points = strategy.suggestSpaceFilling(space, 5, seed=0)
-        trials = [Trial(parameters=p, results={"f": p["a"]}) for p in points]
+        trials = [LegacyTrial(parameters=p, results={"f": p["a"]}) for p in points]
         model = buildSurrogateModel(
             *encodeTrials(SearchSpaceEncoder(space), objective, trials)
         )
@@ -144,14 +144,15 @@ class TestSeeding:
 
     @staticmethod
     def _model_and_space():  # type: ignore[no-untyped-def]
-        from planexs import Metric, Objective, Trial
+        from planexs import LegacyMetric, LegacyObjective, LegacyTrial
         from planexs.models.buildSurrogateModel import buildSurrogateModel
         from planexs.models.encodeTrials import encodeTrials
 
         space = SearchSpace([Real("x", 0.0, 1.0)])
-        objective = Objective([Metric("f", minimize=True)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=True)])
         trials = [
-            Trial(parameters={"x": x}, results={"f": (x - 0.3) ** 2}) for x in (0.0, 0.5, 1.0)
+            LegacyTrial(parameters={"x": x}, results={"f": (x - 0.3) ** 2})
+            for x in (0.0, 0.5, 1.0)
         ]
         model = buildSurrogateModel(
             *encodeTrials(SearchSpaceEncoder(space), objective, trials)

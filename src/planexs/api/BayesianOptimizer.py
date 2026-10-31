@@ -17,18 +17,18 @@ from planexs.backends.PredictionUnavailableError import PredictionUnavailableErr
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
-from planexs.domain.Metric import Metric
-from planexs.domain.Objective import Objective
-from planexs.domain.OutcomeConstraint import OutcomeConstraint
+from planexs.domain.LegacyMetric import LegacyMetric
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyOutcomeConstraint import LegacyOutcomeConstraint
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.StudySnapshot import StudySnapshot
-from planexs.domain.Trial import Trial
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
 from planexs.models.predictWithModel import predictWithModel
 from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.persistence.JsonStudyRepository import JsonStudyRepository
+from planexs.persistence.LegacyStudySnapshot import LegacyStudySnapshot
 from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata
 
 if TYPE_CHECKING:
@@ -64,15 +64,15 @@ class BayesianOptimizer:
         A single, unnamed metric is assumed; `objective="minimize"` or
         `"maximize"` picks its direction.
     Advanced case: pass an already-built `SearchSpace` (carrying its own
-        constraints) and an already-built `Objective` (named metrics,
+        constraints) and an already-built `LegacyObjective` (named metrics,
         optional weights, optional outcome_constraints, single or
         multi-objective). `constraints`/`outcome_constraints` must be left
         `None` in that case (a `ValueError` is raised otherwise: the
-        `SearchSpace`/`Objective` already own their own constraints, so
+        `SearchSpace`/`LegacyObjective` already own their own constraints, so
         passing both is an ambiguous request, not a merge).
 
     No other combination of `parameters`/`objective` is accepted (e.g. a
-    plain parameter list together with an already-built `Objective`): the
+    plain parameter list together with an already-built `LegacyObjective`): the
     two `@overload` signatures above the real `__init__` are the whole
     contract, and the implementation raises a `TypeError` naming exactly
     what was passed for anything outside it, rather than silently guessing
@@ -91,7 +91,7 @@ class BayesianOptimizer:
         parameters: Sequence[Parameter],
         objective: Literal["minimize", "maximize"] = "minimize",
         constraints: Sequence[Constraint] | None = None,
-        outcome_constraints: Sequence[OutcomeConstraint] | None = None,
+        outcome_constraints: Sequence[LegacyOutcomeConstraint] | None = None,
         name: str = "study",
         random_seed: int | None = None,
         backend: OptimizationBackend | None = None,
@@ -102,7 +102,7 @@ class BayesianOptimizer:
     def __init__(
         self,
         parameters: SearchSpace,
-        objective: Objective,
+        objective: LegacyObjective,
         constraints: None = None,
         outcome_constraints: None = None,
         name: str = "study",
@@ -114,9 +114,9 @@ class BayesianOptimizer:
     def __init__(
         self,
         parameters: Sequence[Parameter] | SearchSpace,
-        objective: Objective | Literal["minimize", "maximize"] = "minimize",
+        objective: LegacyObjective | Literal["minimize", "maximize"] = "minimize",
         constraints: Sequence[Constraint] | None = None,
-        outcome_constraints: Sequence[OutcomeConstraint] | None = None,
+        outcome_constraints: Sequence[LegacyOutcomeConstraint] | None = None,
         name: str = "study",
         random_seed: int | None = None,
         backend: OptimizationBackend | None = None,
@@ -128,7 +128,7 @@ class BayesianOptimizer:
             parameters: A sequence of parameters (common case) or an already-built
                 `SearchSpace` (advanced case).
             objective: `"minimize"` or `"maximize"` for the implicit single metric
-                (common case), or an already-built `Objective` (advanced case).
+                (common case), or an already-built `LegacyObjective` (advanced case).
             constraints: Parameter constraints (common case only).
             outcome_constraints: Constraints on the implicit metric (common case only).
             name: The study's name.
@@ -139,15 +139,16 @@ class BayesianOptimizer:
                 `ask()` is given an `alpha`. Defaults to an `AlphaAcquisitionStrategy`.
 
         Raises:
-            ValueError: if constraints are passed together with a `SearchSpace`/`Objective`, or
-                `objective` is a string other than `"minimize"`/`"maximize"`.
+            ValueError: if constraints are passed together with a
+                `SearchSpace`/`LegacyObjective`, or `objective` is a string other than
+                `"minimize"`/`"maximize"`.
             TypeError: if `parameters` and `objective` are combined in an unsupported way.
         """
         self._search_space, self._objective = _resolveSearchSpaceAndObjective(
             parameters, objective, constraints, outcome_constraints
         )
         self._name = name
-        self._trials: list[Trial] = []
+        self._trials: list[LegacyTrial] = []
         self._acquisition_strategy: AcquisitionStrategy = (
             acquisition_strategy
             if acquisition_strategy is not None
@@ -187,11 +188,11 @@ class BayesianOptimizer:
         x: dict[str, float | int | str | bool],
         y: dict[str, float],
         y_std: dict[str, float] | None = None,
-    ) -> Trial:
+    ) -> LegacyTrial:
         """Manually inject an already-known point and its result(s). FR3.
 
         `x` maps parameter name to value. `y` maps metric name to value,
-        matching however `Objective`'s metrics were named (or
+        matching however `LegacyObjective`'s metrics were named (or
         `IMPLICIT_METRIC_NAME` when the shorthand constructor was used).
         `y_std`, when known (e.g. from repeated measurements), is passed
         through as a fixed observation noise instead of being inferred by
@@ -203,9 +204,9 @@ class BayesianOptimizer:
         `AxBackend.attachTrial`'s own docstring for the exact matching rule
         and its one known limitation.
         """
-        pending_trial = Trial(parameters=dict(x), results=dict(y), result_std=y_std)
+        pending_trial = LegacyTrial(parameters=dict(x), results=dict(y), result_std=y_std)
         trial_index = self._backend.attachTrial(pending_trial)
-        recorded_trial = Trial(
+        recorded_trial = LegacyTrial(
             parameters=pending_trial.parameters,
             results=pending_trial.results,
             result_std=pending_trial.result_std,
@@ -245,7 +246,7 @@ class BayesianOptimizer:
         batch instead.
 
         Every suggested point satisfies the search space's parameter
-        constraints. `OutcomeConstraint`s are not yet enforced by the custom
+        constraints. `LegacyOutcomeConstraint`s are not yet enforced by the custom
         layer: a warning is logged when there are some.
 
         Args:
@@ -323,7 +324,7 @@ class BayesianOptimizer:
         return len(self._trials)
 
     @property
-    def paretoFront(self) -> list[Trial]:
+    def paretoFront(self) -> list[LegacyTrial]:
         """Delegates to the backend's `getParetoFrontier()` (Ax's own
         `Client.get_pareto_frontier` under `AxBackend`, section 5.3), not a
         hand-rolled non-domination scan. Has a cost, camelCase. Collapses to
@@ -337,7 +338,7 @@ class BayesianOptimizer:
 
     def save(self, path: str | Path) -> None:
         """FR11, FR12. See `JsonStudyRepository`, section 5.6."""
-        snapshot = StudySnapshot(
+        snapshot = LegacyStudySnapshot(
             name=self._name,
             search_space=self._search_space,
             objective=self._objective,
@@ -476,7 +477,7 @@ class BayesianOptimizer:
         `ax.api.client.Client`. Anything reached through this property is,
         by definition, outside what planexs validates or keeps in sync with
         its own domain objects: for example, a trial attached directly via
-        `axClient.attach_trial(...)` will not appear as a planexs `Trial`
+        `axClient.attach_trial(...)` will not appear as a planexs `LegacyTrial`
         until the caller also updates the planexs side, since planexs only
         learns about it through this same escape hatch, not automatically.
         """
@@ -505,15 +506,15 @@ class BayesianOptimizer:
 
 def _resolveSearchSpaceAndObjective(
     parameters: Sequence[Parameter] | SearchSpace,
-    objective: Objective | Literal["minimize", "maximize"],
+    objective: LegacyObjective | Literal["minimize", "maximize"],
     constraints: Sequence[Constraint] | None,
-    outcome_constraints: Sequence[OutcomeConstraint] | None,
-) -> tuple[SearchSpace, Objective]:
-    """Turns the constructor's two call shapes into a `SearchSpace` and an `Objective`.
+    outcome_constraints: Sequence[LegacyOutcomeConstraint] | None,
+) -> tuple[SearchSpace, LegacyObjective]:
+    """Turns the constructor's two call shapes into a `SearchSpace` and a `LegacyObjective`.
 
     Args:
         parameters: A parameter sequence or a `SearchSpace`.
-        objective: `"minimize"`/`"maximize"` or an `Objective`.
+        objective: `"minimize"`/`"maximize"` or a `LegacyObjective`.
         constraints: Parameter constraints, accepted only with a parameter sequence.
         outcome_constraints: Metric constraints, accepted only with a parameter sequence.
 
@@ -521,22 +522,22 @@ def _resolveSearchSpaceAndObjective(
         The `(search_space, objective)` pair.
 
     Raises:
-        ValueError: if constraints accompany a `SearchSpace`/`Objective`, or the objective
-            string is not `"minimize"`/`"maximize"`.
+        ValueError: if constraints accompany a `SearchSpace`/`LegacyObjective`, or the
+            objective string is not `"minimize"`/`"maximize"`.
         TypeError: for any other combination of `parameters` and `objective`.
     """
-    if isinstance(parameters, SearchSpace) and isinstance(objective, Objective):
+    if isinstance(parameters, SearchSpace) and isinstance(objective, LegacyObjective):
         if constraints is not None or outcome_constraints is not None:
             raise ValueError(
                 "When `parameters` is a SearchSpace and `objective` is an "
-                "Objective (the advanced case), `constraints` and "
+                "LegacyObjective (the advanced case), `constraints` and "
                 "`outcome_constraints` must be left None: the SearchSpace "
-                "and Objective already own their own constraints, so "
+                "and LegacyObjective already own their own constraints, so "
                 "passing both is an ambiguous request, not a merge."
             )
         return parameters, objective
 
-    if not isinstance(parameters, SearchSpace) and not isinstance(objective, Objective):
+    if not isinstance(parameters, SearchSpace) and not isinstance(objective, LegacyObjective):
         if objective not in ("minimize", "maximize"):
             raise ValueError(
                 "objective must be 'minimize' or 'maximize' when "
@@ -546,8 +547,10 @@ def _resolveSearchSpaceAndObjective(
             parameters=list(parameters),
             constraints=list(constraints) if constraints is not None else [],
         )
-        implicit_objective = Objective(
-            metrics=[Metric(name=IMPLICIT_METRIC_NAME, minimize=(objective == "minimize"))],
+        implicit_objective = LegacyObjective(
+            metrics=[
+                LegacyMetric(name=IMPLICIT_METRIC_NAME, minimize=(objective == "minimize"))
+            ],
             outcome_constraints=(
                 list(outcome_constraints) if outcome_constraints is not None else []
             ),
@@ -555,15 +558,15 @@ def _resolveSearchSpaceAndObjective(
         return search_space, implicit_objective
 
     is_search_space = isinstance(parameters, SearchSpace)
-    is_objective = isinstance(objective, Objective)
+    is_objective = isinstance(objective, LegacyObjective)
     raise TypeError(
         "BayesianOptimizer() takes either (parameters=Sequence[Parameter], "
         "objective='minimize'|'maximize') for the common case, or "
-        "(parameters=SearchSpace, objective=Objective) for the advanced case "
+        "(parameters=SearchSpace, objective=LegacyObjective) for the advanced case "
         "(section 5.7); got parameters as "
         f"{'a SearchSpace' if is_search_space else 'a parameter sequence'} "
         f"together with objective as "
-        f"{'an Objective' if is_objective else type(objective).__name__!r}."
+        f"{'a LegacyObjective' if is_objective else type(objective).__name__!r}."
     )
 
 

@@ -8,15 +8,15 @@ from collections.abc import Sequence
 import torch
 from torch import Tensor
 
-from planexs.domain.Objective import Objective
-from planexs.domain.Trial import Trial
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 logger = logging.getLogger(__name__)
 
 
 def encodeTrials(
-    encoder: SearchSpaceEncoder, objective: Objective, trials: Sequence[Trial]
+    encoder: SearchSpaceEncoder, objective: LegacyObjective, trials: Sequence[LegacyTrial]
 ) -> tuple[Tensor, Tensor, Tensor | None]:
     """Encodes `trials` for `buildSurrogateModel`.
 

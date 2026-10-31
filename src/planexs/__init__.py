@@ -26,9 +26,10 @@ from planexs.backends.PredictionUnavailableError import PredictionUnavailableErr
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
-from planexs.domain.Metric import Metric
-from planexs.domain.Objective import Objective
-from planexs.domain.OutcomeConstraint import OutcomeConstraint
+from planexs.domain.LegacyMetric import LegacyMetric
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyOutcomeConstraint import LegacyOutcomeConstraint
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.parameters.Boolean import Boolean
 from planexs.domain.parameters.Categorical import Categorical
 from planexs.domain.parameters.Choice import Choice
@@ -39,9 +40,8 @@ from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.parameters.Range import Range
 from planexs.domain.parameters.Real import Real
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.StudySnapshot import StudySnapshot
-from planexs.domain.Trial import Trial
 from planexs.persistence.JsonStudyRepository import JsonStudyRepository
+from planexs.persistence.LegacyStudySnapshot import LegacyStudySnapshot
 from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata
 from planexs.persistence.StudyRepository import StudyRepository
 
@@ -67,13 +67,15 @@ __all__ = [
     "Fixed",
     "Integer",
     "JsonStudyRepository",
+    "LegacyMetric",
+    "LegacyObjective",
+    "LegacyOutcomeConstraint",
+    "LegacyStudySnapshot",
+    "LegacyTrial",
     "LinearConstraint",
-    "Metric",
     "MultiObjectiveExplorationExploitationAcquisition",
     "NonlinearConstraint",
-    "Objective",
     "OptimizationBackend",
-    "OutcomeConstraint",
     "Parameter",
     "PredictionResult",
     "PredictionUnavailableError",
@@ -82,7 +84,5 @@ __all__ = [
     "ReproducibilityMetadata",
     "SearchSpace",
     "StudyRepository",
-    "StudySnapshot",
-    "Trial",
     "__version__",
 ]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
 from planexs.domain.SearchSpace import SearchSpace
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class AcquisitionStrategy(ABC):
     def buildAcquisitionFunction(
         self,
         model: Model,
-        objective: Objective,
+        objective: LegacyObjective,
         alpha: float,
         reference_points: Tensor,
     ) -> AcquisitionFunction:
@@ -48,7 +48,7 @@ class AcquisitionStrategy(ABC):
     def suggest(
         self,
         model: Model,
-        objective: Objective,
+        objective: LegacyObjective,
         search_space: SearchSpace,
         alpha: float,
         n_points: int,

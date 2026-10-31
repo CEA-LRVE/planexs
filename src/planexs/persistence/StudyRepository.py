@@ -1,15 +1,15 @@
-"""ABC for saving and loading a `StudySnapshot`."""
+"""ABC for saving and loading a `LegacyStudySnapshot`."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from planexs.domain.StudySnapshot import StudySnapshot
+from planexs.persistence.LegacyStudySnapshot import LegacyStudySnapshot
 
 
 class StudyRepository(ABC):
-    """Saves and loads a `StudySnapshot` to/from some storage medium.
+    """Saves and loads a `LegacyStudySnapshot` to/from some storage medium.
 
     `JsonStudyRepository` (a single `.json` file) is the only implementation
     in Phase 1. Section 4.7 lists a SQL-backed implementation
@@ -19,9 +19,9 @@ class StudyRepository(ABC):
     """
 
     @abstractmethod
-    def save(self, snapshot: StudySnapshot, path: str | Path) -> None:
+    def save(self, snapshot: LegacyStudySnapshot, path: str | Path) -> None:
         """Persists `snapshot` to `path`."""
 
     @abstractmethod
-    def load(self, path: str | Path) -> StudySnapshot:
-        """Reconstructs a `StudySnapshot` previously saved to `path`."""
+    def load(self, path: str | Path) -> LegacyStudySnapshot:
+        """Reconstructs a `LegacyStudySnapshot` previously saved to `path`."""

@@ -7,12 +7,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 
-class OutcomeConstraint(BaseModel):
+class LegacyOutcomeConstraint(BaseModel):
     """A constraint on an observed metric rather than on a parameter (e.g.
     `"qps >= 100"`), matching what `Client.configure_optimization`'s own
-    `outcome_constraints` expects (FR15). Lives alongside `Objective`, not
+    `outcome_constraints` expects (FR15). Lives alongside `LegacyObjective`, not
     inside `SearchSpace`, because it constrains an observed outcome, not a
     decision variable.
+
+    Legacy type of the 0.1.0 architecture, kept only until roadmap task P11-03 deletes it.
+    New code must not use it.
 
     Attributes:
         metric_name: The name of the constrained metric.

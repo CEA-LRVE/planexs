@@ -5,12 +5,15 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 
-class Trial(BaseModel):
+class LegacyTrial(BaseModel):
     """One evaluated point: its parameters and its observed metric value(s).
 
     `result_std`, when known (e.g. from repeated measurements), is passed
     through as a fixed observation noise instead of being inferred by the
     surrogate model.
+
+    Legacy type of the 0.1.0 architecture, kept only until roadmap task P11-03 deletes it.
+    New code must not use it.
 
     Attributes:
         parameters: Maps parameter name to the value this trial used.
@@ -18,7 +21,7 @@ class Trial(BaseModel):
         result_std: Optionally maps metric name to the known standard
             deviation of that observation.
         trial_index: The backend-assigned index of this trial, once it has
-            been attached to a backend. `None` for a `Trial` that has not
+            been attached to a backend. `None` for a `LegacyTrial` that has not
             been registered with any backend yet.
     """
 

@@ -19,9 +19,9 @@ from planexs.backends.ax.toAxSearchSpace import toAxSearchSpace
 from planexs.backends.OptimizationBackend import OptimizationBackend
 from planexs.backends.PredictionUnavailableError import PredictionUnavailableError
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.Trial import Trial
 
 logger = logging.getLogger(__name__)
 
@@ -84,10 +84,10 @@ class AxBackend(OptimizationBackend):
         self._pending_trials: dict[tuple[tuple[str, _AxValue], ...], int] = {}
 
         self._search_space: SearchSpace | None = None
-        self._objective: Objective | None = None
+        self._objective: LegacyObjective | None = None
         self._metric_names: list[str] = []
 
-    def createExperiment(self, search_space: SearchSpace, objective: Objective) -> None:
+    def createExperiment(self, search_space: SearchSpace, objective: LegacyObjective) -> None:
         """Configures Ax's experiment, optimization goal and generation strategy.
 
         Only the parameter constraints Ax can enforce are given to it: linear
@@ -129,7 +129,7 @@ class AxBackend(OptimizationBackend):
             torch_device=self._torch_device,
         )
 
-    def attachTrial(self, trial: Trial) -> int:
+    def attachTrial(self, trial: LegacyTrial) -> int:
         """Registers `trial`, returning its Ax trial index.
 
         If `trial.parameters` exactly matches a parameterization most
@@ -143,7 +143,7 @@ class AxBackend(OptimizationBackend):
         attached instead of completing the pending one, leaving the original
         Ax trial stuck at RUNNING; this is a known, accepted limitation of
         keying by value rather than by an explicit trial handle (the
-        `OptimizationBackend.attachTrial(trial: Trial)` signature has no
+        `OptimizationBackend.attachTrial(trial: LegacyTrial)` signature has no
         trial-handle parameter to key on instead).
         """
         raw_data = _toAxRawData(trial.results, trial.result_std)
@@ -278,7 +278,7 @@ class AxBackend(OptimizationBackend):
                 result[metric_name] = {}
         return result
 
-    def getParetoFrontier(self) -> list[Trial]:
+    def getParetoFrontier(self) -> list[LegacyTrial]:
         """The Pareto frontier according to Ax, using model predictions.
 
         Returns:
@@ -295,7 +295,7 @@ class AxBackend(OptimizationBackend):
             for parameters, means, trial_index, _arm_name in entries
         ]
 
-    def getBestTrial(self) -> Trial | None:
+    def getBestTrial(self) -> LegacyTrial | None:
         """The best parameterization according to Ax, using model predictions.
 
         Returns:
@@ -345,7 +345,7 @@ class AxBackend(OptimizationBackend):
     def _resolveMetricNames(self) -> list[str]:
         """Falls back to Ax's own `Experiment.optimization_config` when
         `_metric_names` was not populated by `createExperiment` (i.e. after
-        `importState`, where planexs' own `Objective` is supplied separately
+        `importState`, where planexs' own `LegacyObjective` is supplied separately
         by the caller and this backend only has the raw Ax state to go on).
         """
         try:
@@ -354,7 +354,7 @@ class AxBackend(OptimizationBackend):
                 raise ValueError("The Ax experiment has no optimization config yet.")
             # The objective's own metrics, not `optimization_config.metrics` (which
             # Ax 1.x does not have): this matches what `createExperiment` records
-            # from planexs' `Objective`, for single, multi and weighted objectives.
+            # from planexs' `LegacyObjective`, for single, multi and weighted objectives.
             return list(optimization_config.objective.metric_names)
         except Exception as error:
             logger.warning(
@@ -427,8 +427,8 @@ def _axBestEntryToTrial(
     parameters: Mapping[str, _AxValue],
     means: Mapping[str, float | tuple[float, float]],
     trial_index: int,
-) -> Trial:
-    """Converts one entry of Ax's best-parameterization or Pareto output into a `Trial`.
+) -> LegacyTrial:
+    """Converts one entry of Ax's best-parameterization or Pareto output into a `LegacyTrial`.
 
     Args:
         parameters: The parameterization.
@@ -445,7 +445,7 @@ def _axBestEntryToTrial(
         results[metric_name] = mean
         if sem is not None:
             result_std[metric_name] = sem
-    return Trial(
+    return LegacyTrial(
         parameters=dict(parameters),
         results=results,
         result_std=result_std or None,

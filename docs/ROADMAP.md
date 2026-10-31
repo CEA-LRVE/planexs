@@ -466,7 +466,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-02. Prefix the legacy types and move the legacy snapshot
 
-**Size:** S | **Needs:** P1-16 | **Spec:** 5.1 | **Status:** todo
+**Size:** S | **Needs:** P1-16 | **Spec:** 5.1 | **Status:** done
 
 **Do.** The new design reuses the names `Trial`, `Objective`, `Metric`, `OutcomeConstraint` and `StudySnapshot`. Rename the current classes (and their files) to `LegacyTrial`, `LegacyObjective`, `LegacyMetric`, `LegacyOutcomeConstraint` and `LegacyStudySnapshot`, update every import, test and example, and move `LegacyStudySnapshot` to `persistence/` (the domain imports a higher layer today). Remove the matching known violation from `scripts/layers.toml`. This is mechanical: no behaviour change.
 

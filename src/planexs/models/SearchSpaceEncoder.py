@@ -157,7 +157,7 @@ class SearchSpaceEncoder:
         return self._by_name.get(name)
 
     def encodeParameters(self, parameters: Mapping[str, LevelValue]) -> Tensor:
-        """Encodes one parameterization (e.g. a `Trial.parameters`).
+        """Encodes one parameterization (e.g. a `LegacyTrial.parameters`).
 
         Args:
             parameters: Parameter name to value. A parameter that is inactive

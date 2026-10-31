@@ -212,7 +212,7 @@ type would be a new decision, not an edit of this one.
 
 1. [x] Record the decision, with the table of legal trial-state transitions, and list the ADR
    in the navigation (P2-01).
-2. [ ] Rename the 0.1.0 types to `Legacy*` so that the new `Trial` can take its name (P2-02).
+2. [x] Rename the 0.1.0 types to `Legacy*` so that the new `Trial` can take its name (P2-02).
 3. [ ] Add `Outcome` and the `outcome_kind` kind with `continuous` and `binary` (P2-06).
 4. [ ] Add `TrialState`, the immutable `Trial` and `TrialStateError`, tested against every row
    of the table (P2-07).

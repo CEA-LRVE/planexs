@@ -39,7 +39,7 @@ def fromAxSearchSpace(ax_parameters: list[Any]) -> SearchSpace:
     field on Ax's core parameter objects either (mirroring `ax.api.configs`'
     own lack of a `default` field), so neither round-trips through this
     function. `JsonStudyRepository` therefore treats planexs' own
-    `StudySnapshot.search_space` (kept alongside, not re-derived from Ax's
+    `LegacyStudySnapshot.search_space` (kept alongside, not re-derived from Ax's
     state) as the source of truth for those two pieces of metadata, and only
     uses this function where a planexs `SearchSpace` must be derived from a
     `Client` that planexs did not itself create (e.g. one built directly

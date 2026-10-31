@@ -18,14 +18,14 @@ from planexs import (
     Choice,
     ExplorationExploitationAcquisition,
     Integer,
+    LegacyMetric,
+    LegacyObjective,
+    LegacyTrial,
     LinearConstraint,
-    Metric,
     MultiObjectiveExplorationExploitationAcquisition,
     NonlinearConstraint,
-    Objective,
     Real,
     SearchSpace,
-    Trial,
 )
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
@@ -43,19 +43,19 @@ def _strategy() -> AlphaAcquisitionStrategy:
 
 def _fit(
     space: SearchSpace,
-    objective: Objective,
+    objective: LegacyObjective,
     function: Callable[[Parameterization], dict[str, float]],
     n: int = 8,
     strategy: AlphaAcquisitionStrategy | None = None,
-) -> tuple[Model, list[Trial]]:
+) -> tuple[Model, list[LegacyTrial]]:
     strategy = strategy or _strategy()
     points = strategy.suggestSpaceFilling(space, n, seed=0)
-    trials = [Trial(parameters=point, results=function(point)) for point in points]
+    trials = [LegacyTrial(parameters=point, results=function(point)) for point in points]
     train_x, train_y, train_yvar = encodeTrials(SearchSpaceEncoder(space), objective, trials)
     return buildSurrogateModel(train_x, train_y, train_yvar), trials
 
 
-_MINIMIZE_F = Objective([Metric("f", minimize=True)])
+_MINIMIZE_F = LegacyObjective([LegacyMetric("f", minimize=True)])
 
 
 def _bowl(p: Parameterization) -> dict[str, float]:
@@ -128,7 +128,7 @@ class TestSuggest:
         bowl_model,  # type: ignore[no-untyped-def]
     ) -> None:
         model, _ = bowl_model
-        maximize = Objective([Metric("f", minimize=False)])
+        maximize = LegacyObjective([LegacyMetric("f", minimize=False)])
 
         best_low = _strategy().suggest(model, _MINIMIZE_F, unit_square, 0.0, 1, seed=1)[0]
         best_high = _strategy().suggest(model, maximize, unit_square, 0.0, 1, seed=1)[0]
@@ -175,7 +175,9 @@ class TestSuggest:
         unit_square,
         bowl_model,  # type: ignore[no-untyped-def]
     ) -> None:
-        two_metrics = Objective([Metric("f", minimize=True), Metric("g", minimize=False)])
+        two_metrics = LegacyObjective(
+            [LegacyMetric("f", minimize=True), LegacyMetric("g", minimize=False)]
+        )
         with pytest.raises(ValueError, match=r"1 output.*2 metric"):
             _strategy().suggest(bowl_model[0], two_metrics, unit_square, 0.5, 1)
 
@@ -193,7 +195,7 @@ class TestAcquisitionRouting:
         model, reference = self._model(1)
         for minimize in (True, False):
             acquisition = _strategy().buildAcquisitionFunction(
-                model, Objective([Metric("f", minimize=minimize)]), 0.3, reference
+                model, LegacyObjective([LegacyMetric("f", minimize=minimize)]), 0.3, reference
             )
             assert isinstance(acquisition, ExplorationExploitationAcquisition)
             assert acquisition.minimize is minimize
@@ -201,7 +203,9 @@ class TestAcquisitionRouting:
 
     def test_several_metrics_without_weights_use_the_multi_objective_function(self) -> None:
         model, reference = self._model(2)
-        objective = Objective([Metric("a", minimize=True), Metric("b", minimize=False)])
+        objective = LegacyObjective(
+            [LegacyMetric("a", minimize=True), LegacyMetric("b", minimize=False)]
+        )
 
         acquisition = _strategy().buildAcquisitionFunction(model, objective, 0.5, reference)
 
@@ -209,8 +213,9 @@ class TestAcquisitionRouting:
 
     def test_weights_scalarize_into_the_single_objective_function(self) -> None:
         model, reference = self._model(2)
-        objective = Objective(
-            [Metric("cost", minimize=True), Metric("util", minimize=False)], weights=[2.0, 1.0]
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)],
+            weights=[2.0, 1.0],
         )
 
         acquisition = _strategy().buildAcquisitionFunction(model, objective, 0.5, reference)
@@ -233,7 +238,9 @@ class TestMultiObjective:
     def test_suggests_valid_points_and_favors_uncovered_parts_of_the_front(
         self, unit_square
     ) -> None:  # type: ignore[no-untyped-def]
-        objective = Objective([Metric("cost", minimize=True), Metric("util", minimize=False)])
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)]
+        )
 
         def function(p: Parameterization) -> dict[str, float]:
             return {"cost": p["x"] ** 2 + p["y"], "util": math.sqrt(p["x"]) + 0.5 * p["y"]}  # type: ignore[operator]
@@ -248,8 +255,9 @@ class TestMultiObjective:
 
     def test_weighted_objective_optimizes_the_weighted_sum(self, unit_square) -> None:  # type: ignore[no-untyped-def]
         # minimize 2*cost - util  with  cost = x, util = y  ->  the corner (x=0, y=1)
-        objective = Objective(
-            [Metric("cost", minimize=True), Metric("util", minimize=False)], weights=[2.0, 1.0]
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)],
+            weights=[2.0, 1.0],
         )
         model, _ = _fit(unit_square, objective, lambda p: {"cost": p["x"], "util": p["y"]})  # type: ignore[arg-type,return-value]
 
@@ -353,7 +361,7 @@ class TestConstraints:
             [Real("x", 0.1, 10.0), Real("y", 0.1, 10.0)],
             constraints=[NonlinearConstraint("x * y ** 2", "<=", 50.0)],
         )
-        objective = Objective([Metric("f", minimize=False)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=False)])
         model, _ = _fit(space, objective, lambda p: {"f": p["x"] + p["y"]})  # type: ignore[operator]
 
         points = _strategy().suggest(model, objective, space, 0.0, 3, seed=0)
@@ -382,7 +390,7 @@ class TestConstraints:
             [Integer("a", 0, 10), Integer("b", 0, 10)],
             constraints=[LinearConstraint({"a": 1.0, "b": 1.0}, 7.0, "<=")],
         )
-        objective = Objective([Metric("f", minimize=False)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=False)])
         model, _ = _fit(space, objective, lambda p: {"f": p["a"] + 2.0 * p["b"]})  # type: ignore[operator]
 
         for alpha in (0.0, 0.5, 1.0):
@@ -422,7 +430,7 @@ class TestConstraints:
             [Integer("a", 1, 10), Integer("b", 1, 10)],
             constraints=[NonlinearConstraint("a * b", "<=", 20.0)],
         )
-        objective = Objective([Metric("f", minimize=False)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=False)])
         model, _ = _fit(space, objective, lambda p: {"f": p["a"] + p["b"]})  # type: ignore[operator]
 
         for p in _strategy().suggest(model, objective, space, 0.2, 3, seed=0):
@@ -433,7 +441,7 @@ class TestConstraints:
             [Real("x", 0.0, 10.0), Real("y", 0.0, 10.0), Categorical("c", ["u", "v"])],
             constraints=[NonlinearConstraint("x + y", "<=", 6.0)],
         )
-        objective = Objective([Metric("f", minimize=False)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=False)])
         model, _ = _fit(space, objective, lambda p: {"f": p["x"] + p["y"]})  # type: ignore[operator]
 
         for p in _strategy().suggest(model, objective, space, 0.0, 2, seed=0):
@@ -446,7 +454,7 @@ class TestConstraints:
             [Real("x", 0.1, 10.0), Real("y", 0.1, 10.0)],
             constraints=[NonlinearConstraint("x * y", "<=", 5.0)],
         )
-        objective = Objective([Metric("f", minimize=False)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=False)])
         model, _ = _fit(space, objective, lambda p: {"f": p["x"] + p["y"]})  # type: ignore[operator]
         strategy = _strategy()
         # Simulate a solver that gives up at a corner far outside the constraint.

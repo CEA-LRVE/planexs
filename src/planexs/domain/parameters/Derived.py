@@ -14,7 +14,7 @@ class Derived(Parameter):
     Mirrors `ax.api.configs.DerivedParameterConfig` directly (its
     `expression_str` field is named `expression` here for readability; see
     `toAxKwargs`). Useful for referencing a computed quantity in a
-    `LinearConstraint` or reading it back from a `Trial` without recomputing
+    `LinearConstraint` or reading it back from a `LegacyTrial` without recomputing
     it outside planexs.
 
     A `Derived` parameter never has a `default`: it is computed, not chosen,

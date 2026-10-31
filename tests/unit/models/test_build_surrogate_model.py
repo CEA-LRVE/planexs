@@ -7,7 +7,7 @@ import logging
 import pytest
 import torch
 
-from planexs import Categorical, Metric, Objective, Real, SearchSpace, Trial
+from planexs import Categorical, LegacyMetric, LegacyObjective, LegacyTrial, Real, SearchSpace
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
 from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
@@ -101,10 +101,12 @@ class TestEncodeTrials:
         )
 
     def test_encodes_parameters_and_reads_metrics_in_objective_order(self) -> None:
-        objective = Objective([Metric("cost", minimize=True), Metric("util", minimize=False)])
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)]
+        )
         trials = [
-            Trial({"x": 5.0, "c": "b"}, {"util": 2.0, "cost": 1.0}),
-            Trial({"x": 10.0, "c": "c"}, {"util": 4.0, "cost": 3.0}),
+            LegacyTrial({"x": 5.0, "c": "b"}, {"util": 2.0, "cost": 1.0}),
+            LegacyTrial({"x": 10.0, "c": "c"}, {"util": 4.0, "cost": 3.0}),
         ]
 
         train_x, train_y, train_yvar = encodeTrials(self._encoder(), objective, trials)
@@ -115,10 +117,10 @@ class TestEncodeTrials:
         assert train_x.dtype == train_y.dtype == torch.double
 
     def test_result_std_becomes_a_variance_when_given_for_every_trial(self) -> None:
-        objective = Objective([Metric("f", minimize=True)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=True)])
         trials = [
-            Trial({"x": 1.0, "c": "a"}, {"f": 1.0}, result_std={"f": 0.5}),
-            Trial({"x": 2.0, "c": "a"}, {"f": 2.0}, result_std={"f": 2.0}),
+            LegacyTrial({"x": 1.0, "c": "a"}, {"f": 1.0}, result_std={"f": 0.5}),
+            LegacyTrial({"x": 2.0, "c": "a"}, {"f": 2.0}, result_std={"f": 2.0}),
         ]
 
         _, _, train_yvar = encodeTrials(self._encoder(), objective, trials)
@@ -129,10 +131,10 @@ class TestEncodeTrials:
     def test_partial_result_std_is_ignored_with_a_warning(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        objective = Objective([Metric("f", minimize=True)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=True)])
         trials = [
-            Trial({"x": 1.0, "c": "a"}, {"f": 1.0}, result_std={"f": 0.5}),
-            Trial({"x": 2.0, "c": "a"}, {"f": 2.0}),
+            LegacyTrial({"x": 1.0, "c": "a"}, {"f": 1.0}, result_std={"f": 0.5}),
+            LegacyTrial({"x": 2.0, "c": "a"}, {"f": 2.0}),
         ]
 
         with caplog.at_level(logging.WARNING, logger="planexs.models.encodeTrials"):
@@ -142,18 +144,20 @@ class TestEncodeTrials:
         assert "Only 1 of 2 trials" in caplog.text
 
     def test_result_std_missing_one_metric_counts_as_not_given(self) -> None:
-        objective = Objective([Metric("a", minimize=True), Metric("b", minimize=True)])
+        objective = LegacyObjective(
+            [LegacyMetric("a", minimize=True), LegacyMetric("b", minimize=True)]
+        )
         trials = [
-            Trial({"x": 1.0, "c": "a"}, {"a": 1.0, "b": 1.0}, result_std={"a": 0.1}),
-            Trial({"x": 2.0, "c": "a"}, {"a": 2.0, "b": 2.0}, result_std={"a": 0.1}),
+            LegacyTrial({"x": 1.0, "c": "a"}, {"a": 1.0, "b": 1.0}, result_std={"a": 0.1}),
+            LegacyTrial({"x": 2.0, "c": "a"}, {"a": 2.0, "b": 2.0}, result_std={"a": 0.1}),
         ]
         assert encodeTrials(self._encoder(), objective, trials)[2] is None
 
     def test_a_trial_without_an_objective_metric_is_reported_by_position(self) -> None:
-        objective = Objective([Metric("f", minimize=True)])
+        objective = LegacyObjective([LegacyMetric("f", minimize=True)])
         trials = [
-            Trial({"x": 1.0, "c": "a"}, {"f": 1.0}),
-            Trial({"x": 2.0, "c": "a"}, {"g": 2.0}),
+            LegacyTrial({"x": 1.0, "c": "a"}, {"f": 1.0}),
+            LegacyTrial({"x": 2.0, "c": "a"}, {"g": 2.0}),
         ]
 
         with pytest.raises(

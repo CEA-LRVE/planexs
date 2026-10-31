@@ -20,11 +20,11 @@ from planexs import (
     AcquisitionStrategy,
     BayesianOptimizer,
     Categorical,
+    LegacyMetric,
+    LegacyObjective,
+    LegacyOutcomeConstraint,
     LinearConstraint,
-    Metric,
     NonlinearConstraint,
-    Objective,
-    OutcomeConstraint,
     PredictionUnavailableError,
     Real,
     SearchSpace,
@@ -69,7 +69,7 @@ class TestConstructorCaseResolution:
 
     def test_advanced_case_uses_search_space_and_objective_as_is(self) -> None:
         search_space = _searchSpace()
-        objective = Objective(metrics=[Metric(name="loss", minimize=True)])
+        objective = LegacyObjective(metrics=[LegacyMetric(name="loss", minimize=True)])
         backend = FakeBackend()
 
         BayesianOptimizer(parameters=search_space, objective=objective, backend=backend)
@@ -79,13 +79,13 @@ class TestConstructorCaseResolution:
 
     def test_advanced_case_rejects_extra_constraints(self) -> None:
         search_space = _searchSpace()
-        objective = Objective(metrics=[Metric(name="loss", minimize=True)])
+        objective = LegacyObjective(metrics=[LegacyMetric(name="loss", minimize=True)])
 
         with pytest.raises(ValueError, match="ambiguous"):
             BayesianOptimizer(
                 parameters=search_space,
                 objective=objective,
-                outcome_constraints=[OutcomeConstraint("loss", 1.0, "<=")],
+                outcome_constraints=[LegacyOutcomeConstraint("loss", 1.0, "<=")],
                 backend=FakeBackend(),
             )
 
@@ -99,7 +99,7 @@ class TestConstructorCaseResolution:
         with pytest.raises(TypeError):
             BayesianOptimizer(
                 parameters=[Real("x", 0.0, 1.0)],
-                objective=Objective(metrics=[Metric(name="loss", minimize=True)]),
+                objective=LegacyObjective(metrics=[LegacyMetric(name="loss", minimize=True)]),
                 backend=FakeBackend(),
             )
 
@@ -171,8 +171,11 @@ class TestParetoFront:
 
     def test_multi_objective_uses_pareto_frontier(self) -> None:
         search_space = _searchSpace()
-        objective = Objective(
-            metrics=[Metric(name="a", minimize=True), Metric(name="b", minimize=False)]
+        objective = LegacyObjective(
+            metrics=[
+                LegacyMetric(name="a", minimize=True),
+                LegacyMetric(name="b", minimize=False),
+            ]
         )
         backend = FakeBackend()
         bo = BayesianOptimizer(parameters=search_space, objective=objective, backend=backend)
@@ -197,7 +200,7 @@ class TestEscapeHatches:
 
 class TestSave:
     def test_save_rejects_non_ax_backend(self) -> None:
-        # Fails before any file I/O happens (StudySnapshot's backend_kind
+        # Fails before any file I/O happens (LegacyStudySnapshot's backend_kind
         # argument is evaluated, and raises, before save() ever calls
         # JsonStudyRepository().save()), so no path/tmp_path is needed here.
         bo = BayesianOptimizer(parameters=[Real("x", 0.0, 1.0)], backend=FakeBackend())
@@ -363,9 +366,9 @@ class TestAskWithAlpha:
     def test_warns_that_outcome_constraints_are_not_enforced_by_the_custom_layer(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        objective = Objective(
-            [Metric("loss", minimize=True), Metric("qps", minimize=False)],
-            outcome_constraints=[OutcomeConstraint("qps", 100.0, ">=")],
+        objective = LegacyObjective(
+            [LegacyMetric("loss", minimize=True), LegacyMetric("qps", minimize=False)],
+            outcome_constraints=[LegacyOutcomeConstraint("qps", 100.0, ">=")],
         )
         bo = BayesianOptimizer(
             parameters=SearchSpace([Real("x", 0.0, 1.0)]),
@@ -396,7 +399,7 @@ class TestNonlinearConstraintSwitch:
     ) -> BayesianOptimizer:
         return BayesianOptimizer(
             parameters=self._space(nonlinear=nonlinear),
-            objective=Objective([Metric("objective", minimize=True)]),
+            objective=LegacyObjective([LegacyMetric("objective", minimize=True)]),
             backend=backend or FakeBackend(),
             acquisition_strategy=strategy,
         )
@@ -440,7 +443,7 @@ class TestNonlinearConstraintSwitch:
         )
         bo = BayesianOptimizer(
             parameters=space,
-            objective=Objective([Metric("objective", minimize=True)]),
+            objective=LegacyObjective([LegacyMetric("objective", minimize=True)]),
             backend=backend,
         )
 
@@ -674,7 +677,9 @@ class TestPredictWithoutABackendModel:
         assert caplog.text.count("predicting with planexs' own surrogate") == 1
 
     def test_every_metric_of_a_multi_objective_study_is_predicted(self) -> None:
-        objective = Objective([Metric("cost", minimize=True), Metric("util", minimize=False)])
+        objective = LegacyObjective(
+            [LegacyMetric("cost", minimize=True), LegacyMetric("util", minimize=False)]
+        )
         bo = BayesianOptimizer(
             parameters=SearchSpace([Real("x", 0.0, 10.0)]),
             objective=objective,

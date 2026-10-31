@@ -1,6 +1,6 @@
 """Unit tests for `JsonStudyRepository`.
 
-Round-trips a `StudySnapshot` built directly (not via a real `AxBackend`), so
+Round-trips a `LegacyStudySnapshot` built directly (not via a real `AxBackend`), so
 these tests exercise the JSON save/load of planexs' own domain objects and
 `ReproducibilityMetadata` without needing a real Ax install. `backend_state`
 here is a small, arbitrary JSON-compatible dict standing in for whatever a
@@ -12,14 +12,22 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from planexs import Categorical, LinearConstraint, Metric, Objective, Real, SearchSpace, Trial
-from planexs.domain.StudySnapshot import StudySnapshot
+from planexs import (
+    Categorical,
+    LegacyMetric,
+    LegacyObjective,
+    LegacyTrial,
+    LinearConstraint,
+    Real,
+    SearchSpace,
+)
 from planexs.persistence.JsonStudyRepository import JsonStudyRepository
+from planexs.persistence.LegacyStudySnapshot import LegacyStudySnapshot
 from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata
 
 
-def _snapshot() -> StudySnapshot:
-    return StudySnapshot(
+def _snapshot() -> LegacyStudySnapshot:
+    return LegacyStudySnapshot(
         name="round-trip-study",
         search_space=SearchSpace(
             parameters=[
@@ -28,10 +36,10 @@ def _snapshot() -> StudySnapshot:
             ],
             constraints=[LinearConstraint({"x": 1.0}, bound=1.0, comparator="<=")],
         ),
-        objective=Objective(metrics=[Metric(name="objective", minimize=True)]),
+        objective=LegacyObjective(metrics=[LegacyMetric(name="objective", minimize=True)]),
         trials=[
-            Trial(parameters={"x": 0.3}, results={"objective": 1.2}, trial_index=0),
-            Trial(
+            LegacyTrial(parameters={"x": 0.3}, results={"objective": 1.2}, trial_index=0),
+            LegacyTrial(
                 parameters={"x": 0.7},
                 results={"objective": 0.4},
                 result_std={"objective": 0.05},

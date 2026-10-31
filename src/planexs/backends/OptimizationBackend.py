@@ -7,9 +7,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.domain.Trial import Trial
 
 if TYPE_CHECKING:
     # Only needed for the `fitModel` type hint below. `from __future__ import
@@ -32,13 +32,13 @@ class OptimizationBackend(ABC):
     """
 
     @abstractmethod
-    def createExperiment(self, search_space: SearchSpace, objective: Objective) -> None:
+    def createExperiment(self, search_space: SearchSpace, objective: LegacyObjective) -> None:
         """Configures the backend for a new study: its search space and its
         optimization goal. Called once, from `BayesianOptimizer.__init__`.
         """
 
     @abstractmethod
-    def attachTrial(self, trial: Trial) -> int:
+    def attachTrial(self, trial: LegacyTrial) -> int:
         """Registers an already-evaluated trial, returns its backend-assigned
         index.
         """
@@ -77,13 +77,13 @@ class OptimizationBackend(ABC):
         """Returns `{metric_name: {parameter_name: importance}}`."""
 
     @abstractmethod
-    def getParetoFrontier(self) -> list[Trial]:
+    def getParetoFrontier(self) -> list[LegacyTrial]:
         """Delegates to `Client.get_pareto_frontier(use_model_predictions=True)`,
         not a hand-rolled non-domination scan over raw trial data.
         """
 
     @abstractmethod
-    def getBestTrial(self) -> Trial | None:
+    def getBestTrial(self) -> LegacyTrial | None:
         """Delegates to `Client.get_best_parameterization()` for the
         single-objective case.
         """
@@ -91,7 +91,7 @@ class OptimizationBackend(ABC):
     @abstractmethod
     def exportState(self) -> dict[str, Any]:
         """Returns this backend's complete state as a JSON-compatible `dict`,
-        opaque to the domain layer, for `StudySnapshot.backend_state`
+        opaque to the domain layer, for `LegacyStudySnapshot.backend_state`
         (FR11, FR12).
 
         Not part of section 5.3's original `OptimizationBackend` listing:
@@ -99,7 +99,7 @@ class OptimizationBackend(ABC):
         backend-agnostic hook to obtain the backend's own serialized state
         without either (a) `JsonStudyRepository` importing `ax.*` directly
         (breaking ADR-0001's "only `backends/ax` imports Ax" rule) or (b)
-        `StudySnapshot` holding a live backend reference (breaking its own
+        `LegacyStudySnapshot` holding a live backend reference (breaking its own
         JSON-serializability, FR11). Flagged here for the project owner to
         fold back into section 5.3 once reviewed, per section 12.
         """

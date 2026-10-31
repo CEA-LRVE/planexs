@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Constraint(BaseModel, ABC):
-    """Base class for parameter-level constraints (see `OutcomeConstraint`
+    """Base class for parameter-level constraints (see `LegacyOutcomeConstraint`
     for metric-level ones, which are not a `Constraint` subclass since they
     apply to a different thing entirely: an observed value, not a decision
     variable).

@@ -54,7 +54,7 @@ def main() -> None:
 
     # --- axClient: escape hatch #1 ------------------------------------------
     # Anything reached through axClient is outside what planexs validates or
-    # keeps in sync with its own Trial history (ADR-0005's own caveat).
+    # keeps in sync with its own trial history (ADR-0005's own caveat).
     # get_next_trials, like BayesianOptimizer.ask(), attaches a new RUNNING
     # trial in Ax's own bookkeeping; a real caller mixing axClient calls with
     # planexs' own ask()/tell() should eventually complete or abandon it, the

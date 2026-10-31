@@ -31,7 +31,7 @@ from planexs.acquisition.sampleFeasibleEncoded import (
     DEFAULT_POLYTOPE_THINNING,
     sampleFeasibleEncoded,
 )
-from planexs.domain.Objective import Objective
+from planexs.domain.LegacyObjective import LegacyObjective
 from planexs.domain.SearchSpace import SearchSpace
 from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
@@ -45,7 +45,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
     (or its multi-objective variant) over the encoded search space. FR5, FR10,
     FR17.
 
-    Which acquisition function is used follows the `Objective` (design
+    Which acquisition function is used follows the `LegacyObjective` (design
     philosophy #3, one concept for N = 1 and N > 1):
 
     - One metric: `ExplorationExploitationAcquisition`, in that metric's
@@ -123,7 +123,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
     def buildAcquisitionFunction(
         self,
         model: Model,
-        objective: Objective,
+        objective: LegacyObjective,
         alpha: float,
         reference_points: Tensor,
     ) -> AcquisitionFunction:
@@ -189,7 +189,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
     def suggest(
         self,
         model: Model,
-        objective: Objective,
+        objective: LegacyObjective,
         search_space: SearchSpace,
         alpha: float,
         n_points: int,

@@ -12,24 +12,32 @@ from pathlib import Path
 
 import pytest
 
-from planexs import BayesianOptimizer, Metric, Objective, OutcomeConstraint, Real, SearchSpace
+from planexs import (
+    BayesianOptimizer,
+    LegacyMetric,
+    LegacyObjective,
+    LegacyOutcomeConstraint,
+    Real,
+    SearchSpace,
+)
 
 _OBJECTIVES = {
-    "single": (Objective([Metric("a", minimize=True)]), ["a"]),
+    "single": (LegacyObjective([LegacyMetric("a", minimize=True)]), ["a"]),
     "multi": (
-        Objective([Metric("a", minimize=True), Metric("b", minimize=False)]),
+        LegacyObjective([LegacyMetric("a", minimize=True), LegacyMetric("b", minimize=False)]),
         ["a", "b"],
     ),
     "weighted": (
-        Objective(
-            [Metric("a", minimize=True), Metric("b", minimize=False)], weights=[2.0, 1.0]
+        LegacyObjective(
+            [LegacyMetric("a", minimize=True), LegacyMetric("b", minimize=False)],
+            weights=[2.0, 1.0],
         ),
         ["a", "b"],
     ),
     "outcome-constrained": (
-        Objective(
-            [Metric("a", minimize=True), Metric("b", minimize=False)],
-            outcome_constraints=[OutcomeConstraint("b", 0.1, ">=")],
+        LegacyObjective(
+            [LegacyMetric("a", minimize=True), LegacyMetric("b", minimize=False)],
+            outcome_constraints=[LegacyOutcomeConstraint("b", 0.1, ">=")],
         ),
         ["a", "b"],
     ),
