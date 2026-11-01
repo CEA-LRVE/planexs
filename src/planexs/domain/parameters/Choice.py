@@ -14,19 +14,18 @@ ChoiceValue = bool | int | float | str
 class Choice(Parameter):
     """A discrete dimension: ordinal or categorical, controlled by `is_ordered`.
 
-    Field names and shape mirror `ax.api.configs.ChoiceParameterConfig`
-    exactly, `dependent_parameters` included: a chosen value mapped to the
-    names of other `Parameter`s that only become part of the active search
-    space when that value is picked. This is Ax's own mechanism for
-    conditional/hierarchical search spaces (FR14); planexs exposes it as-is
-    rather than inventing a parallel one. See section 4.5.
+    `dependent_parameters` maps a chosen value to the names of other
+    `Parameter`s that only become part of the active search space when that
+    value is picked: this is how conditional (hierarchical) search spaces are
+    declared (FR14). See section 4.5.
 
     Attributes:
         values: The set of legal values for this dimension.
         parameter_type: The Python type of `values`' elements.
         is_ordered: Whether the values have a meaningful order (ordinal, e.g.
             "low"/"medium"/"high") or not (categorical). `None` leaves the
-            choice to Ax's own default heuristic.
+            decision to whatever consumes the parameter (the encoder's own
+            rule, or a backend's).
         dependent_parameters: Maps a value in `values` to the names of other
             `Parameter`s that only enter the active search space when this
             parameter takes that value (FR14).
@@ -52,7 +51,8 @@ class Choice(Parameter):
             name: The parameter's name.
             values: The legal values.
             parameter_type: The Python type of `values`' elements.
-            is_ordered: Whether the values have a meaningful order; `None` leaves it to Ax.
+            is_ordered: Whether the values have a meaningful order; `None` leaves the
+                decision to whatever consumes the parameter.
             dependent_parameters: Optional map from a value to the names of parameters
                 that only exist when it is chosen.
             default: Optional default value.
@@ -90,19 +90,6 @@ class Choice(Parameter):
                 f"Choice {self.name!r} has default={self.default!r}, which is "
                 f"not one of its own values {self.values!r}."
             )
-
-    def toAxKwargs(self) -> dict[str, Any]:
-        """Field values ready to pass straight to
-        `ax.api.configs.ChoiceParameterConfig(**kwargs)`. Deliberately excludes
-        `default`, which Ax's own config has no field for.
-        """
-        return {
-            "name": self.name,
-            "values": self.values,
-            "parameter_type": self.parameter_type,
-            "is_ordered": self.is_ordered,
-            "dependent_parameters": self.dependent_parameters,
-        }
 
     def toDict(self) -> dict[str, Any]:
         """`dependent_parameters` is written as `[value, [names...]]` pairs,

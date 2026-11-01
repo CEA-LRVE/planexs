@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from planexs.backends.ax.toAxOutcomeConstraintString import toAxOutcomeConstraintString
 from planexs.domain.LegacyMetric import LegacyMetric
 from planexs.domain.LegacyObjective import LegacyObjective
 
@@ -39,7 +40,7 @@ def toAxOptimizationConfig(objective: LegacyObjective) -> tuple[str, list[str]]:
         objective_string = " + ".join(terms)
 
     outcome_constraint_strings = [
-        outcome_constraint.toAxOutcomeConstraintString()
+        toAxOutcomeConstraintString(outcome_constraint)
         for outcome_constraint in objective.outcome_constraints
     ]
     return objective_string, outcome_constraint_strings

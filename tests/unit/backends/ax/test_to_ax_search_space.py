@@ -14,7 +14,17 @@ pytest.importorskip("ax")
 
 from ax.api.configs import ChoiceParameterConfig, DerivedParameterConfig, RangeParameterConfig
 
-from planexs import Categorical, Derived, Fixed, Real, SearchSpace
+from planexs import (
+    Boolean,
+    Categorical,
+    Derived,
+    Fixed,
+    Integer,
+    LinearConstraint,
+    Real,
+    SearchSpace,
+)
+from planexs.backends.ax.toAxParameterConstraintString import toAxParameterConstraintString
 from planexs.backends.ax.toAxSearchSpace import toAxSearchSpace
 
 
@@ -70,3 +80,43 @@ class TestToAxSearchSpace:
             "mlp": ["hidden_units"],
             "cnn": ["num_filters"],
         }
+
+
+class TestReloadedSearchSpace:
+    @staticmethod
+    def _mixedSpace() -> SearchSpace:
+        return SearchSpace(
+            parameters=[
+                Real("a", 0.0, 1.0, default=0.25),
+                Real("b", 0.0, 1.0),
+                Integer("n", 1, 8),
+                Categorical(
+                    "model_type",
+                    ["mlp", "cnn"],
+                    dependent_parameters={"mlp": ["n"]},
+                ),
+                Boolean("flag", default=False),
+                Derived("total", "a + b", parameter_type="float"),
+            ],
+            constraints=[LinearConstraint({"a": 1.0, "b": 1.0}, bound=1.0, comparator="<=")],
+        )
+
+    def test_reloaded_space_maps_to_the_same_ax_parameters(self) -> None:
+        original = self._mixedSpace()
+        reloaded = SearchSpace.model_validate_json(original.model_dump_json())
+
+        assert toAxSearchSpace(reloaded) == toAxSearchSpace(original)
+
+    def test_reloaded_space_maps_to_the_same_ax_constraint_strings(self) -> None:
+        original = self._mixedSpace()
+        reloaded = SearchSpace.model_validate_json(original.model_dump_json())
+
+        def strings(space: SearchSpace) -> list[str]:
+            return [
+                toAxParameterConstraintString(constraint)
+                for constraint in space.constraints
+                if isinstance(constraint, LinearConstraint)
+            ]
+
+        assert strings(reloaded) == strings(original)
+        assert strings(original) == ["a + b <= 1.0"]

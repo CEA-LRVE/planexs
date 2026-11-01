@@ -127,7 +127,7 @@ What it gives up:
 ## Action items
 
 1. [x] Write this ADR in full and mark it Accepted (P1-04).
-2. [ ] Remove the engine vocabulary from the domain (P2-03) and move the legacy snapshot out
+2. [x] Remove the engine vocabulary from the domain (P2-03) and move the legacy snapshot out
    of it (P2-02).
 3. [ ] Dispatch parameter and constraint types through registries, under the key `type`
    (P2-04, P2-05).

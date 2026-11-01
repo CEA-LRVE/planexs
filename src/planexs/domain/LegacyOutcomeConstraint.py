@@ -9,8 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 class LegacyOutcomeConstraint(BaseModel):
     """A constraint on an observed metric rather than on a parameter (e.g.
-    `"qps >= 100"`), matching what `Client.configure_optimization`'s own
-    `outcome_constraints` expects (FR15). Lives alongside `LegacyObjective`, not
+    `"qps >= 100"`) (FR15). Lives alongside `LegacyObjective`, not
     inside `SearchSpace`, because it constrains an observed outcome, not a
     decision variable.
 
@@ -24,12 +23,12 @@ class LegacyOutcomeConstraint(BaseModel):
         relative: When `True`, `bound` expresses a multiple of a baseline
             trial rather than an absolute value (e.g. `bound=0.95` with
             `comparator=">="` means "at least 95% of the baseline"). Wiring
-            this to `Client.attach_baseline` is listed as deferred in section
-            4.7; this field just reserves the shape for it. Using
+            this to the backend's own baseline mechanism is listed as deferred
+            in section 4.7; this field just reserves the shape for it. Using
             `relative=True` requires the caller to have attached a baseline
-            trial themselves, e.g. via the `axClient` escape hatch
-            (`axClient.attach_baseline(...)`), since planexs does not call
-            `attach_baseline` on the caller's behalf in Phase 1.
+            trial themselves, through the backend's own escape hatch, since
+            planexs does not attach a baseline on the caller's behalf in
+            Phase 1.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -57,12 +56,3 @@ class LegacyOutcomeConstraint(BaseModel):
         super().__init__(
             metric_name=metric_name, bound=bound, comparator=comparator, relative=relative
         )
-
-    def toAxOutcomeConstraintString(self) -> str:
-        """Renders this constraint as one entry of the `outcome_constraints`
-        sequence `Client.configure_optimization` expects, e.g.
-        `"qps >= 100"` or, when `relative` is set, `"qps >= 0.95 * baseline"`.
-        """
-        if self.relative:
-            return f"{self.metric_name} {self.comparator} {self.bound} * baseline"
-        return f"{self.metric_name} {self.comparator} {self.bound}"

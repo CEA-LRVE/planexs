@@ -6,6 +6,9 @@ from typing import Any
 
 from ax.api.configs import ChoiceParameterConfig, DerivedParameterConfig, RangeParameterConfig
 
+from planexs.backends.ax.toAxChoiceKwargs import toAxChoiceKwargs
+from planexs.backends.ax.toAxDerivedKwargs import toAxDerivedKwargs
+from planexs.backends.ax.toAxRangeKwargs import toAxRangeKwargs
 from planexs.domain.parameters.Choice import Choice
 from planexs.domain.parameters.Derived import Derived
 from planexs.domain.parameters.Parameter import Parameter
@@ -26,9 +29,9 @@ def toAxSearchSpace(search_space: SearchSpace) -> list[Any]:
 
     `search_space.constraints` (`LinearConstraint`, FR9) is deliberately not
     handled here: `Client.configure_experiment` takes parameters and
-    parameter constraints as two separate arguments, and each `Constraint`
-    subclass already knows how to render itself (see
-    `LinearConstraint.toAxParameterConstraintString`), so
+    parameter constraints as two separate arguments, and
+    `toAxParameterConstraintString` already renders a `LinearConstraint`
+    on its own, so
     `AxBackend.createExperiment` builds that second list directly from
     `search_space.constraints` rather than this function returning a tuple
     that would not match section 5.3's documented `-> list[Any]` signature.
@@ -52,11 +55,11 @@ def _toAxParameterConfig(parameter: Parameter) -> Any:
         TypeError: if the parameter is of no known kind.
     """
     if isinstance(parameter, Range):
-        return RangeParameterConfig(**parameter.toAxKwargs())
+        return RangeParameterConfig(**toAxRangeKwargs(parameter))
     if isinstance(parameter, Choice):
-        return ChoiceParameterConfig(**parameter.toAxKwargs())
+        return ChoiceParameterConfig(**toAxChoiceKwargs(parameter))
     if isinstance(parameter, Derived):
-        return DerivedParameterConfig(**parameter.toAxKwargs())
+        return DerivedParameterConfig(**toAxDerivedKwargs(parameter))
     raise TypeError(
         f"No Ax parameter config mapping is defined for parameter kind "
         f"{type(parameter).__name__!r} (parameter {parameter.name!r})."

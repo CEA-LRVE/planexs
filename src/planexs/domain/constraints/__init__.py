@@ -1,4 +1,4 @@
 """Parameter-level constraints: `Constraint` (ABC), `LinearConstraint` (enforced
-natively by Ax) and `NonlinearConstraint` (FR17, enforced only by planexs' own
-acquisition layer, see ADR-0006).
+natively by the optimization backend) and `NonlinearConstraint` (FR17, enforced
+only by planexs' own acquisition layer, see ADR-0006).
 """

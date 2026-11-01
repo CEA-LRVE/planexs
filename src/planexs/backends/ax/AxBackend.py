@@ -15,6 +15,7 @@ from ax.exceptions.core import UnsupportedError
 from botorch.models.model import Model
 
 from planexs.backends.ax.toAxOptimizationConfig import toAxOptimizationConfig
+from planexs.backends.ax.toAxParameterConstraintString import toAxParameterConstraintString
 from planexs.backends.ax.toAxSearchSpace import toAxSearchSpace
 from planexs.backends.OptimizationBackend import OptimizationBackend
 from planexs.backends.PredictionUnavailableError import PredictionUnavailableError
@@ -104,7 +105,7 @@ class AxBackend(OptimizationBackend):
 
         ax_parameters = toAxSearchSpace(search_space)
         linear_constraint_strings = [
-            constraint.toAxParameterConstraintString()
+            toAxParameterConstraintString(constraint)
             for constraint in search_space.constraints
             # Ax takes inequalities only: an equality (and any NonlinearConstraint) is
             # enforced by planexs' own acquisition layer instead (ADR-0006, ADR-0008).

@@ -12,12 +12,9 @@ class Fixed(Choice):
     parameterization (e.g. a setting recorded on every trial but never
     varied), matching Keras Tuner's `Fixed`.
 
-    `ax.api.configs` has no separate `FixedParameterConfig` in the current
-    `Client` API (only `Range`, `Choice`, `Derived`), though Ax's lower-level
-    `parameter_from_config()` utility still names `FixedParameter` as a
-    concept internally. The closest native equivalent, and what this maps to
-    in `backends/ax`, is a single-value `Choice`; that mapping, not a
-    reimplemented "fixed" concept, is what this class is.
+    `Fixed` is sugar for a single-value `Choice`, not a stored type of its
+    own: a constant stays part of the declared parameterization as a
+    one-value choice, and not as a reimplemented "fixed" concept.
 
     `default` is set equal to `value` automatically: since there is only one
     legal value, it is trivially also the default.

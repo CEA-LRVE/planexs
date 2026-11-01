@@ -14,9 +14,10 @@ class Parameter(BaseModel, ABC):
     A `Parameter` is a pure data object (Pydantic v2 model): it describes one
     dimension of a `SearchSpace`, independently of any optimization backend.
     Concrete subclasses (`Range`, `Choice`, `Derived`, and their convenience
-    sugar `Real`/`Integer`/`Categorical`/`Boolean`/`Fixed`) are mapped to Ax's
-    own `ax.api.configs` parameter configs by `backends/ax/toAxSearchSpace.py`,
-    never reimplemented as a parallel abstraction (design philosophy #5).
+    sugar `Real`/`Integer`/`Categorical`/`Boolean`/`Fixed`) are mapped to an
+    engine's own parameter configuration by that engine's adapter, never
+    reimplemented as a parallel abstraction (design philosophy #5; the domain
+    knows no engine, specification 3.9).
 
     This class cannot be instantiated directly: it exists to give every
     parameter kind a common `name`/`default` shape and a common validation
@@ -25,10 +26,10 @@ class Parameter(BaseModel, ABC):
     Attributes:
         name: The parameter's name. Must be unique within a `SearchSpace`.
         default: A per-parameter default value (FR13). Ergonomics only: this
-            is a planexs-only concept with no equivalent field on Ax's own
-            parameter configs, so it is not passed to Ax and is instead
-            preserved by `persistence/JsonStudyRepository.py` as one of the
-            "extras" Ax's own snapshot does not carry.
+            is a planexs-only concept with no equivalent field on an engine's
+            own parameter configuration, so it is not passed to an engine and
+            is instead preserved by `persistence/JsonStudyRepository.py` as one
+            of the "extras" that an engine's own saved state does not carry.
     """
 
     model_config = ConfigDict(frozen=False, extra="forbid")

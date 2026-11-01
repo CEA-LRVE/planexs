@@ -479,7 +479,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-03. Remove engine vocabulary from the domain
 
-**Size:** S | **Needs:** P2-02 | **Spec:** 3.9, 5.3 | **Status:** todo
+**Size:** S | **Needs:** P2-02 | **Spec:** 3.9, 5.3 | **Status:** done
 
 **Do.** Move `Range.toAxKwargs`, `Choice.toAxKwargs`, `Derived.toAxKwargs`, `LinearConstraint.toAxParameterConstraintString` and `LegacyOutcomeConstraint.toAxOutcomeConstraintString` into functions under `backends/ax` (one function per file, next to `toAxSearchSpace.py` and `toAxOptimizationConfig.py`), and update callers and tests. `requires_custom_acquisition_layer` on constraints stays for now because the legacy path uses it; new code must not use it, and P11-03 deletes it.
 

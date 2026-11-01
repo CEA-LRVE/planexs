@@ -49,9 +49,3 @@ class TestDerived:
     def test_empty_expression_is_rejected(self) -> None:
         with pytest.raises(ValidationError, match="empty expression"):
             Derived("total", "   ", parameter_type="float")
-
-    def test_to_ax_kwargs_uses_expression_str_field_name(self) -> None:
-        parameter = Derived("total", "a + b", parameter_type="float")
-        kwargs = parameter.toAxKwargs()
-        assert kwargs["expression_str"] == "a + b"
-        assert "expression" not in kwargs

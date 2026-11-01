@@ -95,14 +95,3 @@ class TestSearchSpaceSerialization:
         reloaded = SearchSpace.model_validate_json(original.model_dump_json())
 
         assert reloaded.constraints == original.constraints
-
-    def test_reloaded_space_maps_to_the_same_ax_strings(self) -> None:
-        original = self._mixedSpace()
-        reloaded = SearchSpace.model_validate_json(original.model_dump_json())
-
-        assert [c.toAxParameterConstraintString() for c in reloaded.constraints] == [
-            c.toAxParameterConstraintString() for c in original.constraints
-        ]
-        assert [p.toAxKwargs() for p in reloaded.parameters if hasattr(p, "toAxKwargs")] == [
-            p.toAxKwargs() for p in original.parameters if hasattr(p, "toAxKwargs")
-        ]

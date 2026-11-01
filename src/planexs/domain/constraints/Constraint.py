@@ -14,11 +14,11 @@ class Constraint(BaseModel, ABC):
     apply to a different thing entirely: an observed value, not a decision
     variable).
 
-    `LinearConstraint` (FR9) is enforced by Ax itself, except for its `"="`
-    form. `NonlinearConstraint` (FR17) is only enforceable by `planexs`'s own
-    custom acquisition layer (section 4.6, ADR-0006, ADR-0008);
-    `SearchSpace.constraints: Sequence[Constraint]` accepts any future
-    `Constraint` subclass without changes.
+    `LinearConstraint` (FR9) is enforced by the optimization backend itself,
+    except for its `"="` form. `NonlinearConstraint` (FR17) is only
+    enforceable by `planexs`'s own custom acquisition layer (section 4.6,
+    ADR-0006, ADR-0008); `SearchSpace.constraints: Sequence[Constraint]`
+    accepts any future `Constraint` subclass without changes.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -38,8 +38,8 @@ class Constraint(BaseModel, ABC):
 
     @property
     def requires_custom_acquisition_layer(self) -> bool:
-        """Whether Ax's default generation strategy cannot enforce this
-        constraint, so that only `planexs`'s own acquisition layer can
+        """Whether the optimization backend's default generation strategy cannot
+        enforce this constraint, so that only `planexs`'s own acquisition layer can
         (`BayesianOptimizer.ask()` switches to it, with a warning, when the
         caller leaves `alpha` unset). `False` unless a subclass says otherwise.
         Cheap (no work), snake_case.

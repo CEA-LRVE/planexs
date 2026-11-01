@@ -26,9 +26,10 @@ class NonlinearConstraint(Constraint):
     numerical optimizer cannot meaningfully target, unlike `LinearConstraint`'s
     `"="`, which BoTorch handles as a true linear equality constraint.
 
-    Not expressible through Ax's own `parameter_constraints` (linear only), so
-    `backends/ax` ignores it. It is enforced only by `planexs`'s own acquisition
-    layer (`acquisition/toBotorchNonlinearConstraints.py`), which is why
+    Not expressible as a linear constraint, which is all the optimization
+    backend enforces natively, so the backend ignores it. It is enforced only
+    by `planexs`'s own acquisition layer
+    (`acquisition/toBotorchNonlinearConstraints.py`), which is why
     `BayesianOptimizer.ask()` switches to that layer when one is present
     (ADR-0006).
 
@@ -84,7 +85,7 @@ class NonlinearConstraint(Constraint):
 
     @property
     def requires_custom_acquisition_layer(self) -> bool:
-        """Always `True`: Ax's `parameter_constraints` are linear only."""
+        """Always `True`: the backend's native parameter constraints are linear only."""
         return True
 
     def referencedNames(self) -> frozenset[str]:

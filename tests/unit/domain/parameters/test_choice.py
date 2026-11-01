@@ -54,14 +54,6 @@ class TestChoice:
             "cnn": ["num_filters"],
         }
 
-    def test_to_ax_kwargs_excludes_default(self) -> None:
-        parameter = Choice(
-            "solvent", ["water", "ethanol"], parameter_type="str", default="water"
-        )
-        kwargs = parameter.toAxKwargs()
-        assert "default" not in kwargs
-        assert kwargs["values"] == ["water", "ethanol"]
-
 
 class TestCategorical:
     def test_is_sugar_for_an_unordered_str_choice(self) -> None:

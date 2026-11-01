@@ -35,18 +35,6 @@ class TestRange:
         with pytest.raises(ValidationError, match="step_size"):
             Range("x", (0.0, 10.0), step_size=2.5, default=4.0)
 
-    def test_to_ax_kwargs_excludes_default(self) -> None:
-        parameter = Range("x", (0.0, 1.0), default=0.5)
-        kwargs = parameter.toAxKwargs()
-        assert "default" not in kwargs
-        assert kwargs == {
-            "name": "x",
-            "bounds": (0.0, 1.0),
-            "parameter_type": "float",
-            "step_size": None,
-            "scaling": None,
-        }
-
 
 class TestReal:
     def test_is_sugar_for_a_float_range(self) -> None:

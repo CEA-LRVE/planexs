@@ -11,14 +11,11 @@ from planexs.domain.parameters.Parameter import Parameter
 class Range(Parameter):
     """A continuous or integer-stepped dimension.
 
-    Field names (`bounds`, `parameter_type`, `step_size`, `scaling`) match
-    `ax.api.configs.RangeParameterConfig` directly: this class is a typed
-    pass-through, not a reinvention. See `backends/ax/toAxSearchSpace.py`.
+    The domain knows no engine: the mapping of a range to an engine's own parameter
+    configuration lives with that engine's adapter (specification 3.9).
 
-    Note that `ax.api.configs.RangeParameterConfig` has no `default` field
-    (confirmed against https://ax.readthedocs.io/en/stable/api.html): `default`
-    here is a planexs-only ergonomic addition (FR13), validated against
-    `bounds`/`step_size` but never forwarded to Ax.
+    `default` is a planexs-only ergonomic addition (FR13), validated against
+    `bounds`/`step_size` and never sent to an engine.
 
     Attributes:
         bounds: The `(lower, upper)` bounds of the dimension, inclusive.
@@ -26,8 +23,8 @@ class Range(Parameter):
             `"int"`.
         step_size: An optional fixed sampling step (FR13). When set, legal
             values are `bounds[0] + k * step_size` for integer `k`.
-        scaling: `"linear"` (default, via Ax, when left `None`) or `"log"`,
-            for a dimension that should be explored on a logarithmic scale.
+        scaling: `"linear"` (what `None` means) or `"log"`, for a dimension that
+            should be explored on a logarithmic scale.
     """
 
     bounds: tuple[float, float]
@@ -97,21 +94,6 @@ class Range(Parameter):
                     f"does not land on the step_size={self.step_size!r} grid "
                     f"starting at {lower!r}."
                 )
-
-    def toAxKwargs(self) -> dict[str, Any]:
-        """Field values ready to pass straight to
-        `ax.api.configs.RangeParameterConfig(**kwargs)`. Deliberately excludes
-        `default`, which Ax's own config has no field for. Kept on this class
-        rather than duplicated in `toAxSearchSpace.py` so the Range-to-Ax field
-        mapping lives in exactly one place.
-        """
-        return {
-            "name": self.name,
-            "bounds": self.bounds,
-            "parameter_type": self.parameter_type,
-            "step_size": self.step_size,
-            "scaling": self.scaling,
-        }
 
     def toDict(self) -> dict[str, Any]:
         """Serializes the parameter.

@@ -11,11 +11,8 @@ class Derived(Parameter):
     """A read-only quantity computed from other parameters through an
     expression string (e.g. `"a + b"`), not itself searched over.
 
-    Mirrors `ax.api.configs.DerivedParameterConfig` directly (its
-    `expression_str` field is named `expression` here for readability; see
-    `toAxKwargs`). Useful for referencing a computed quantity in a
-    `LinearConstraint` or reading it back from a `LegacyTrial` without recomputing
-    it outside planexs.
+    Useful for referencing a computed quantity in a `LinearConstraint` or
+    reading it back from a `LegacyTrial` without recomputing it outside planexs.
 
     A `Derived` parameter never has a `default`: it is computed, not chosen,
     so `default` always stays `None` (enforced by `_validate_default`).
@@ -67,18 +64,6 @@ class Derived(Parameter):
             )
         if not self.expression.strip():
             raise ValueError(f"Derived parameter {self.name!r} has an empty expression.")
-
-    def toAxKwargs(self) -> dict[str, Any]:
-        """Field values ready to pass straight to
-        `ax.api.configs.DerivedParameterConfig(**kwargs)`. Ax names the
-        expression field `expression_str`; planexs' own field is named
-        `expression` for readability, mapped here.
-        """
-        return {
-            "name": self.name,
-            "expression_str": self.expression,
-            "parameter_type": self.parameter_type,
-        }
 
     def toDict(self) -> dict[str, Any]:
         """Serializes the parameter.

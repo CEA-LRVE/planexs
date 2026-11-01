@@ -17,10 +17,6 @@ class TestLinearConstraintRoundTrip:
 
         assert isinstance(reloaded, LinearConstraint)
         assert reloaded == original
-        assert (
-            reloaded.toAxParameterConstraintString()
-            == original.toAxParameterConstraintString()
-        )
 
     def test_unknown_kind_is_rejected(self) -> None:
         with pytest.raises(ValueError, match="kind"):

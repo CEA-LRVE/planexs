@@ -12,11 +12,9 @@ from planexs.domain.constraints.Constraint import Constraint
 class LinearConstraint(Constraint):
     """`sum(coefficients[name] * value[name]) <comparator> bound`.
 
-    Rendered to the string expression `Client.configure_experiment`'s
-    `parameter_constraints` expects (e.g. `"a + b + c = 1.0"`) by
-    `backends/ax/toAxSearchSpace.py`; kept as a typed, validated object here
-    rather than asking the caller to hand-write Ax's string mini-language
-    directly.
+    A typed, validated object, so that the caller never hand-writes an
+    engine's string mini-language: an optimization backend renders it in its
+    own syntax, and the domain knows no engine's syntax (specification 3.9).
 
     Example: a 3-component mixture summing to 1 is
     `LinearConstraint({"a": 1.0, "b": 1.0, "c": 1.0}, bound=1.0, comparator="=")`.
@@ -62,30 +60,13 @@ class LinearConstraint(Constraint):
 
     @property
     def requires_custom_acquisition_layer(self) -> bool:
-        """`True` for the `"="` comparator: Ax's `parameter_constraints` accept
-        inequalities only (it rejects `"a + b = 1"`, and encoding an equality as
-        two inequalities leaves a zero-volume region its candidate generator can
-        never sample). `planexs`'s own acquisition layer enforces equalities
+        """`True` for the `"="` comparator: the optimization backend's native
+        parameter constraints accept inequalities only, and encoding an equality
+        as two inequalities leaves a zero-volume region its candidate generator
+        can never sample. `planexs`'s own acquisition layer enforces equalities
         exactly (ADR-0008).
         """
         return self.comparator == "="
-
-    def toAxParameterConstraintString(self) -> str:
-        """Renders this constraint as the string
-        `Client.configure_experiment`'s `parameter_constraints` argument
-        expects. A coefficient of exactly `1.0` is rendered as a bare
-        parameter name (`"a"`, not `"1.0 * a"`) to match the mixture-style
-        example in this class's own docstring; every other coefficient is
-        rendered explicitly (`"2.0 * b"`).
-        """
-        terms: list[str] = []
-        for name, coefficient in self.coefficients.items():
-            if coefficient == 1.0:
-                terms.append(name)
-            else:
-                terms.append(f"{coefficient} * {name}")
-        left_hand_side = " + ".join(terms)
-        return f"{left_hand_side} {self.comparator} {self.bound}"
 
     def toDict(self) -> dict[str, Any]:
         """Serializes the constraint.
