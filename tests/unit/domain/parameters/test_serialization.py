@@ -11,7 +11,21 @@ import json
 
 import pytest
 
-from planexs import Boolean, Categorical, Choice, Derived, Fixed, Integer, Range, Real
+from planexs import (
+    Boolean,
+    Categorical,
+    Choice,
+    Derived,
+    Fixed,
+    Integer,
+    LinearConstraint,
+    NonlinearConstraint,
+    Parameter,
+    Range,
+    Real,
+    SearchSpace,
+)
+from planexs.core.ConfigError import ConfigError
 from planexs.domain.parameters.parameterFromDict import parameterFromDict
 
 
@@ -92,16 +106,118 @@ class TestDerivedRoundTrip:
         assert reloaded.default is None
 
 
-class TestKindTag:
-    def test_every_kind_is_tagged(self) -> None:
-        assert Real("x", 0.0, 1.0).toDict()["kind"] == "range"
-        assert Categorical("c", ["a", "b"]).toDict()["kind"] == "choice"
-        assert Derived("d", "x + 1", parameter_type="float").toDict()["kind"] == "derived"
+class TestTypeTag:
+    def test_every_type_is_tagged(self) -> None:
+        assert Real("x", 0.0, 1.0).toDict()["type"] == "range"
+        assert Categorical("c", ["a", "b"]).toDict()["type"] == "choice"
+        assert Derived("d", "x + 1", parameter_type="float").toDict()["type"] == "derived"
 
-    def test_unknown_kind_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="kind"):
-            parameterFromDict({"kind": "mystery", "name": "x"})
+    def test_unknown_type_is_rejected(self) -> None:
+        with pytest.raises(ConfigError, match="type"):
+            parameterFromDict({"type": "mystery", "name": "x"})
 
-    def test_missing_kind_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="kind"):
+    def test_missing_type_is_rejected(self) -> None:
+        with pytest.raises(ConfigError, match="type"):
             parameterFromDict({"name": "x"})
+
+
+# One example of every shape of every registered type, written so that a lossy round trip
+# would show: floats that have no short decimal form, an int default on a float range, keys
+# of mixed types among the conditional parameters, a log scale and a step.
+EXACT_EXAMPLES: list[Parameter] = [
+    Range("x", (0.0, 1.0)),
+    Range("x", (0.1 + 0.2, 1e-9 + 1.0), default=0.5),
+    Range("x", (-5.0, 5.0), step_size=0.25, default=-1.25),
+    Range("x", (1e-5, 1e5), scaling="log", default=1.0),
+    Range("n", (1.0, 64.0), parameter_type="int", step_size=1.0, scaling="log", default=8),
+    Choice("c", ["a", "b"], parameter_type="str"),
+    Choice("c", ["low", "mid", "high"], parameter_type="str", is_ordered=True, default="mid"),
+    Choice("c", [1, 2, 3], parameter_type="int", is_ordered=None),
+    Choice("c", [0.1, 0.2 + 0.1], parameter_type="float", is_ordered=False, default=0.1),
+    Choice("c", [True, False], parameter_type="bool", is_ordered=False, default=True),
+    Choice(
+        "c",
+        [1, 2, 3],
+        parameter_type="int",
+        is_ordered=True,
+        dependent_parameters={1: ["a"], 2: ["a", "b"], 3: []},
+    ),
+    Choice(
+        "c",
+        [True, False],
+        parameter_type="bool",
+        dependent_parameters={True: ["on_only"]},
+    ),
+    Choice(
+        "c",
+        [0.5, 1.5],
+        parameter_type="float",
+        dependent_parameters={0.5: ["half"], 1.5: ["x", "y"]},
+    ),
+    Derived("d", "a + b", parameter_type="float"),
+    Derived("d", "a > 0", parameter_type="bool"),
+    Derived("d", "round(a)", parameter_type="int"),
+]
+
+
+class TestTheRoundTripIsExact:
+    @pytest.mark.parametrize(
+        "original", EXACT_EXAMPLES, ids=lambda p: f"{p.toDict()['type']}-{p.name}"
+    )
+    def test_a_parameter_comes_back_equal_and_of_the_same_type(
+        self, original: Parameter
+    ) -> None:
+        reloaded = _roundTrip(original)
+
+        assert type(reloaded) is type(original)
+        assert reloaded == original
+        assert reloaded.toDict() == original.toDict()
+
+    @pytest.mark.parametrize(
+        "original", EXACT_EXAMPLES, ids=lambda p: f"{p.toDict()['type']}-{p.name}"
+    )
+    def test_a_second_round_trip_changes_nothing(self, original: Parameter) -> None:
+        once = _roundTrip(original)
+        twice = _roundTrip(once)
+
+        assert json.dumps(twice.toDict(), sort_keys=True) == json.dumps(
+            original.toDict(), sort_keys=True
+        )
+
+    def test_a_whole_search_space_comes_back_equal(self) -> None:
+        space = SearchSpace(
+            parameters=[
+                Range("a", (0.0, 1.0), default=0.25),
+                Range("b", (1e-3, 1e3), scaling="log"),
+                Range("n", (1.0, 8.0), parameter_type="int", step_size=1.0),
+                Choice(
+                    "m",
+                    ["mlp", "cnn"],
+                    parameter_type="str",
+                    dependent_parameters={"mlp": ["n"]},
+                ),
+                Choice("flag", [True, False], parameter_type="bool", is_ordered=False),
+                Derived("total", "a + b", parameter_type="float"),
+            ],
+            constraints=[
+                LinearConstraint({"a": 1.0, "b": 2.0}, bound=3.0, comparator="<="),
+                NonlinearConstraint("a * b", "<=", 50.0),
+            ],
+        )
+
+        reloaded = SearchSpace.model_validate_json(space.model_dump_json())
+
+        assert reloaded == space
+
+    def test_every_convenience_constructor_reloads_as_its_base_type(self) -> None:
+        sugar: list[Parameter] = [
+            Real("r", 0.0, 1.0, default=0.5),
+            Integer("i", 1, 9, step_size=2, default=3),
+            Categorical("k", ["u", "v"], default="v"),
+            Boolean("flag", default=False),
+            Fixed("f", 3),
+        ]
+        for original in sugar:
+            reloaded = _roundTrip(original)
+            assert type(reloaded) in (Range, Choice)
+            assert reloaded.toDict() == original.toDict()

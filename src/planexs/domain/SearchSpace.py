@@ -9,10 +9,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_serializer, field_validator, model_validator
 
+from planexs.core.RegistryError import RegistryError
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
 from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.parameters.parameterFromDict import parameterFromDict
+from planexs.domain.parameters.parameterRegistry import parameterRegistry
 
 
 class SearchSpace(BaseModel):
@@ -29,7 +31,9 @@ class SearchSpace(BaseModel):
     so they are (de)serialized explicitly through `toDict` /
     `parameterFromDict` / `constraintFromDict` (type-tagged dicts) rather
     than by Pydantic's declared-type handling, which would lose the subclass
-    fields and could not rebuild an abstract class.
+    fields and could not rebuild an abstract class. A parameter is tagged with
+    the name of its type under the key `type`, and rebuilt by looking that name up
+    in the registry of the `parameter` kind (specification 5.3, 5.12).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -61,6 +65,20 @@ class SearchSpace(BaseModel):
     def _rebuildParameters(cls, value: Any) -> Any:
         """Turns tagged dicts (a reloaded study) back into `Parameter`
         objects; already-built `Parameter` instances pass through untouched.
+
+        Each dict is rebuilt through the registry of the `parameter` kind, so a type that is
+        not registered (a plugin that is not loaded) is an error that lists the registered
+        types, and not a parameter that silently disappears.
+
+        Args:
+            value: The raw `parameters` field.
+
+        Returns:
+            The list with each dict rebuilt.
+
+        Raises:
+            ConfigError: from `parameterFromDict`, for a dict that names no registered type
+                or does not fit the schema of its type.
         """
         if isinstance(value, list):
             return [
@@ -89,13 +107,36 @@ class SearchSpace(BaseModel):
     def _dumpParameters(self, parameters: list[Parameter]) -> list[dict[str, Any]]:
         """Serializes the parameters through their own type-tagged `toDict`.
 
+        The tag of each is checked against the registry of the `parameter` kind: a document
+        whose parameter has a type that nobody registered could be written but never read
+        back, so it is refused when it is written. Pydantic reports the error it raises here
+        as a `PydanticSerializationError` that carries the text of the original.
+
         Args:
             parameters: The parameters.
 
         Returns:
             One dict per parameter.
+
+        Raises:
+            RegistryError: if the form of a parameter has no `type` entry, or its `type` is
+                not registered. The message lists the registered types.
         """
-        return [parameter.toDict() for parameter in parameters]
+        registry = parameterRegistry()
+        dumped: list[dict[str, Any]] = []
+        for parameter in parameters:
+            data = parameter.toDict()
+            if "type" not in data:
+                raise RegistryError(
+                    f"{type(parameter).__name__}.toDict() wrote no 'type' entry for the "
+                    f"parameter {parameter.name!r}, so it could not be read back.",
+                    component="parameter",
+                    field_path="type",
+                    suggestion="write the registered name of the parameter type under 'type'",
+                )
+            registry.lookup(data["type"])
+            dumped.append(data)
+        return dumped
 
     @field_serializer("constraints")
     def _dumpConstraints(self, constraints: list[Constraint]) -> list[dict[str, Any]]:

@@ -6,8 +6,15 @@ import math
 from typing import Any, Literal
 
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.RangeConfig import RangeConfig
+from planexs.domain.parameters.registerParameter import registerParameter
 
 
+@registerParameter(
+    "range",
+    config=RangeConfig,
+    description="A continuous or integer-stepped dimension of the search space.",
+)
 class Range(Parameter):
     """A continuous or integer-stepped dimension.
 
@@ -102,7 +109,7 @@ class Range(Parameter):
             A type-tagged, JSON-compatible form, rebuilt by `parameterFromDict`.
         """
         return {
-            "kind": "range",
+            "type": "range",
             "name": self.name,
             "bounds": [self.bounds[0], self.bounds[1]],
             "parameter_type": self.parameter_type,

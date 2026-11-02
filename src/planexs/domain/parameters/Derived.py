@@ -4,9 +4,16 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from planexs.domain.parameters.DerivedConfig import DerivedConfig
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.registerParameter import registerParameter
 
 
+@registerParameter(
+    "derived",
+    config=DerivedConfig,
+    description="A read-only quantity computed from other parameters, never searched.",
+)
 class Derived(Parameter):
     """A read-only quantity computed from other parameters through an
     expression string (e.g. `"a + b"`), not itself searched over.
@@ -72,7 +79,7 @@ class Derived(Parameter):
             A type-tagged, JSON-compatible form, rebuilt by `parameterFromDict`.
         """
         return {
-            "kind": "derived",
+            "type": "derived",
             "name": self.name,
             "expression": self.expression,
             "parameter_type": self.parameter_type,

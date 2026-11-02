@@ -489,7 +489,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-04. Parameter-type registry
 
-**Size:** M | **Needs:** P1-10, P2-02 | **Spec:** 5.3, 6 | **Status:** todo
+**Size:** M | **Needs:** P1-10, P2-02 | **Spec:** 5.3, 6 | **Status:** done
 
 **Do.** Create the `parameter` kind: register `range`, `choice` and `derived` under their serialization tags and replace the tag chain in `parameterFromDict` and the serializers of `SearchSpace` by registry lookup. The serialization key is `type` (it was `kind`). The sugar constructors (`Real`, `Integer`, `Categorical`, `Boolean`, `Fixed`) keep working and are not registered. An unknown-type error lists the registered types.
 

@@ -73,7 +73,7 @@ class TestSearchSpaceSerialization:
         dumped = self._mixedSpace().model_dump(mode="json")
 
         first = dumped["parameters"][0]
-        assert first["kind"] == "range"
+        assert first["type"] == "range"
         assert first["bounds"] == [0.0, 1.0]
         assert dumped["constraints"][0]["kind"] == "linear"
 

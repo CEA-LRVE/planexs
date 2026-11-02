@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
+from planexs.core.ComponentConfig import ComponentConfig
+from planexs.domain.parameters.ChoiceConfig import ChoiceConfig
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.registerParameter import registerParameter
 
 # `bool` first, `int` before `float`: see Parameter.default's comment.
 ChoiceValue = bool | int | float | str
 
 
+@registerParameter(
+    "choice",
+    config=ChoiceConfig,
+    description="A discrete, ordinal or categorical, dimension of the search space.",
+)
 class Choice(Parameter):
     """A discrete dimension: ordinal or categorical, controlled by `is_ordered`.
 
@@ -91,6 +99,27 @@ class Choice(Parameter):
                 f"not one of its own values {self.values!r}."
             )
 
+    @classmethod
+    def fromConfig(cls, config: ComponentConfig) -> Self:
+        """The builder of the `choice` type: makes the choice that a validated
+        `ChoiceConfig` describes.
+
+        The stored `[value, [names...]]` pairs of `dependent_parameters` become the mapping
+        that the constructor takes; every other field is passed on as it is.
+
+        Args:
+            config: The validated configuration, a `ChoiceConfig`.
+
+        Returns:
+            The choice.
+        """
+        fields = config.model_dump(exclude={"type"})
+        pairs = fields["dependent_parameters"]
+        fields["dependent_parameters"] = (
+            {value: list(names) for value, names in pairs} if pairs is not None else None
+        )
+        return cls(**fields)
+
     def toDict(self) -> dict[str, Any]:
         """`dependent_parameters` is written as `[value, [names...]]` pairs,
         not a JSON object: JSON object keys are always strings, which would
@@ -103,7 +132,7 @@ class Choice(Parameter):
             else None
         )
         return {
-            "kind": "choice",
+            "type": "choice",
             "name": self.name,
             "values": list(self.values),
             "parameter_type": self.parameter_type,
