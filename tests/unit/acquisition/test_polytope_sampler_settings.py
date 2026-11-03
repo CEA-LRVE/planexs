@@ -15,7 +15,7 @@ from planexs.acquisition.sampleFeasibleEncoded import (
     DEFAULT_POLYTOPE_THINNING,
     sampleFeasibleEncoded,
 )
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 _SAMPLER_MODULE = "planexs.acquisition.sampleFeasibleEncoded"
 

@@ -6,7 +6,7 @@ import ast
 
 #: Functions an expression may call, mapped to the number of arguments each
 #: takes. This is the whole allowlist: anything else is rejected before any
-#: evaluation happens. `models/compileExpression.py` maps every name here to a
+#: evaluation happens. `encoding/compileExpression.py` maps every name here to a
 #: torch function (a test asserts the two stay in sync).
 ALLOWED_EXPRESSION_FUNCTIONS: dict[str, int] = {
     "abs": 1,

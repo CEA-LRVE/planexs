@@ -15,8 +15,8 @@ from planexs.domain.parameters.Choice import Choice
 from planexs.domain.parameters.Derived import Derived
 from planexs.domain.parameters.Range import Range
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.models.compileExpression import compileExpression
-from planexs.models.ParameterEncoding import LevelValue, ParameterEncoding
+from planexs.encoding.compileExpression import compileExpression
+from planexs.encoding.ParameterEncoding import LevelValue, ParameterEncoding
 
 _DTYPE = torch.double
 

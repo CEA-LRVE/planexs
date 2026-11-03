@@ -23,10 +23,10 @@ from planexs.domain.LegacyOutcomeConstraint import LegacyOutcomeConstraint
 from planexs.domain.LegacyTrial import LegacyTrial
 from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.SearchSpace import SearchSpace
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
 from planexs.models.predictWithModel import predictWithModel
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.persistence.JsonStudyRepository import JsonStudyRepository
 from planexs.persistence.LegacyStudySnapshot import LegacyStudySnapshot
 from planexs.persistence.ReproducibilityMetadata import ReproducibilityMetadata

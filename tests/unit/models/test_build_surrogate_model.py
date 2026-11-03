@@ -8,9 +8,9 @@ import pytest
 import torch
 
 from planexs import Categorical, LegacyMetric, LegacyObjective, LegacyTrial, Real, SearchSpace
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _data(n: int = 8, m: int = 1) -> tuple[torch.Tensor, torch.Tensor]:

@@ -19,7 +19,7 @@ from planexs import (
 )
 from planexs.acquisition.EncodedConstraints import EncodedConstraints
 from planexs.acquisition.sampleFeasibleEncoded import sampleFeasibleEncoded
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _build(space: SearchSpace) -> tuple[SearchSpaceEncoder, EncodedConstraints]:

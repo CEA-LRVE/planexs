@@ -9,7 +9,7 @@ import pytest
 import torch
 
 from planexs.domain.constraints.validateExpression import ALLOWED_EXPRESSION_FUNCTIONS
-from planexs.models.compileExpression import compileExpression
+from planexs.encoding.compileExpression import compileExpression
 
 
 def _evaluate(expression: str, **values: float) -> float:
@@ -92,5 +92,5 @@ class TestErrors:
 
 
 def test_function_table_matches_the_domain_allowlist() -> None:
-    module = importlib.import_module("planexs.models.compileExpression")
+    module = importlib.import_module("planexs.encoding.compileExpression")
     assert set(module._FUNCTIONS) == set(ALLOWED_EXPRESSION_FUNCTIONS)

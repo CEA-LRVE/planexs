@@ -10,7 +10,7 @@ from torch import Tensor
 
 from planexs.domain.LegacyObjective import LegacyObjective
 from planexs.domain.LegacyTrial import LegacyTrial
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 logger = logging.getLogger(__name__)
 

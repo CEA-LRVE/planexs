@@ -11,7 +11,7 @@ from planexs.acquisition.toBotorchNonlinearConstraints import toBotorchNonlinear
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 class EncodedConstraints:

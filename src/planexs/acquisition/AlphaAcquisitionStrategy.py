@@ -33,7 +33,7 @@ from planexs.acquisition.sampleFeasibleEncoded import (
 )
 from planexs.domain.LegacyObjective import LegacyObjective
 from planexs.domain.SearchSpace import SearchSpace
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 logger = logging.getLogger(__name__)
 

@@ -27,9 +27,9 @@ from planexs import (
     Real,
     SearchSpace,
 )
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.models.buildSurrogateModel import buildSurrogateModel
 from planexs.models.encodeTrials import encodeTrials
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
 
 Parameterization = dict[str, float | int | str | bool]
 

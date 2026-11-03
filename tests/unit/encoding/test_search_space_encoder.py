@@ -18,7 +18,7 @@ from planexs import (
     Real,
     SearchSpace,
 )
-from planexs.models.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 
 def _mixedSpace() -> SearchSpace:

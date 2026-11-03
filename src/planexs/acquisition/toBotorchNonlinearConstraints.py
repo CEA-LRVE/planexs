@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
-from planexs.models.compileExpression import compileExpression
+from planexs.encoding.compileExpression import compileExpression
 
 
 def toBotorchNonlinearConstraints(

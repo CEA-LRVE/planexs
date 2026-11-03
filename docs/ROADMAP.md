@@ -584,7 +584,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-01. Move the encoder and the expression compiler
 
-**Size:** S | **Needs:** P1-16 | **Spec:** 5.1 | **Status:** todo
+**Size:** S | **Needs:** P1-16 | **Spec:** 5.1 | **Status:** done
 
 **Do.** `git mv` `models/SearchSpaceEncoder.py`, `models/ParameterEncoding.py` and `models/compileExpression.py` into `encoding/`, update imports, move their tests to `tests/unit/encoding/` and update `scripts/layers.toml`. No behaviour change.
 
