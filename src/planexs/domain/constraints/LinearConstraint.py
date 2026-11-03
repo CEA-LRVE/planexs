@@ -7,8 +7,15 @@ from typing import Any, Literal
 from pydantic import model_validator
 
 from planexs.domain.constraints.Constraint import Constraint
+from planexs.domain.constraints.LinearConstraintConfig import LinearConstraintConfig
+from planexs.domain.constraints.registerConstraint import registerConstraint
 
 
+@registerConstraint(
+    "linear",
+    config=LinearConstraintConfig,
+    description="A linear (in)equality across parameters, such as a mixture that sums to one.",
+)
 class LinearConstraint(Constraint):
     """`sum(coefficients[name] * value[name]) <comparator> bound`.
 
@@ -75,7 +82,7 @@ class LinearConstraint(Constraint):
             A type-tagged, JSON-compatible form, rebuilt by `constraintFromDict`.
         """
         return {
-            "kind": "linear",
+            "type": "linear",
             "coefficients": dict(self.coefficients),
             "bound": self.bound,
             "comparator": self.comparator,

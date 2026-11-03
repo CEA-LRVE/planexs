@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer, field_validator, m
 from planexs.core.RegistryError import RegistryError
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
+from planexs.domain.constraints.constraintRegistry import constraintRegistry
 from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.parameters.parameterFromDict import parameterFromDict
 from planexs.domain.parameters.parameterRegistry import parameterRegistry
@@ -33,7 +34,8 @@ class SearchSpace(BaseModel):
     than by Pydantic's declared-type handling, which would lose the subclass
     fields and could not rebuild an abstract class. A parameter is tagged with
     the name of its type under the key `type`, and rebuilt by looking that name up
-    in the registry of the `parameter` kind (specification 5.3, 5.12).
+    in the registry of the `parameter` kind; a constraint is tagged and rebuilt the same way
+    through the registry of the `constraint` kind (specification 5.3, 5.12).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -91,11 +93,19 @@ class SearchSpace(BaseModel):
     def _rebuildConstraints(cls, value: Any) -> Any:
         """Turns tagged dicts (a reloaded study) back into `Constraint` objects.
 
+        Each dict is rebuilt through the registry of the `constraint` kind, so a type that is
+        not registered (a plugin that is not loaded) is an error that lists the registered
+        types, and not a constraint that silently disappears.
+
         Args:
             value: The raw `constraints` field.
 
         Returns:
             The list with each dict rebuilt; built constraints pass through untouched.
+
+        Raises:
+            ConfigError: from `constraintFromDict`, for a dict that names no registered type
+                or does not fit the schema of its type.
         """
         if isinstance(value, list):
             return [
@@ -142,13 +152,35 @@ class SearchSpace(BaseModel):
     def _dumpConstraints(self, constraints: list[Constraint]) -> list[dict[str, Any]]:
         """Serializes the constraints through their own type-tagged `toDict`.
 
+        The tag of each is checked against the registry of the `constraint` kind, for the
+        reason given at `_dumpParameters`: a type that nobody registered could be written but
+        never read back, so it is refused when it is written.
+
         Args:
             constraints: The constraints.
 
         Returns:
             One dict per constraint.
+
+        Raises:
+            RegistryError: if the form of a constraint has no `type` entry, or its `type` is
+                not registered. The message lists the registered types.
         """
-        return [constraint.toDict() for constraint in constraints]
+        registry = constraintRegistry()
+        dumped: list[dict[str, Any]] = []
+        for constraint in constraints:
+            data = constraint.toDict()
+            if "type" not in data:
+                raise RegistryError(
+                    f"{type(constraint).__name__}.toDict() wrote no 'type' entry, so the "
+                    "constraint could not be read back.",
+                    component="constraint",
+                    field_path="type",
+                    suggestion="write the registered name of the constraint type under 'type'",
+                )
+            registry.lookup(data["type"])
+            dumped.append(data)
+        return dumped
 
     @model_validator(mode="after")
     def _validateUniqueNames(self) -> SearchSpace:

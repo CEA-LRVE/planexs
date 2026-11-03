@@ -12,6 +12,18 @@ evaluations, without the caller having to pre-classify which case they are in. S
 
 The name stands for *PLANification EXpérimentale Séquentielle*, the French for sequential experimental design.
 
+## Comparate a patch
+
+git worktree add ./tmp/project-patch HEAD
+cd ./tmp/project-patch
+$PATCH_PATH="./chemin/vers/mon-patch.patch"
+git apply --check $PATCH_PATH
+git apply $PATCH_PATH
+git apply --stat $PATCH_PATH
+cd ../..
+$FILE="fichier.cpp"
+code --diff ./src/planexs/$FILE ./tmp/project-patch/src/planexs/$FILE
+
 ## Status
 
 planexs is being refactored toward the architecture of the

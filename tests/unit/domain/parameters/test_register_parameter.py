@@ -2,7 +2,7 @@
 
 The toy type is an angle that wraps around: a type that the three built-in ones cannot
 express, defined here the way a plugin would define it (specification 1.3). It is registered
-in a copy of the `parameter` kind (the `isolatedParameterTable` fixture), because a registered
+in a copy of the domain's kinds (the `isolatedDomainKinds` fixture), because a registered
 name is permanent and must not outlive the test that registers it.
 """
 
@@ -74,14 +74,14 @@ def defineCyclic(register: bool = True) -> tuple[type[Parameter], type[Component
 
 class TestAToyTypeRegisteredInTheTest:
     def test_it_is_registered_next_to_the_built_in_types(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         defineCyclic()
 
         assert parameterRegistry().names() == ["choice", "cyclic", "derived", "range"]
         assert parameterRegistry() is not REAL_REGISTRY
 
-    def test_it_is_read_from_its_stored_form(self, isolatedParameterTable: KindTable) -> None:
+    def test_it_is_read_from_its_stored_form(self, isolatedDomainKinds: KindTable) -> None:
         cyclic, _ = defineCyclic()
 
         parameter = parameterFromDict({"type": "cyclic", "name": "angle", "period": 360.0})
@@ -90,7 +90,7 @@ class TestAToyTypeRegisteredInTheTest:
         assert parameter.name == "angle"
 
     def test_it_round_trips_inside_a_search_space(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, _ = defineCyclic()
         space = SearchSpace(
@@ -113,7 +113,7 @@ class TestAToyTypeRegisteredInTheTest:
         assert type(reloaded.parameters[1]) is cyclic
 
     def test_a_field_of_the_toy_type_is_refused_with_its_path(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         defineCyclic()
 
@@ -123,7 +123,7 @@ class TestAToyTypeRegisteredInTheTest:
         assert caught.value.field_path == "period"
 
     def test_the_class_still_validates_what_the_schema_cannot(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         defineCyclic()
 
@@ -131,7 +131,7 @@ class TestAToyTypeRegisteredInTheTest:
             parameterFromDict({"type": "cyclic", "name": "angle", "period": -1.0})
 
     def test_it_cannot_be_read_where_it_is_not_registered(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         defineCyclic(register=False)
         document = '{"parameters": [{"type": "cyclic", "name": "a", "period": 360.0}]}'
@@ -151,7 +151,7 @@ class TestAToyTypeRegisteredInTheTest:
 
 class TestASpaceIsRefusedWhenItCouldNotBeReadBack:
     def test_a_type_that_nobody_registered_cannot_be_saved(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, _ = defineCyclic(register=False)
         space = SearchSpace(parameters=[cyclic("angle", period=360.0)])  # type: ignore[call-arg]
@@ -164,7 +164,7 @@ class TestASpaceIsRefusedWhenItCouldNotBeReadBack:
             space.model_dump_json()
 
     def test_a_form_without_a_type_entry_cannot_be_saved(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         class Untagged(Parameter):
             def _validate_default(self) -> None:
@@ -186,7 +186,7 @@ class TestASpaceIsRefusedWhenItCouldNotBeReadBack:
 
 class TestTheDecorator:
     def test_it_returns_the_class_unchanged_and_registers_its_builder(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic()
         entry = parameterRegistry().lookup("cyclic")
@@ -198,7 +198,7 @@ class TestTheDecorator:
         assert entry.supports == frozenset()
 
     def test_the_default_builder_passes_the_fields_to_the_constructor(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic()
 
@@ -212,7 +212,7 @@ class TestTheDecorator:
         }
 
     def test_a_class_that_is_not_a_parameter_is_refused(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         _, config = defineCyclic(register=False)
 
@@ -222,7 +222,7 @@ class TestTheDecorator:
         assert "cyclic" not in parameterRegistry()
 
     def test_a_schema_that_is_not_pinned_to_the_name_is_refused(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic(register=False)
 
@@ -233,7 +233,7 @@ class TestTheDecorator:
         assert "pinned" in caught.value.message
         assert "angle" not in parameterRegistry()
 
-    def test_a_name_that_is_taken_is_refused(self, isolatedParameterTable: KindTable) -> None:
+    def test_a_name_that_is_taken_is_refused(self, isolatedDomainKinds: KindTable) -> None:
         cyclic, _ = defineCyclic(register=False)
 
         with pytest.raises(RegistryError, match="already registered"):
@@ -242,7 +242,7 @@ class TestTheDecorator:
         assert parameterRegistry().lookup("range").builder == Range.fromConfig
 
     def test_a_name_that_is_not_snake_case_is_refused(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic(register=False)
 
@@ -250,7 +250,7 @@ class TestTheDecorator:
             registerParameter("Cyclic", config=config, description="d")(cyclic)
 
     def test_a_capability_tag_is_checked_against_the_vocabulary(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic(register=False)
 
@@ -265,7 +265,7 @@ class TestTheDecorator:
         assert "cyclic" not in parameterRegistry()
 
     def test_a_builder_that_does_not_return_a_parameter_is_caught_when_reading(
-        self, isolatedParameterTable: KindTable
+        self, isolatedDomainKinds: KindTable
     ) -> None:
         cyclic, config = defineCyclic(register=False)
 

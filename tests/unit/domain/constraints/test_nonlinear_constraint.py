@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from planexs import LinearConstraint, NonlinearConstraint, Real, SearchSpace
+from planexs.core.ConfigError import ConfigError
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
 from planexs.domain.constraints.validateExpression import (
     ALLOWED_EXPRESSION_FUNCTIONS,
@@ -137,7 +138,7 @@ class TestSerialization:
         assert rebuilt == constraint
 
     def test_dict_is_type_tagged(self) -> None:
-        assert NonlinearConstraint("x * y", ">=", 2.0).toDict()["kind"] == "nonlinear"
+        assert NonlinearConstraint("x * y", ">=", 2.0).toDict()["type"] == "nonlinear"
 
     def test_search_space_round_trips_mixed_constraints_through_json(self) -> None:
         space = SearchSpace(
@@ -156,10 +157,10 @@ class TestSerialization:
         ]
         assert rebuilt.constraints == space.constraints
 
-    def test_missing_kind_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="kind=None"):
+    def test_missing_type_is_rejected(self) -> None:
+        with pytest.raises(ConfigError, match="no 'type' field"):
             constraintFromDict({"expression": "x * y", "comparator": "<=", "bound": 1.0})
 
-    def test_unknown_kind_message_lists_both_supported_kinds(self) -> None:
-        with pytest.raises(ValueError, match=r"linear.*nonlinear"):
-            constraintFromDict({"kind": "quadratic"})
+    def test_unknown_type_message_lists_both_supported_types(self) -> None:
+        with pytest.raises(ConfigError, match=r"linear.*nonlinear"):
+            constraintFromDict({"type": "quadratic"})

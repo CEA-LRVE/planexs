@@ -8,9 +8,16 @@ from typing import Any, Literal
 from pydantic import model_validator
 
 from planexs.domain.constraints.Constraint import Constraint
+from planexs.domain.constraints.NonlinearConstraintConfig import NonlinearConstraintConfig
+from planexs.domain.constraints.registerConstraint import registerConstraint
 from planexs.domain.constraints.validateExpression import validateExpression
 
 
+@registerConstraint(
+    "nonlinear",
+    config=NonlinearConstraintConfig,
+    description="A feasibility constraint given as an arithmetic expression over parameters.",
+)
 class NonlinearConstraint(Constraint):
     """`expression <comparator> bound`, e.g. `NonlinearConstraint("var * x ** z", "<=", 50.0)`.
     FR17.
@@ -104,7 +111,7 @@ class NonlinearConstraint(Constraint):
             A type-tagged, JSON-compatible form, rebuilt by `constraintFromDict`.
         """
         return {
-            "kind": "nonlinear",
+            "type": "nonlinear",
             "expression": self.expression,
             "comparator": self.comparator,
             "bound": self.bound,

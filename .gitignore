@@ -19,6 +19,7 @@ htmlcov/
 
 # Docs build output
 site/
+tmp/
 
 # OS
 .DS_Store
@@ -27,3 +28,4 @@ site/
 reactor_yield_campaign.json
 file_differents.py
 questions.md
+path_modifs.txt

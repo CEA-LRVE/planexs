@@ -501,7 +501,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-05. Constraint-type registry
 
-**Size:** S | **Needs:** P2-04 | **Spec:** 5.3, 6 | **Status:** todo
+**Size:** S | **Needs:** P2-04 | **Spec:** 5.3, 6 | **Status:** done
 
 **Do.** Do the same for the `constraint` kind: register `linear` and `nonlinear`, replace the chain in `constraintFromDict`, and use the serialization key `type`.
 

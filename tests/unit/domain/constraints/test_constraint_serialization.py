@@ -7,6 +7,7 @@ import json
 import pytest
 
 from planexs import LinearConstraint
+from planexs.core.ConfigError import ConfigError
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
 
 
@@ -18,6 +19,6 @@ class TestLinearConstraintRoundTrip:
         assert isinstance(reloaded, LinearConstraint)
         assert reloaded == original
 
-    def test_unknown_kind_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="kind"):
-            constraintFromDict({"kind": "quadratic", "expression": "x * y"})
+    def test_unknown_type_is_rejected(self) -> None:
+        with pytest.raises(ConfigError, match="type"):
+            constraintFromDict({"type": "quadratic", "expression": "x * y"})

@@ -75,7 +75,7 @@ class TestSearchSpaceSerialization:
         first = dumped["parameters"][0]
         assert first["type"] == "range"
         assert first["bounds"] == [0.0, 1.0]
-        assert dumped["constraints"][0]["kind"] == "linear"
+        assert dumped["constraints"][0]["type"] == "linear"
 
     def test_json_round_trip_preserves_every_parameter(self) -> None:
         original = self._mixedSpace()
