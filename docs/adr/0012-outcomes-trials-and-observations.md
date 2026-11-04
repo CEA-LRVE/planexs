@@ -214,7 +214,7 @@ type would be a new decision, not an edit of this one.
    in the navigation (P2-01).
 2. [x] Rename the 0.1.0 types to `Legacy*` so that the new `Trial` can take its name (P2-02).
 3. [ ] Add `Outcome` and the `outcome_kind` kind with `continuous` and `binary` (P2-06).
-4. [ ] Add `TrialState`, the immutable `Trial` and `TrialStateError`, tested against every row
+4. [x] Add `TrialState`, the immutable `Trial` and `TrialStateError`, tested against every row
    of the table (P2-07).
 5. [ ] Add `Observation`, validated against a list of outcomes (P2-08).
 6. [ ] Give goals the direction, the weights and the constraints on outcomes (P4-03, P4-04,

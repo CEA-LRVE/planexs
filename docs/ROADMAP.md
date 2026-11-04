@@ -520,7 +520,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-07. Trial lifecycle
 
-**Size:** S | **Needs:** P2-01, P2-02 | **Spec:** 5.4 | **Status:** todo
+**Size:** S | **Needs:** P2-01, P2-02 | **Spec:** 5.4 | **Status:** done
 
 **Do.** Add `domain/TrialState.py` (pending, completed, failed, abandoned) and the new `domain/Trial.py`: an immutable record with an integer id, a parameterization, a state, an observation slot (typed in P2-08), JSON-compatible metadata and a failure reason. Transitions are methods that return a new trial and reject illegal moves (anything not in the table of ADR-0012) with a new `TrialStateError`.
 

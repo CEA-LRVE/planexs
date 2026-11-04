@@ -14,8 +14,8 @@ The name stands for *PLANification EXpérimentale Séquentielle*, the French for
 
 ## Comparate a patch
 
-$TEMP_PATH="./tmp/project-patch"
 $PATCH_PATH="C:\Users\esto5\Downloads\mon-patch.patch"
+$TEMP_PATH="./tmp/project-patch"
 git worktree add $TEMP_PATH HEAD
 cd $TEMP_PATH
 git apply --check $PATCH_PATH

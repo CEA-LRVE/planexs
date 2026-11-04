@@ -18,8 +18,15 @@ from planexs.core.ConfigError import ConfigError
 from planexs.core.ModelNotReadyError import ModelNotReadyError
 from planexs.core.PlanexsError import PlanexsError
 from planexs.core.RegistryError import RegistryError
+from planexs.core.TrialStateError import TrialStateError
 
-SUBCLASSES = [ConfigError, RegistryError, CompatibilityError, ModelNotReadyError]
+SUBCLASSES = [
+    ConfigError,
+    RegistryError,
+    CompatibilityError,
+    ModelNotReadyError,
+    TrialStateError,
+]
 ALL_ERRORS = [PlanexsError, *SUBCLASSES]
 
 #: Shorthand that keeps the parametrized signatures on one line.
