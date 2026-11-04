@@ -23,6 +23,7 @@ nav:
       - "ADR-0010: Registries, capability tags and stable names": adr/0010-registries-capability-tags-and-stable-names.md
       - "ADR-0011: Policy values, resolved configuration and seeds": adr/0011-policy-values-resolved-configuration-and-seeds.md
       - "ADR-0012: Outcomes, trials and observations": adr/0012-outcomes-trials-and-observations.md
+      - "ADR-0013: Goals, policies and recipes": adr/0013-goals-policies-and-recipes.md
   - Changelog: changelogs/CHANGELOG.md
 
 # mkdocstrings-based API reference generation (from docstrings, section 3's

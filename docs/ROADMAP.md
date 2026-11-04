@@ -765,7 +765,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-01. ADR-0013: goals, policies and recipes
 
-**Size:** S | **Needs:** P1-01 | **Spec:** 5.7, 5.9 | **Status:** todo
+**Size:** S | **Needs:** P1-01 | **Spec:** 5.7, 5.9 | **Status:** done
 
 **Do.** Record: goals as typed configuration with tags, recipes and default analyses; composed and opaque policies behind one contract; recipes tried in order and the first compatible one used; the resolved policy stored; no later switching of policy. This supersedes the 'switch with a warning' behaviour of ADR-0006 (already marked superseded by ADR-0009).
 

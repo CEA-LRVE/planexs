@@ -405,7 +405,7 @@ class TestRealTree:
         for number in named:
             assert adrs[number].status == "Superseded by ADR-0009", adrs[number].label
 
-    @pytest.mark.parametrize("number", [3, 9, 10, 11, 12])
+    @pytest.mark.parametrize("number", [3, 9, 10, 11, 12, 13])
     def test_an_adr_written_in_full_is_a_live_record_and_therefore_complete(
         self, number: int
     ) -> None:
