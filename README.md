@@ -13,9 +13,12 @@ evaluations, without the caller having to pre-classify which case they are in. S
 The name stands for *PLANification EXpérimentale Séquentielle*, the French for sequential experimental design.
 
 ## Comparate a patch
+$USER="esto5"
+$USER="ET281306"
 
-$PATCH_PATH="C:\Users\esto5\Downloads\mon-patch.patch"
+$PATCH_PATH="C:\Users\$USER\Downloads\mon-patch.patch"
 $TEMP_PATH="./tmp/project-patch"
+git worktree prune -v
 git worktree add $TEMP_PATH HEAD
 cd $TEMP_PATH
 git apply --check $PATCH_PATH
@@ -28,6 +31,7 @@ $FILE="fichier.cpp"
 code --diff ./$FILE $TEMP_PATH/$FILE
 
 Remove-Item -Path $TEMP_PATH -Recurse -Force
+git worktree prune -v
 git apply $PATCH_PATH
 
 ## Status

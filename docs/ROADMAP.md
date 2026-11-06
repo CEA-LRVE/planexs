@@ -594,7 +594,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-02. Torch runtime helpers
 
-**Size:** S | **Needs:** P1-13, P1-14, P3-01 | **Spec:** 3.4, 8 | **Status:** todo
+**Size:** S | **Needs:** P1-13, P1-14, P3-01 | **Spec:** 3.4, 8 | **Status:** done
 
 **Do.** In `encoding/`, add the helpers that turn `RuntimeConfig` and `RngTree` seeds into torch objects (dtype, device, a seeded `torch.Generator`) and apply the deterministic-algorithms flag, restoring the previous value on exit. The encoder fixes `torch.double` at module level today: make the dtype an input taken from the runtime settings.
 

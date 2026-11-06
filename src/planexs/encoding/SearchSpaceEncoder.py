@@ -10,6 +10,7 @@ import torch
 from torch import Tensor
 from torch.quasirandom import SobolEngine
 
+from planexs.core.RuntimeConfig import RuntimeConfig
 from planexs.domain.constraints.validateExpression import validateExpression
 from planexs.domain.parameters.Choice import Choice
 from planexs.domain.parameters.Derived import Derived
@@ -17,8 +18,7 @@ from planexs.domain.parameters.Range import Range
 from planexs.domain.SearchSpace import SearchSpace
 from planexs.encoding.compileExpression import compileExpression
 from planexs.encoding.ParameterEncoding import LevelValue, ParameterEncoding
-
-_DTYPE = torch.double
+from planexs.encoding.torch_runtime import torchDtype
 
 
 class SearchSpaceEncoder:
@@ -46,21 +46,35 @@ class SearchSpaceEncoder:
     midpoint. `decode` removes the parameters that are inactive given the
     chosen values, because Ax rejects a parameterization that contains them.
 
+    Every tensor the encoder builds has the floating-point type of the runtime settings
+    (`dtype`), `float64` unless the settings say otherwise. A `float32` encoder rounds a
+    real value to single precision, so encoding then decoding it returns it only to about
+    seven significant digits, also on a real-valued grid whose step is not a power of two
+    (a step of 0.1 gives 0.300000011921 for 0.3). Integers, choices and booleans still come
+    back exactly, as long as a range has far fewer levels than single precision can tell
+    apart (about sixteen million).
+
     Args:
         search_space: The space to encode.
+        runtime: The runtime settings, which choose the floating-point type of the encoded
+            tensors. `None` means `RuntimeConfig()`, the defaults of the schema.
 
     Raises:
         ValueError: if the space has no searched parameter, an integer range
             with no integer inside its bounds, or a `Derived` parameter of
             type `"str"` (the custom layer can only compute numeric ones).
         TypeError: if a parameter is of an unknown kind.
+        ConfigError: if torch has no floating-point type of the name the runtime gives.
     """
 
-    def __init__(self, search_space: SearchSpace) -> None:
+    def __init__(
+        self, search_space: SearchSpace, runtime: RuntimeConfig | None = None
+    ) -> None:
         """Lays out the columns of `search_space`.
 
         Arguments and errors are described in the class docstring.
         """
+        self._dtype = torchDtype(RuntimeConfig() if runtime is None else runtime)
         self._search_space = search_space
         self._encodings: list[ParameterEncoding] = []
         self._fixed_values: dict[str, LevelValue] = {}
@@ -111,6 +125,13 @@ class SearchSpaceEncoder:
         self._range_encodings = [e for e in self._encodings if e.kind == "range"]
 
     @property
+    def dtype(self) -> torch.dtype:
+        """The floating-point type of every tensor this encoder builds (stored value,
+        snake_case).
+        """
+        return self._dtype
+
+    @property
     def n_columns(self) -> int:
         """Number of columns of an encoded point (stored value, snake_case)."""
         return self._n_columns
@@ -127,8 +148,8 @@ class SearchSpaceEncoder:
         """
         return torch.stack(
             [
-                torch.zeros(self._n_columns, dtype=_DTYPE),
-                torch.ones(self._n_columns, dtype=_DTYPE),
+                torch.zeros(self._n_columns, dtype=self._dtype),
+                torch.ones(self._n_columns, dtype=self._dtype),
             ]
         )
 
@@ -170,7 +191,7 @@ class SearchSpaceEncoder:
             ValueError: if a searched, non-conditional parameter is missing, or
                 a choice value is not among the parameter's levels.
         """
-        row = torch.zeros(self._n_columns, dtype=_DTYPE)
+        row = torch.zeros(self._n_columns, dtype=self._dtype)
         for encoding in self._encodings:
             if encoding.name not in parameters:
                 if encoding.name not in self._dependent_names:
@@ -197,7 +218,7 @@ class SearchSpaceEncoder:
         Returns:
             Parameter name to value, in the search space's declaration order.
         """
-        snapped = self.snapColumns(x.detach().to(_DTYPE))
+        snapped = self.snapColumns(x.detach().to(self._dtype))
         chosen: dict[str, LevelValue] = {
             encoding.name: _readValue(snapped, encoding) for encoding in self._encodings
         }
@@ -238,7 +259,7 @@ class SearchSpaceEncoder:
                 rank = torch.round(out[..., column] * (n_levels - 1))
                 out[..., column] = rank / (n_levels - 1)
             elif encoding.n_columns == 1:
-                out[..., column] = (out[..., column] >= 0.5).to(_DTYPE)
+                out[..., column] = (out[..., column] >= 0.5).to(self._dtype)
             else:
                 block = out[..., column : column + encoding.n_columns]
                 winner = block.argmax(dim=-1, keepdim=True)
@@ -263,8 +284,8 @@ class SearchSpaceEncoder:
         engine = SobolEngine(  # type: ignore[no-untyped-call]
             dimension=len(self._encodings), scramble=True, seed=seed
         )
-        uniform = engine.draw(n).to(_DTYPE)
-        points = torch.zeros(n, self._n_columns, dtype=_DTYPE)
+        uniform = engine.draw(n).to(self._dtype)
+        points = torch.zeros(n, self._n_columns, dtype=self._dtype)
         for latent, encoding in enumerate(self._encodings):
             if encoding.kind != "categorical":
                 points[:, encoding.column] = uniform[:, latent]
@@ -272,10 +293,10 @@ class SearchSpaceEncoder:
             n_levels = len(encoding.levels)
             index = (uniform[:, latent] * n_levels).floor().clamp(max=n_levels - 1).long()
             if encoding.n_columns == 1:
-                points[:, encoding.column] = index.to(_DTYPE)
+                points[:, encoding.column] = index.to(self._dtype)
             else:
                 points[:, encoding.column : encoding.column + n_levels] = (
-                    torch.nn.functional.one_hot(index, n_levels).to(_DTYPE)
+                    torch.nn.functional.one_hot(index, n_levels).to(self._dtype)
                 )
         return self.snapColumns(points) if snap else points
 
@@ -407,7 +428,7 @@ class SearchSpaceEncoder:
             Derived parameter name to its computed value, cast to the parameter's type.
         """
         environment = {
-            name: torch.tensor(float(value), dtype=_DTYPE)
+            name: torch.tensor(float(value), dtype=self._dtype)
             for name, value in values.items()
             if not isinstance(value, str)
         }
@@ -421,7 +442,7 @@ class SearchSpaceEncoder:
                 if not names <= environment.keys():
                     continue
                 number = float(function(environment))
-                environment[derived.name] = torch.tensor(number, dtype=_DTYPE)
+                environment[derived.name] = torch.tensor(number, dtype=self._dtype)
                 computed[derived.name] = _castDerived(derived.parameter_type, number)
                 pending.remove(entry)
                 progressed = True
@@ -595,7 +616,8 @@ def _floorAndCeil(encoding: ParameterEncoding, unit: Tensor) -> tuple[float, ...
         sorted(
             float(
                 _rawToUnit(
-                    encoding, torch.tensor(encoding.lower + i * encoding.step, dtype=_DTYPE)
+                    encoding,
+                    torch.tensor(encoding.lower + i * encoding.step, dtype=unit.dtype),
                 )
             )
             for i in indices
@@ -630,7 +652,7 @@ def _writeValue(row: Tensor, encoding: ParameterEncoding, value: LevelValue) -> 
         ValueError: if a choice value is not among the parameter's levels.
     """
     if encoding.kind == "range":
-        raw = torch.tensor(float(value), dtype=_DTYPE)
+        raw = torch.tensor(float(value), dtype=row.dtype)
         row[encoding.column] = _rawToUnit(encoding, raw)
         return
     try:
