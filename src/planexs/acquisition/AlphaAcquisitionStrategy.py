@@ -18,7 +18,6 @@ from botorch.utils.sampling import manual_seed
 from torch import Tensor
 
 from planexs.acquisition.AcquisitionStrategy import AcquisitionStrategy
-from planexs.acquisition.EncodedConstraints import EncodedConstraints
 from planexs.acquisition.ExplorationExploitationAcquisition import (
     ExplorationExploitationAcquisition,
 )
@@ -26,13 +25,14 @@ from planexs.acquisition.modelParetoFront import modelParetoFront
 from planexs.acquisition.MultiObjectiveExplorationExploitationAcquisition import (
     MultiObjectiveExplorationExploitationAcquisition,
 )
-from planexs.acquisition.sampleFeasibleEncoded import (
+from planexs.domain.LegacyObjective import LegacyObjective
+from planexs.domain.SearchSpace import SearchSpace
+from planexs.encoding.EncodedConstraints import EncodedConstraints
+from planexs.encoding.sampleFeasibleEncoded import (
     DEFAULT_POLYTOPE_BURN_IN,
     DEFAULT_POLYTOPE_THINNING,
     sampleFeasibleEncoded,
 )
-from planexs.domain.LegacyObjective import LegacyObjective
-from planexs.domain.SearchSpace import SearchSpace
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 logger = logging.getLogger(__name__)

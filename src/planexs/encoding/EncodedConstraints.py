@@ -7,11 +7,11 @@ from collections.abc import Callable
 import torch
 from torch import Tensor
 
-from planexs.acquisition.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
 from planexs.domain.SearchSpace import SearchSpace
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 
 
 class EncodedConstraints:

@@ -17,8 +17,8 @@ from planexs import (
     Real,
     SearchSpace,
 )
-from planexs.acquisition.EncodedConstraints import EncodedConstraints
-from planexs.acquisition.sampleFeasibleEncoded import sampleFeasibleEncoded
+from planexs.encoding.EncodedConstraints import EncodedConstraints
+from planexs.encoding.sampleFeasibleEncoded import sampleFeasibleEncoded
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 

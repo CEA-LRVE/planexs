@@ -400,7 +400,7 @@ class TestConstraints:
     def test_a_rounding_that_breaks_a_constraint_is_repaired_to_the_nearest_feasible_neighbor(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        from planexs.acquisition.EncodedConstraints import EncodedConstraints
+        from planexs.encoding.EncodedConstraints import EncodedConstraints
 
         space = SearchSpace(
             [Integer("a", 0, 10), Integer("b", 0, 10)],

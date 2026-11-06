@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from planexs import NonlinearConstraint
-from planexs.acquisition.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
+from planexs.encoding.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 
 
 def _point(*values: float) -> torch.Tensor:

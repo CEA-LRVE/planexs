@@ -14,7 +14,6 @@ src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.
 src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 32
 src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 512
 src/planexs/acquisition/AlphaAcquisitionStrategy.py :: AlphaAcquisitionStrategy.__init__ :: signature default :: 512
-src/planexs/acquisition/EncodedConstraints.py :: EncodedConstraints.isFeasible :: signature default :: 1e-06
 src/planexs/acquisition/ExplorationExploitationAcquisition.py :: <module> :: module level :: 1e-12
 src/planexs/acquisition/ExplorationExploitationAcquisition.py :: <module> :: module level :: 256
 src/planexs/acquisition/ExplorationExploitationAcquisition.py :: ExplorationExploitationAcquisition._normalizedExploitation :: function body :: -2
@@ -25,12 +24,6 @@ src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: <
 src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition._normalizedExploration :: function body :: -2
 src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition._normalizedExploration :: function body :: -3
 src/planexs/acquisition/MultiObjectiveExplorationExploitationAcquisition.py :: MultiObjectiveExplorationExploitationAcquisition.forward :: function body :: -2
-src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 10
-src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 200
-src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 25
-src/planexs/acquisition/sampleFeasibleEncoded.py :: <module> :: module level :: 8
-src/planexs/acquisition/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: function body :: 64
-src/planexs/acquisition/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: signature default :: 1e-06
 src/planexs/api/BayesianOptimizer.py :: <module> :: module level :: 31
 src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer.__init__ :: function body :: 31
 src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer._askWithAlpha :: function body :: 1000003
@@ -38,6 +31,7 @@ src/planexs/backends/ax/AxBackend.py :: AxBackend.__init__ :: function body :: 3
 src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 1000
 src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 200
 src/planexs/domain/parameters/Range.py :: Range._validate_default :: function body :: 1e-09
+src/planexs/encoding/EncodedConstraints.py :: EncodedConstraints.isFeasible :: signature default :: 1e-06
 src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.categoricalFixedFeatures :: function body :: 20
 src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.roundingNeighbors :: signature default :: 8
 src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.snapColumns :: function body :: 0.5
@@ -45,5 +39,11 @@ src/planexs/encoding/SearchSpaceEncoder.py :: _floorAndCeil :: function body :: 
 src/planexs/encoding/SearchSpaceEncoder.py :: _readValue :: function body :: 0.5
 src/planexs/encoding/SearchSpaceEncoder.py :: _snapRaw :: function body :: 1e-09
 src/planexs/encoding/SearchSpaceEncoder.py :: _writeCenter :: function body :: 0.5
+src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 10
+src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 200
+src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 25
+src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 8
+src/planexs/encoding/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: function body :: 64
+src/planexs/encoding/sampleFeasibleEncoded.py :: sampleFeasibleEncoded :: signature default :: 1e-06
 src/planexs/models/buildSurrogateModel.py :: <module> :: module level :: 1e-10
 src/planexs/models/buildSurrogateModel.py :: buildSurrogateModel :: signature default :: 5

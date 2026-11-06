@@ -6,7 +6,7 @@ import torch
 from botorch.optim.initializers import sample_q_batches_from_polytope
 from torch import Tensor
 
-from planexs.acquisition.EncodedConstraints import EncodedConstraints
+from planexs.encoding.EncodedConstraints import EncodedConstraints
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 #: Defaults of the hit-and-run sampler that draws points inside a linear polytope (see

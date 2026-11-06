@@ -36,7 +36,7 @@ class NonlinearConstraint(Constraint):
     Not expressible as a linear constraint, which is all the optimization
     backend enforces natively, so the backend ignores it. It is enforced only
     by `planexs`'s own acquisition layer
-    (`acquisition/toBotorchNonlinearConstraints.py`), which is why
+    (`encoding/toBotorchNonlinearConstraints.py`), which is why
     `BayesianOptimizer.ask()` switches to that layer when one is present
     (ADR-0006).
 

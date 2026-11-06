@@ -615,7 +615,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-04. Move constraint encoding and feasible sampling
 
-**Size:** S | **Needs:** P3-01 | **Spec:** 5.1 | **Status:** todo
+**Size:** S | **Needs:** P3-01 | **Spec:** 5.1 | **Status:** done
 
 **Do.** `git mv` `acquisition/EncodedConstraints.py`, `acquisition/sampleFeasibleEncoded.py` and `acquisition/toBotorchNonlinearConstraints.py` into `encoding/`, update imports, tests and `scripts/layers.toml`. No behaviour change.
 

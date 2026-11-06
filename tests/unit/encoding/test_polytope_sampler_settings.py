@@ -9,15 +9,15 @@ import pytest
 import torch
 
 from planexs import AlphaAcquisitionStrategy, LinearConstraint, Real, SearchSpace
-from planexs.acquisition.EncodedConstraints import EncodedConstraints
-from planexs.acquisition.sampleFeasibleEncoded import (
+from planexs.encoding.EncodedConstraints import EncodedConstraints
+from planexs.encoding.sampleFeasibleEncoded import (
     DEFAULT_POLYTOPE_BURN_IN,
     DEFAULT_POLYTOPE_THINNING,
     sampleFeasibleEncoded,
 )
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
-_SAMPLER_MODULE = "planexs.acquisition.sampleFeasibleEncoded"
+_SAMPLER_MODULE = "planexs.encoding.sampleFeasibleEncoded"
 
 
 def _mixture() -> SearchSpace:
