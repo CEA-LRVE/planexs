@@ -283,6 +283,107 @@ def moduleLevelDtypeConstants(source: str) -> list[str]:
     return found
 
 
+#: The floating-point dtypes among them: the precision of a computation, which the runtime
+#: settings decide. An index or a mask dtype (`torch.long`, `torch.bool`) does not depend on
+#: them.
+TORCH_FLOAT_DTYPE_NAMES = {
+    name for name in TORCH_DTYPE_NAMES if getattr(torch, name).is_floating_point
+}
+
+
+def hardCodedFloatDtypes(source: str) -> list[tuple[int, str]]:
+    """The places where a module names a floating-point torch dtype, wherever it does so: in a
+    function body, a default argument, a class body or an import.
+
+    Returns:
+        `(line, text)` pairs, in line order.
+    """
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(ast.parse(source)):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr in TORCH_FLOAT_DTYPE_NAMES
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "torch"
+        ):
+            found.append((node.lineno, f"torch.{node.attr}"))
+        elif isinstance(node, ast.ImportFrom) and node.module == "torch":
+            found.extend(
+                (node.lineno, f"from torch import {alias.name}")
+                for alias in node.names
+                if alias.name in TORCH_FLOAT_DTYPE_NAMES
+            )
+    return sorted(found)
+
+
+class TestNoHardCodedFloatDtype:
+    """The precision of every tensor of the encoding layer comes from the runtime settings.
+
+    `TestNoModuleLevelDtypeConstant` covers the constant. This covers the other way to fix the
+    precision: naming `torch.double` inside a function, which a float32 study then trips over
+    (a coefficient tensor in double next to a column in float).
+    """
+
+    @pytest.mark.parametrize(
+        ("source", "found"),
+        [
+            (
+                "import torch\ndef f():\n    return torch.zeros(3, dtype=torch.double)\n",
+                [(3, "torch.double")],
+            ),
+            ("import torch\ndef f(x=torch.float32):\n    pass\n", [(2, "torch.float32")]),
+            ("import torch\nclass C:\n    d = torch.float64\n", [(3, "torch.float64")]),
+            ("import torch\nx = torch.half\n", [(2, "torch.half")]),
+            ("import torch\nx = torch.bfloat16\n", [(2, "torch.bfloat16")]),
+            ("from torch import double\n", [(1, "from torch import double")]),
+            (
+                "import torch\na = torch.float\nb = torch.float32\n",
+                [(2, "torch.float"), (3, "torch.float32")],
+            ),
+        ],
+    )
+    def test_the_guard_finds_a_float_dtype_wherever_it_is_named(
+        self, source: str, found: list[tuple[int, str]]
+    ) -> None:
+        assert hardCodedFloatDtypes(source) == found
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "import torch\nx = torch.zeros(3, dtype=torch.long)\n",
+            "import torch\nx = torch.zeros(3, dtype=torch.bool)\n",
+            "import torch\nx = torch.abs\n",
+            "import torch\ndef f(t: torch.dtype) -> torch.Tensor: ...\n",
+            "import torch\ndtype = getattr(torch, 'float64')\n",
+            "_NAME = 'float64'\n",
+            "from torch import Tensor\n",
+            "def f(x):\n    return x.to(x.dtype)\n",
+        ],
+    )
+    def test_the_guard_ignores_an_index_dtype_and_everything_that_is_not_a_float_dtype(
+        self, source: str
+    ) -> None:
+        assert hardCodedFloatDtypes(source) == []
+
+    def test_the_guard_knows_the_float_dtypes_and_not_the_index_ones(self) -> None:
+        assert {"float32", "float64", "double", "float", "half", "bfloat16"} <= (
+            TORCH_FLOAT_DTYPE_NAMES
+        )
+        assert not {"long", "int32", "bool", "uint8", "complex64"} & TORCH_FLOAT_DTYPE_NAMES
+
+    def test_no_file_of_the_encoding_package_names_a_float_dtype(self) -> None:
+        # No file is exempt: `torch_runtime.py` too turns the name in the settings into a
+        # dtype with `getattr`, and does not write one.
+        files = sorted(ENCODING_PACKAGE.glob("*.py"))
+        assert files, "the encoding package was not found"
+        offenders = {
+            file.name: found
+            for file in files
+            if (found := hardCodedFloatDtypes(file.read_text(encoding="utf-8")))
+        }
+        assert offenders == {}
+
+
 class TestNoModuleLevelDtypeConstant:
     @pytest.mark.parametrize(
         ("source", "names"),

@@ -25,6 +25,10 @@ class EncodedConstraints:
     only linear for a linearly scaled `Range`, so a linear constraint on a
     log-scaled or non-`Range` parameter is rejected.
 
+    The coefficient tensors take the dtype of the encoder (`SearchSpaceEncoder.dtype`, which
+    the runtime settings decide), so that they match the columns they multiply: BoTorch's
+    samplers and optimizers refuse a float32 point next to a float64 coefficient.
+
     Attributes:
         inequality: BoTorch `inequality_constraints` (`sum(coeff * x[idx]) >=
             rhs`), or `None`.
@@ -139,7 +143,8 @@ def _encodeLinear(
         encoder: The encoder defining the columns.
 
     Returns:
-        `(indices, coefficients, rhs)` in BoTorch's constraint format.
+        `(indices, coefficients, rhs)` in BoTorch's constraint format. The indices are of
+        `torch.long`, whatever the precision; the coefficients have the dtype of `encoder`.
 
     Raises:
         ValueError: if it references a parameter that is not a linearly scaled `Range`.
@@ -166,7 +171,7 @@ def _encodeLinear(
         rhs -= coefficient * encoding.lower
     return (
         torch.tensor(indices, dtype=torch.long),
-        torch.tensor(coefficients, dtype=torch.double),
+        torch.tensor(coefficients, dtype=encoder.dtype),
         rhs,
     )
 

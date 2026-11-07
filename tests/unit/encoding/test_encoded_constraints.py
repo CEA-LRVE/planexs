@@ -17,6 +17,7 @@ from planexs import (
     Real,
     SearchSpace,
 )
+from planexs.core.RuntimeConfig import RuntimeConfig
 from planexs.encoding.EncodedConstraints import EncodedConstraints
 from planexs.encoding.sampleFeasibleEncoded import sampleFeasibleEncoded
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
@@ -279,4 +280,74 @@ class TestSampleFeasibleEncoded:
         points = sampleFeasibleEncoded(encoder, constraints, 50, seed=0, snap=True)
 
         assert points.shape == (50, 2)
+        assert bool(constraints.isFeasible(points).all())
+
+
+#: One constraint of each kind and comparator, on the unit square.
+CONSTRAINTS = {
+    "linear_le": LinearConstraint({"x": 1.0, "y": 1.0}, 1.0, "<="),
+    "linear_ge": LinearConstraint({"x": 1.0, "y": 1.0}, 1.0, ">="),
+    "linear_eq": LinearConstraint({"x": 1.0, "y": 1.0}, 1.0, "="),
+    "nonlinear": NonlinearConstraint("x * y", "<=", 0.25),
+}
+
+
+def _buildIn(
+    dtype: str, *constraints: LinearConstraint | NonlinearConstraint
+) -> tuple[SearchSpace, SearchSpaceEncoder, EncodedConstraints]:
+    space = SearchSpace(
+        [Real("x", 0.0, 1.0), Real("y", 0.0, 1.0)], constraints=list(constraints)
+    )
+    encoder = SearchSpaceEncoder(space, RuntimeConfig(dtype=dtype))  # type: ignore[arg-type]
+    return space, encoder, EncodedConstraints(space, encoder)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+class TestPrecisionFollowsTheEncoder:
+    """The constraints work in the precision of the runtime settings, not in a fixed one: a
+    float32 study has float32 columns, and a coefficient tensor in double next to them makes
+    BoTorch's linear-constraint sampler fail (roadmap P3-02: the dtype is an input).
+    """
+
+    def test_the_botorch_coefficients_have_the_dtype_of_the_encoder(self, dtype: str) -> None:
+        _, encoder, constraints = _buildIn(
+            dtype, CONSTRAINTS["linear_le"], CONSTRAINTS["linear_ge"], CONSTRAINTS["linear_eq"]
+        )
+        assert encoder.dtype == getattr(torch, dtype)
+        rows = [*(constraints.inequality or []), *(constraints.equality or [])]
+        assert len(rows) == 3
+        for indices, coefficients, _ in rows:
+            assert coefficients.dtype == encoder.dtype
+            assert indices.dtype == torch.long  # an index, whatever the precision
+
+    def test_violation_and_feasibility_are_computed_in_the_precision_of_the_encoder(
+        self, dtype: str
+    ) -> None:
+        _, encoder, constraints = _buildIn(dtype, CONSTRAINTS["linear_le"])
+        points = torch.tensor([[0.1, 0.2], [0.9, 0.9]], dtype=encoder.dtype)
+        violation = constraints.violation(points)
+        assert violation.dtype == encoder.dtype
+        assert violation[0] == 0.0
+        assert violation[1] > 0.0
+        assert constraints.isFeasible(points).tolist() == [True, False]
+
+    def test_a_nonlinear_constraint_is_evaluated_in_the_precision_of_the_encoder(
+        self, dtype: str
+    ) -> None:
+        _, encoder, constraints = _buildIn(dtype, CONSTRAINTS["nonlinear"])
+        assert constraints.nonlinear is not None
+        points = torch.tensor([[0.1, 0.2], [0.9, 0.9]], dtype=encoder.dtype)
+        function, _ = constraints.nonlinear[0]
+        assert function(points).dtype == encoder.dtype
+        assert constraints.violation(points).dtype == encoder.dtype
+        assert constraints.isFeasible(points).tolist() == [True, False]
+
+    @pytest.mark.parametrize("kind", list(CONSTRAINTS))
+    def test_feasible_points_are_sampled_in_the_precision_of_the_encoder(
+        self, dtype: str, kind: str
+    ) -> None:
+        _, encoder, constraints = _buildIn(dtype, CONSTRAINTS[kind])
+        points = sampleFeasibleEncoded(encoder, constraints, 16, seed=3)
+        assert points.dtype == encoder.dtype
+        assert tuple(points.shape) == (16, 2)
         assert bool(constraints.isFeasible(points).all())
