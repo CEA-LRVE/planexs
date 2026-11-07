@@ -510,7 +510,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-06. Outcomes and outcome kinds
 
-**Size:** M | **Needs:** P2-01, P1-10, P2-02 | **Spec:** 5.4, 6 | **Decision:** D-7 | **Status:** todo
+**Size:** M | **Needs:** P2-01, P1-10, P2-02 | **Spec:** 5.4, 6 | **Decision:** D-7 | **Status:** done
 
 **Do.** Add `domain/Outcome.py` (name, type, optional description) and the `outcome_kind` kind with `continuous` and `binary` (one file each). A kind validates observed values (continuous: a finite float; binary: a bool or 0 or 1, stored as 0 or 1), says whether a noise standard deviation is meaningful (continuous yes, binary no) and names its capability tag (`outcome_kind:continuous`, `outcome_kind:binary`, registered in the vocabulary here). Outcome serialization goes through the registry.
 

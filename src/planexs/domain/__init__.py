@@ -5,9 +5,9 @@ vocabulary lives with that engine's adapter (specification 3.9), so that planexs
 public surface stays stable even if the backend underneath it changes.
 """
 
-# Importing the subpackages registers the parameter and the constraint types (specification
-# 5.12, "Population"), so that `planexs.domain.SearchSpace` can rebuild them from a stored
-# document whichever module of the domain was imported first.
-from planexs.domain import constraints, parameters
+# Importing the subpackages registers the parameter and constraint types and the outcome kinds
+# (specification 5.12, "Population"), so that the domain can rebuild them from a stored
+# document whichever module of it was imported first.
+from planexs.domain import constraints, outcome_kinds, parameters
 
-__all__ = ["constraints", "parameters"]
+__all__ = ["constraints", "outcome_kinds", "parameters"]

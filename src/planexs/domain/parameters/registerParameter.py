@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from operator import attrgetter
 from typing import TypeVar
 
 from planexs.core.ComponentConfig import ComponentConfig
-from planexs.core.ComponentEntry import ComponentEntry
-from planexs.core.RegistryError import RegistryError
+from planexs.core.registerComponentClass import registerComponentClass
 from planexs.domain.parameters.Parameter import Parameter
 from planexs.domain.parameters.parameterRegistry import parameterRegistry
 
@@ -63,32 +63,16 @@ def registerParameter(
 
     def decorate(cls: type[ParameterT]) -> type[ParameterT]:
         """Registers `cls` and returns it unchanged."""
-        if not (isinstance(cls, type) and issubclass(cls, Parameter)):
-            raise RegistryError(
-                f"Cannot register {cls!r} as the parameter type {name!r}: it is not a "
-                "subclass of Parameter.",
-                component=f"parameter {name!r}",
-                suggestion="derive the class from Parameter, the contract of the kind",
-            )
-        pinned = config.model_fields["type"].default
-        if pinned != name:
-            raise RegistryError(
-                f"The configuration schema {config.__name__} of the parameter type {name!r} "
-                f"has a 'type' field that defaults to {pinned!r}: it must be pinned to the "
-                "registered name.",
-                component=f"parameter {name!r}",
-                field_path="type",
-                suggestion=f"declare it as `type: Literal[{name!r}] = {name!r}`",
-            )
-        parameterRegistry().register(
-            ComponentEntry(
-                name=name,
-                builder=cls.fromConfig,
-                config_schema=config,
-                description=description,
-                needs=needs,
-                supports=supports,
-            )
+        registerComponentClass(
+            parameterRegistry(),
+            cls,
+            base=Parameter,
+            name=name,
+            config=config,
+            description=description,
+            needs=needs,
+            supports=supports,
+            builder_of=attrgetter("fromConfig"),
         )
         return cls
 
