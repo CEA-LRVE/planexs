@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from planexs.core.PlanexsError import PlanexsError
 from planexs.core.TrialStateError import TrialStateError
+from planexs.domain.Observation import Observation
 from planexs.domain.Trial import Trial
 from planexs.domain.TrialState import TrialState
 
@@ -33,7 +34,7 @@ PARAMETERS: dict[str, bool | int | float | str] = {
     "stirred": True,
     "catalyst": "A",
 }
-OBSERVATION = {"yield": 0.75, "cost": 12.0}
+OBSERVATION = Observation(values={"yield": 0.75, "cost": 12.0}, noise_std={"yield": 0.05})
 METADATA: dict[str, Any] = {"operator": "ada", "batch": 7, "tags": ["a", {"b": [1, 2]}]}
 REASON = "the furnace tripped"
 
@@ -177,8 +178,12 @@ class TestImmutability:
     def test_the_observation_cannot_be_changed_in_place(self) -> None:
         trial = build(COMPLETED)
         assert trial.observation is not None
+        with pytest.raises(ValidationError):
+            trial.observation.values = {}  # type: ignore[misc]
         with pytest.raises(TypeError):
-            trial.observation["yield"] = 1.0
+            trial.observation.values["yield"] = 1.0  # type: ignore[index]
+        with pytest.raises(TypeError):
+            trial.observation.noise_std["yield"] = 1.0  # type: ignore[index]
         assert trial.observation == OBSERVATION
 
     def test_the_metadata_is_read_only_at_every_depth(self) -> None:
@@ -205,10 +210,10 @@ class TestImmutability:
         assert trial.metadata == {"tags": ("a",), "nested": {"k": (1,)}}
 
     def test_changing_the_observation_given_to_tell_does_not_change_the_trial(self) -> None:
-        observation = {"yield": 0.5}
-        done = Trial(id=1, parameters=PARAMETERS).tell(observation)
-        observation["yield"] = 9.0
-        assert done.observation == {"yield": 0.5}
+        values = {"yield": 0.5}
+        done = Trial(id=1, parameters=PARAMETERS).tell(Observation(values=values))
+        values["yield"] = 9.0
+        assert done.observation == Observation(values={"yield": 0.5})
 
     def test_a_json_array_is_read_back_as_a_tuple(self) -> None:
         trial = Trial(id=1, parameters=PARAMETERS, metadata={"k": [1]})
@@ -268,8 +273,14 @@ class TestMetadata:
             Trial(id=1, parameters=PARAMETERS, metadata={"k": bad})
         with pytest.raises(ValidationError, match="not JSON-compatible"):
             Trial(id=1, parameters=PARAMETERS, metadata={"k": [{"deep": bad}]})
-        with pytest.raises(ValidationError, match="not JSON-compatible"):
-            Trial(id=1, parameters=PARAMETERS, state=COMPLETED, observation={"yield": bad})
+        # The observation is an `Observation`, which refuses it with its own message.
+        with pytest.raises(ValidationError, match="not finite"):
+            Trial(
+                id=1,
+                parameters=PARAMETERS,
+                state=COMPLETED,
+                observation={"values": {"yield": bad}},  # type: ignore[arg-type]
+            )
         with pytest.raises(ValidationError, match="not JSON-compatible"):
             Trial(id=1, parameters={"x": bad})
 
@@ -401,6 +412,88 @@ class TestTrialStateError:
         ]
 
 
+class TestObservationCoupling:
+    """A completed trial requires an observation, and the other states forbid one."""
+
+    def test_a_completed_trial_without_an_observation_is_rejected(self) -> None:
+        with pytest.raises(
+            ValidationError, match="Trial 4 is completed and needs an observation"
+        ):
+            Trial(id=4, parameters=PARAMETERS, state=COMPLETED)
+
+    @pytest.mark.parametrize("state", [PENDING, ABANDONED])
+    def test_a_trial_that_is_not_completed_cannot_carry_an_observation(
+        self, state: TrialState
+    ) -> None:
+        with pytest.raises(ValidationError, match=f"is {state.value} but has an observation"):
+            Trial(id=4, parameters=PARAMETERS, state=state, observation=OBSERVATION)
+
+    def test_a_failed_trial_cannot_carry_an_observation(self) -> None:
+        with pytest.raises(ValidationError, match="is failed but has an observation"):
+            Trial(
+                id=4,
+                parameters=PARAMETERS,
+                state=FAILED,
+                observation=OBSERVATION,
+                reason=REASON,
+            )
+
+    def test_a_move_to_completed_needs_an_observation(self) -> None:
+        with pytest.raises(ValidationError, match="needs an observation"):
+            build(PENDING).transitionTo(COMPLETED)
+
+    @pytest.mark.parametrize("target", [FAILED, ABANDONED])
+    def test_a_move_to_another_state_cannot_bring_an_observation(
+        self, target: TrialState
+    ) -> None:
+        reason = REASON if target is FAILED else None
+        with pytest.raises(ValidationError, match="has an observation"):
+            build(PENDING).transitionTo(target, observation=OBSERVATION, reason=reason)
+
+    def test_an_illegal_move_is_still_reported_as_one_whatever_the_observation(self) -> None:
+        with pytest.raises(TrialStateError):
+            build(COMPLETED).tell(OBSERVATION)
+
+    def test_tell_stores_the_very_observation_it_is_given(self) -> None:
+        done = build(PENDING).tell(OBSERVATION)
+        assert done.observation is OBSERVATION
+
+    def test_a_mapping_in_the_dump_form_is_read_as_an_observation(self) -> None:
+        document: Any = {"values": {"yield": 0.75}, "noise_std": {"yield": 0.05}}
+        trial = Trial(id=4, parameters=PARAMETERS, state=COMPLETED, observation=document)
+        assert isinstance(trial.observation, Observation)
+        assert trial.observation == Observation(
+            values={"yield": 0.75}, noise_std={"yield": 0.05}
+        )
+
+    def test_a_bare_mapping_of_values_is_not_an_observation(self) -> None:
+        # The 0.1.0 shape, `{outcome: value}`: refused, so it cannot be mistaken for one.
+        with pytest.raises(ValidationError):
+            Trial(
+                id=4,
+                parameters=PARAMETERS,
+                state=COMPLETED,
+                observation={"yield": 0.75},  # type: ignore[arg-type]
+            )
+
+    @pytest.mark.parametrize("state", list(TrialState))
+    def test_the_observation_is_present_exactly_when_the_trial_is_completed(
+        self, state: TrialState
+    ) -> None:
+        assert (build(state).observation is not None) is (state is COMPLETED)
+
+    def test_the_observation_survives_a_json_round_trip_inside_a_trial(self) -> None:
+        trial = build(COMPLETED)
+        text = trial.model_dump_json()
+        again = Trial.model_validate_json(text)
+        assert again == trial
+        assert again.observation == OBSERVATION
+        assert json.loads(text)["observation"] == {
+            "values": {"yield": 0.75, "cost": 12.0},
+            "noise_std": {"yield": 0.05},
+        }
+
+
 class TestSerialization:
     @pytest.mark.parametrize("state", list(TrialState))
     def test_the_dump_is_plain_json_for_every_state(self, state: TrialState) -> None:
@@ -414,6 +507,8 @@ class TestSerialization:
         assert json.loads(json.dumps(dumped)) == json.loads(json.dumps(dumped))
         assert type(dumped["parameters"]) is dict
         assert type(dumped["observation"]) is dict
+        assert type(dumped["observation"]["values"]) is dict
+        assert type(dumped["observation"]["noise_std"]) is dict
         assert type(dumped["metadata"]["tags"]) is list
 
     def test_the_exact_shape_of_a_dump(self) -> None:

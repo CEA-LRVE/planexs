@@ -18,6 +18,7 @@ from pydantic import (
 )
 
 from planexs.core.TrialStateError import TrialStateError
+from planexs.domain.Observation import Observation
 from planexs.domain.TrialState import TrialState
 
 # `bool` first, `int` before `float`: see `Parameter.default`'s comment.
@@ -36,28 +37,30 @@ class Trial(BaseModel):
 
     Creating a trial is not a transition, so a trial can be built in any state: the study
     creates pending trials, `attach` creates completed or failed ones, and a snapshot is read
-    back into trials in every state. Only `reason` is tied to the state here: a failed trial
-    must carry a non-blank reason, and no other trial may.
+    back into trials in every state. Two fields are tied to the state: a failed trial must
+    carry a non-blank `reason`, and no other trial may; a completed trial must carry an
+    `observation`, and no other trial may (ADR-0012, decision 5).
 
     A trial is built with keyword arguments, `Trial(id=0, parameters={"x": 1.0})`, and has no
     `__init__` of its own, so that a malformed document read back from a file is always
     reported as a pydantic `ValidationError` (a `ValueError`) with the path of the bad field,
     never as a `TypeError`.
 
-    The `observation` slot is a JSON-compatible mapping for now. P2-08 types it as an
-    `Observation` and ties it to the state (a completed trial has one, the others have none).
+    The `observation` is an `Observation`, which is immutable and validates its own numbers.
+    The trial does not check it against the outcomes of a problem, which it does not know:
+    the study does, by building the observation with `Observation.create`.
 
-    Mappings are stored deeply read-only, and a JSON array inside one is read back as a
-    tuple, so `trial.metadata == {"k": [1]}` is `False` while
-    `trial.metadata == {"k": (1,)}` is `True`. A non-finite number in `parameters`,
-    `observation` or `metadata` is rejected: JSON has none, and writing it as `null` would
-    change the history on save.
+    The mappings `parameters` and `metadata` are stored deeply read-only, and a JSON array
+    inside one is read back as a tuple, so `trial.metadata == {"k": [1]}` is `False` while
+    `trial.metadata == {"k": (1,)}` is `True`. A non-finite number in either is rejected:
+    JSON has none, and writing it as `null` would change the history on save.
 
     Attributes:
         id: The identifier assigned by the study, a non-negative integer never reused.
         parameters: Maps parameter name to the value this trial uses.
         state: The lifecycle state. A new trial is pending unless it is given another.
-        observation: The observed values, once the trial is completed. `None` otherwise.
+        observation: What the evaluation measured. Required when completed, `None`
+            otherwise.
         metadata: Free-form JSON-compatible data the caller attaches to the trial.
         reason: Why the evaluation failed. Required when failed, `None` otherwise.
     """
@@ -67,11 +70,11 @@ class Trial(BaseModel):
     id: int = Field(strict=True, ge=0)
     parameters: Mapping[str, _ParameterValue]
     state: TrialState = TrialState.pending
-    observation: Mapping[str, JsonValue] | None = None
+    observation: Observation | None = None
     metadata: Mapping[str, JsonValue] = Field(default_factory=dict, validate_default=True)
     reason: str | None = None
 
-    @field_validator("parameters", "observation", "metadata", mode="before")
+    @field_validator("parameters", "metadata", mode="before")
     @classmethod
     def _thawContainers(cls, value: Any) -> Any:
         """Hands pydantic plain dicts and lists, so a trial built from another trial's
@@ -79,13 +82,13 @@ class Trial(BaseModel):
         """
         return _thaw(value)
 
-    @field_validator("parameters", "observation", "metadata", mode="after")
+    @field_validator("parameters", "metadata", mode="after")
     @classmethod
     def _freezeContainers(cls, value: Any) -> Any:
         """Stores a validated mapping as a deeply read-only copy of itself."""
         return _freeze(value)
 
-    @field_serializer("parameters", "observation", "metadata")
+    @field_serializer("parameters", "metadata")
     def _dumpContainers(self, value: Any) -> Any:
         """Writes the read-only mappings back as plain JSON-compatible data."""
         return _thaw(value)
@@ -114,11 +117,35 @@ class Trial(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def _validateObservation(self) -> Trial:
+        """Ties the observation to the state: required when completed, forbidden otherwise.
+
+        Returns:
+            The trial itself.
+
+        Raises:
+            ValueError: for a completed trial without an observation, or an observation on a
+                trial that is not completed.
+        """
+        if self.state is TrialState.completed:
+            if self.observation is None:
+                raise ValueError(
+                    f"Trial {self.id} is completed and needs an observation: a completed "
+                    "trial holds what its evaluation measured."
+                )
+        elif self.observation is not None:
+            raise ValueError(
+                f"Trial {self.id} is {self.state.value} but has an observation: only a "
+                "completed trial carries one."
+            )
+        return self
+
     def transitionTo(
         self,
         target: TrialState,
         *,
-        observation: Mapping[str, JsonValue] | None = None,
+        observation: Observation | None = None,
         reason: str | None = None,
     ) -> Trial:
         """Moves the trial to `target`, if the table of ADR-0012 allows it.
@@ -128,7 +155,7 @@ class Trial(BaseModel):
 
         Args:
             target: The state to move to.
-            observation: The observed values, for a move to completed.
+            observation: What the evaluation measured, for a move to completed.
             reason: Why the evaluation failed, for a move to failed.
 
         Returns:
@@ -138,7 +165,9 @@ class Trial(BaseModel):
             TrialStateError: if the move is not one of the three legal ones, which includes
                 every move out of a terminal state, a move to the same state and any move to
                 pending.
-            ValueError: if the new trial is invalid (a failed trial with a blank reason).
+            ValueError: if the new trial is invalid: a failed trial with a blank reason, a
+                completed trial without an observation, or an observation on a trial that
+                is not completed.
         """
         if not self.state.canMoveTo(target):
             raise _illegalMove(self, target)
@@ -151,11 +180,11 @@ class Trial(BaseModel):
             reason=reason,
         )
 
-    def tell(self, observation: Mapping[str, JsonValue]) -> Trial:
+    def tell(self, observation: Observation) -> Trial:
         """Completes a pending trial with its observation.
 
         Args:
-            observation: The observed values.
+            observation: What the evaluation measured.
 
         Returns:
             A new completed trial with the same `id`.

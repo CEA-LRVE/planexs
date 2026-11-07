@@ -529,7 +529,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-08. Observations
 
-**Size:** S | **Needs:** P2-06, P2-07 | **Spec:** 5.4 | **Status:** todo
+**Size:** S | **Needs:** P2-06, P2-07 | **Spec:** 5.4 | **Status:** done
 
 **Do.** Add `domain/Observation.py`: one value per outcome name and an optional noise standard deviation per outcome, validated against a list of outcomes (every outcome present, no extras, each value valid for its kind, noise only where the kind allows it, noise finite and not negative). A completed trial requires an observation; the other states forbid one.
 
