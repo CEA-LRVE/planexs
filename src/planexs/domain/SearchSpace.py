@@ -4,11 +4,13 @@ searches over.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict, field_serializer, field_validator, model_validator
 
+from planexs.core.ComponentEntry import ComponentEntry
+from planexs.core.Registry import Registry
 from planexs.core.RegistryError import RegistryError
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
@@ -117,10 +119,11 @@ class SearchSpace(BaseModel):
     def _dumpParameters(self, parameters: list[Parameter]) -> list[dict[str, Any]]:
         """Serializes the parameters through their own type-tagged `toDict`.
 
-        The tag of each is checked against the registry of the `parameter` kind: a document
-        whose parameter has a type that nobody registered could be written but never read
-        back, so it is refused when it is written. Pydantic reports the error it raises here
-        as a `PydanticSerializationError` that carries the text of the original.
+        The tag of each is checked against the registry of the `parameter` kind (see
+        `_dumpTagged`): a document whose parameter has a type that nobody registered could be
+        written but never read back, so it is refused when it is written. Pydantic reports the
+        error it raises here as a `PydanticSerializationError` that carries the text of the
+        original.
 
         Args:
             parameters: The parameters.
@@ -132,29 +135,19 @@ class SearchSpace(BaseModel):
             RegistryError: if the form of a parameter has no `type` entry, or its `type` is
                 not registered. The message lists the registered types.
         """
-        registry = parameterRegistry()
-        dumped: list[dict[str, Any]] = []
-        for parameter in parameters:
-            data = parameter.toDict()
-            if "type" not in data:
-                raise RegistryError(
-                    f"{type(parameter).__name__}.toDict() wrote no 'type' entry for the "
-                    f"parameter {parameter.name!r}, so it could not be read back.",
-                    component="parameter",
-                    field_path="type",
-                    suggestion="write the registered name of the parameter type under 'type'",
-                )
-            registry.lookup(data["type"])
-            dumped.append(data)
-        return dumped
+        return _dumpTagged(
+            parameters,
+            parameterRegistry(),
+            lambda parameter: f"the parameter {parameter.name!r}",
+        )
 
     @field_serializer("constraints")
     def _dumpConstraints(self, constraints: list[Constraint]) -> list[dict[str, Any]]:
         """Serializes the constraints through their own type-tagged `toDict`.
 
-        The tag of each is checked against the registry of the `constraint` kind, for the
-        reason given at `_dumpParameters`: a type that nobody registered could be written but
-        never read back, so it is refused when it is written.
+        The tag of each is checked against the registry of the `constraint` kind, as the tag
+        of a parameter is (see `_dumpTagged`): a type that nobody registered could be written
+        but never read back, so it is refused when it is written.
 
         Args:
             constraints: The constraints.
@@ -166,21 +159,9 @@ class SearchSpace(BaseModel):
             RegistryError: if the form of a constraint has no `type` entry, or its `type` is
                 not registered. The message lists the registered types.
         """
-        registry = constraintRegistry()
-        dumped: list[dict[str, Any]] = []
-        for constraint in constraints:
-            data = constraint.toDict()
-            if "type" not in data:
-                raise RegistryError(
-                    f"{type(constraint).__name__}.toDict() wrote no 'type' entry, so the "
-                    "constraint could not be read back.",
-                    component="constraint",
-                    field_path="type",
-                    suggestion="write the registered name of the constraint type under 'type'",
-                )
-            registry.lookup(data["type"])
-            dumped.append(data)
-        return dumped
+        return _dumpTagged(
+            constraints, constraintRegistry(), lambda constraint: "the constraint"
+        )
 
     @model_validator(mode="after")
     def _validateUniqueNames(self) -> SearchSpace:
@@ -216,3 +197,50 @@ class SearchSpace(BaseModel):
     def parameter_names(self) -> list[str]:
         """Cheap (list comprehension over an already-held list): snake_case."""
         return [parameter.name for parameter in self.parameters]
+
+
+_TaggedT = TypeVar("_TaggedT", Parameter, Constraint)
+
+
+def _dumpTagged(
+    items: Sequence[_TaggedT],
+    registry: Registry[ComponentEntry],
+    describe: Callable[[_TaggedT], str],
+) -> list[dict[str, Any]]:
+    """Serializes parameters or constraints through their own `toDict`, checking each tag.
+
+    What the two kinds share is done once here: the form of an item must carry a `type`, and
+    that `type` must be registered in the registry of its kind, because a document whose item
+    has a type that nobody registered could be written but never read back (specification 3.6,
+    5.12). The registry also names the kind in the messages: its `kind` is the component of
+    the error and the noun of its suggestion.
+
+    Args:
+        items: The parameters, or the constraints, in order.
+        registry: The registry of their kind: `parameter` or `constraint`.
+        describe: Says which item is at fault, as a phrase for the message that is raised when
+            its form has no `type` entry (for example `the parameter 'angle'`).
+
+    Returns:
+        The form of each item, in the same order.
+
+    Raises:
+        RegistryError: if the form of an item has no `type` entry, or its `type` is not
+            registered (the message lists the registered types). The first fault is raised.
+    """
+    dumped: list[dict[str, Any]] = []
+    for item in items:
+        data = item.toDict()
+        if "type" not in data:
+            raise RegistryError(
+                f"{type(item).__name__}.toDict() wrote no 'type' entry for {describe(item)}, "
+                "so it could not be read back.",
+                component=registry.kind,
+                field_path="type",
+                suggestion=(
+                    f"write the registered name of the {registry.kind} type under 'type'"
+                ),
+            )
+        registry.lookup(data["type"])
+        dumped.append(data)
+    return dumped
