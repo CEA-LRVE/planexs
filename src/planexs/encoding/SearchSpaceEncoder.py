@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import math
 from collections.abc import Callable, Mapping
+from typing import assert_never
 
 import torch
 from torch import Tensor
@@ -17,6 +18,7 @@ from planexs.domain.parameters.Derived import Derived
 from planexs.domain.parameters.Range import Range
 from planexs.domain.SearchSpace import SearchSpace
 from planexs.encoding.compileExpression import compileExpression
+from planexs.encoding.EncoderConfig import ChoiceOrderingRule, EncoderConfig
 from planexs.encoding.ParameterEncoding import LevelValue, ParameterEncoding
 from planexs.encoding.torch_runtime import torchDtype
 
@@ -32,7 +34,8 @@ class SearchSpaceEncoder:
     - A `Range` is one column, linear or log scaled onto `[0, 1]`. An `int`
       range or one with a `step_size` is a grid: the encoding is a continuous
       relaxation that `snapColumns`/`decode` round onto the grid.
-    - A `Choice` with an order (`is_ordered`, or unset with more than two
+    - A `Choice` with an order (`is_ordered`, or unset and ordered by the rule
+      `EncoderConfig.unset_choice_ordering`, which by default means more than two
       numeric values) is one column holding the rank of its value, relaxed and
       rounded like a grid.
     - An unordered `Choice` is a 0/1 column (two values) or a one-hot block.
@@ -54,10 +57,18 @@ class SearchSpaceEncoder:
     back exactly, as long as a range has far fewer levels than single precision can tell
     apart (about sixteen million).
 
+    The decisions that a caller could reasonably want to take differently (what an unset
+    `is_ordered` means, how many rounding combinations are listed, the tolerance of the grid
+    arithmetic, the draws allowed for a random subset of categorical assignments) are the
+    fields of `EncoderConfig` and are not written in this file (specification 3.4). The only
+    numbers left in it are structural, and carry a `# structural:` marker.
+
     Args:
         search_space: The space to encode.
         runtime: The runtime settings, which choose the floating-point type of the encoded
             tensors. `None` means `RuntimeConfig()`, the defaults of the schema.
+        config: The policy values of the encoder. `None` means `EncoderConfig()`, the
+            defaults of the schema.
 
     Raises:
         ValueError: if the space has no searched parameter, an integer range
@@ -68,13 +79,17 @@ class SearchSpaceEncoder:
     """
 
     def __init__(
-        self, search_space: SearchSpace, runtime: RuntimeConfig | None = None
+        self,
+        search_space: SearchSpace,
+        runtime: RuntimeConfig | None = None,
+        config: EncoderConfig | None = None,
     ) -> None:
         """Lays out the columns of `search_space`.
 
         Arguments and errors are described in the class docstring.
         """
         self._dtype = torchDtype(RuntimeConfig() if runtime is None else runtime)
+        self._config = EncoderConfig() if config is None else config
         self._search_space = search_space
         self._encodings: list[ParameterEncoding] = []
         self._fixed_values: dict[str, LevelValue] = {}
@@ -95,7 +110,7 @@ class SearchSpaceEncoder:
                 if len(parameter.values) == 1:
                     self._fixed_values[parameter.name] = parameter.values[0]
                     continue
-                encoding = _encodeChoice(parameter, column)
+                encoding = _encodeChoice(parameter, column, self._config.unset_choice_ordering)
             elif isinstance(parameter, Derived):
                 if parameter.parameter_type == "str":
                     raise ValueError(
@@ -130,6 +145,11 @@ class SearchSpaceEncoder:
         snake_case).
         """
         return self._dtype
+
+    @property
+    def config(self) -> EncoderConfig:
+        """The policy values this encoder was built with (stored value, snake_case)."""
+        return self._config
 
     @property
     def n_columns(self) -> int:
@@ -219,8 +239,10 @@ class SearchSpaceEncoder:
             Parameter name to value, in the search space's declaration order.
         """
         snapped = self.snapColumns(x.detach().to(self._dtype))
+        tolerance = self._config.grid_tolerance
         chosen: dict[str, LevelValue] = {
-            encoding.name: _readValue(snapped, encoding) for encoding in self._encodings
+            encoding.name: _readValue(snapped, encoding, tolerance)
+            for encoding in self._encodings
         }
         chosen.update(self._fixed_values)
         active = self._activeNames(chosen)
@@ -253,13 +275,15 @@ class SearchSpaceEncoder:
             if encoding.kind == "range":
                 if encoding.step is not None:
                     raw = _unitToRaw(encoding, out[..., column])
-                    out[..., column] = _rawToUnit(encoding, _snapRaw(encoding, raw))
+                    snapped = _snapRaw(encoding, raw, self._config.grid_tolerance)
+                    out[..., column] = _rawToUnit(encoding, snapped)
             elif encoding.kind == "ordered":
                 n_levels = len(encoding.levels)
                 rank = torch.round(out[..., column] * (n_levels - 1))
                 out[..., column] = rank / (n_levels - 1)
             elif encoding.n_columns == 1:
-                out[..., column] = (out[..., column] >= 0.5).to(self._dtype)
+                is_second_level = out[..., column] >= 0.5  # structural: unit-cube midpoint
+                out[..., column] = is_second_level.to(self._dtype)
             else:
                 block = out[..., column : column + encoding.n_columns]
                 winner = block.argmax(dim=-1, keepdim=True)
@@ -320,7 +344,7 @@ class SearchSpaceEncoder:
             dim=-1,
         )
 
-    def roundingNeighbors(self, x: Tensor, max_ordinal: int = 8) -> Tensor:
+    def roundingNeighbors(self, x: Tensor, max_ordinal: int | None = None) -> Tensor:
         """All ways of rounding the relaxed grid/ordered columns of `x` down or
         up (at most `2 ** max_ordinal` rows), with categorical blocks resolved.
 
@@ -331,16 +355,19 @@ class SearchSpaceEncoder:
         Args:
             x: A tensor of shape `(d,)`.
             max_ordinal: If more grid/ordered columns than this exist, only the
-                nearest rounding is returned.
+                nearest rounding is returned. `None` means the `max_ordinal_columns` of
+                the encoder's `EncoderConfig`; a number overrides it for this call.
 
         Returns:
             A tensor of shape `(m, d)`, `m >= 1`.
         """
+        limit = self._config.max_ordinal_columns if max_ordinal is None else max_ordinal
         base = self.snapColumns(x)
         ordinal = [e for e in self._encodings if e.is_discrete_ordinal]
-        if not ordinal or len(ordinal) > max_ordinal:
+        if not ordinal or len(ordinal) > limit:
             return base.unsqueeze(0)
-        options = [_floorAndCeil(encoding, x[encoding.column]) for encoding in ordinal]
+        tolerance = self._config.grid_tolerance
+        options = [_floorAndCeil(e, x[e.column], tolerance) for e in ordinal]
         combinations = list(itertools.product(*options))
         rows = base.repeat(len(combinations), 1)
         for row_index, combination in enumerate(combinations):
@@ -360,7 +387,9 @@ class SearchSpaceEncoder:
 
         Args:
             max_combinations: Cap on the number of assignments.
-            seed: Seed of the random subset.
+            seed: Seed of the random subset. The draws stop after
+                `categorical_subset_attempts_factor * max_combinations` attempts (see
+                `EncoderConfig`), so a subset can be smaller than the cap.
 
         Returns:
             One `{column: value}` dict per assignment; empty if the space has
@@ -379,7 +408,8 @@ class SearchSpaceEncoder:
             generator = torch.Generator().manual_seed(0 if seed is None else seed)
             chosen: set[tuple[int, ...]] = set()
             attempts = 0
-            while len(chosen) < max_combinations and attempts < 20 * max_combinations:
+            max_attempts = self._config.categorical_subset_attempts_factor * max_combinations
+            while len(chosen) < max_combinations and attempts < max_attempts:
                 draw = tuple(int(torch.randint(k, (1,), generator=generator)) for k in sizes)
                 chosen.add(draw)
                 attempts += 1
@@ -507,15 +537,18 @@ def _encodeRange(parameter: Range, column: int) -> ParameterEncoding:
     )
 
 
-def _encodeChoice(parameter: Choice, column: int) -> ParameterEncoding:
+def _encodeChoice(
+    parameter: Choice, column: int, ordering_rule: ChoiceOrderingRule
+) -> ParameterEncoding:
     """Describes how a `Choice` is laid out: one rank column if ordered, otherwise a 0/1 column
     (two values) or a one-hot block.
 
-    An unset `is_ordered` means ordered only for more than two numeric values.
+    An unset `is_ordered` is decided by `ordering_rule`.
 
     Args:
         parameter: The choice to encode.
         column: The index of its first column.
+        ordering_rule: The rule that says what an unset `is_ordered` means.
 
     Returns:
         Its encoding. Numeric ordered values are sorted; others keep the order given.
@@ -524,7 +557,7 @@ def _encodeChoice(parameter: Choice, column: int) -> ParameterEncoding:
     numeric = all(_isNumeric(value) for value in values)
     ordered = parameter.is_ordered
     if ordered is None:
-        ordered = numeric and len(values) > 2
+        ordered = _unsetMeansOrdered(ordering_rule, numeric, len(values))
     if ordered:
         levels = tuple(sorted(values)) if numeric else tuple(values)
         return ParameterEncoding(
@@ -538,6 +571,26 @@ def _encodeChoice(parameter: Choice, column: int) -> ParameterEncoding:
         n_columns=n_columns,
         levels=tuple(values),
     )
+
+
+def _unsetMeansOrdered(rule: ChoiceOrderingRule, numeric: bool, n_values: int) -> bool:
+    """Applies a named ordering rule to a choice whose `is_ordered` is unset.
+
+    Args:
+        rule: The rule, a name of `ChoiceOrderingRule`.
+        numeric: Whether every value of the choice is a number (a boolean is not one).
+        n_values: The number of values of the choice.
+
+    Returns:
+        Whether the choice is encoded as ordered.
+    """
+    if rule == "never":
+        return False
+    if rule == "numeric":
+        return numeric
+    if rule == "numeric_over_two_values":
+        return numeric and n_values > 2
+    assert_never(rule)
 
 
 def _rawToUnit(encoding: ParameterEncoding, raw: Tensor) -> Tensor:
@@ -572,29 +625,49 @@ def _unitToRaw(encoding: ParameterEncoding, unit: Tensor) -> Tensor:
     return encoding.lower + unit * (encoding.upper - encoding.lower)
 
 
-def _snapRaw(encoding: ParameterEncoding, raw: Tensor) -> Tensor:
+def _lastGridIndex(encoding: ParameterEncoding, tolerance: float) -> int:
+    """The index of the last grid point of a range that has a grid.
+
+    Args:
+        encoding: The encoding of a range with a step.
+        tolerance: The `grid_tolerance` of the encoder, in grid steps: how far under a whole
+            number the number of steps between the bounds may fall and still count it.
+
+    Returns:
+        The largest `k` such that `lower + k * step` is inside the bounds.
+    """
+    assert encoding.step is not None
+    return math.floor((encoding.upper - encoding.lower) / encoding.step + tolerance)
+
+
+def _snapRaw(encoding: ParameterEncoding, raw: Tensor, tolerance: float) -> Tensor:
     """Rounds natural values of a range onto its grid, or clips them if it has no grid.
 
     Args:
         encoding: The range's encoding.
         raw: Natural values.
+        tolerance: The `grid_tolerance` of the encoder (see `_lastGridIndex`).
 
     Returns:
         Values on the grid and inside the bounds.
     """
     if encoding.step is None:
         return raw.clamp(encoding.lower, encoding.upper)
-    max_index = math.floor((encoding.upper - encoding.lower) / encoding.step + 1e-9)
+    max_index = _lastGridIndex(encoding, tolerance)
     index = torch.round((raw - encoding.lower) / encoding.step).clamp(0, max_index)
     return encoding.lower + index * encoding.step
 
 
-def _floorAndCeil(encoding: ParameterEncoding, unit: Tensor) -> tuple[float, ...]:
+def _floorAndCeil(
+    encoding: ParameterEncoding, unit: Tensor, tolerance: float
+) -> tuple[float, ...]:
     """The two nearest legal unit values around a relaxed value: rounded down and rounded up.
 
     Args:
         encoding: An ordered choice or a range with a grid.
         unit: The relaxed value in `[0, 1]`.
+        tolerance: The `grid_tolerance` of the encoder (see `_lastGridIndex`); not used for
+            an ordered choice.
 
     Returns:
         One or two unit values (one when the relaxed value is already on a level).
@@ -605,7 +678,7 @@ def _floorAndCeil(encoding: ParameterEncoding, unit: Tensor) -> tuple[float, ...
         denominator = len(encoding.levels) - 1
         return tuple(sorted({low / denominator, high / denominator}))
     assert encoding.step is not None
-    max_index = math.floor((encoding.upper - encoding.lower) / encoding.step + 1e-9)
+    max_index = _lastGridIndex(encoding, tolerance)
     raw = float(_unitToRaw(encoding, unit.clamp(0.0, 1.0)))
     position = (raw - encoding.lower) / encoding.step
     indices = {
@@ -637,7 +710,7 @@ def _writeCenter(row: Tensor, encoding: ParameterEncoding) -> None:
     if encoding.kind == "categorical" and encoding.n_columns > 1:
         row[encoding.column : encoding.column + encoding.n_columns] = 1.0 / encoding.n_columns
     else:
-        row[encoding.column] = 0.5
+        row[encoding.column] = 0.5  # structural: unit-cube midpoint
 
 
 def _writeValue(row: Tensor, encoding: ParameterEncoding, value: LevelValue) -> None:
@@ -670,19 +743,20 @@ def _writeValue(row: Tensor, encoding: ParameterEncoding, value: LevelValue) -> 
         row[encoding.column + index] = 1.0
 
 
-def _readValue(snapped: Tensor, encoding: ParameterEncoding) -> LevelValue:
+def _readValue(snapped: Tensor, encoding: ParameterEncoding, tolerance: float) -> LevelValue:
     """Reads one parameter's value out of a snapped encoded point.
 
     Args:
         snapped: A point already rounded by `snapColumns`.
         encoding: The parameter's encoding.
+        tolerance: The `grid_tolerance` of the encoder (see `_lastGridIndex`).
 
     Returns:
         The value, as a Python `int`, `float`, `bool` or `str`.
     """
     column = encoding.column
     if encoding.kind == "range":
-        raw = float(_snapRaw(encoding, _unitToRaw(encoding, snapped[column])))
+        raw = float(_snapRaw(encoding, _unitToRaw(encoding, snapped[column]), tolerance))
         if encoding.is_int:
             return round(raw)
         if encoding.step is not None:
@@ -691,5 +765,6 @@ def _readValue(snapped: Tensor, encoding: ParameterEncoding) -> LevelValue:
     if encoding.kind == "ordered":
         return encoding.levels[round(float(snapped[column]) * (len(encoding.levels) - 1))]
     if encoding.n_columns == 1:
-        return encoding.levels[int(float(snapped[column]) >= 0.5)]
+        is_second_level = float(snapped[column]) >= 0.5  # structural: unit-cube midpoint
+        return encoding.levels[int(is_second_level)]
     return encoding.levels[int(snapped[column : column + encoding.n_columns].argmax())]

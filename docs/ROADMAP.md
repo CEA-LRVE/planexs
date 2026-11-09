@@ -604,7 +604,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-03. Encoder policy values to configuration
 
-**Size:** S | **Needs:** P3-01, P3-02, P1-09, P0-06 | **Spec:** 3.4 | **Status:** todo
+**Size:** S | **Needs:** P3-01, P3-02, P1-09, P0-06 | **Spec:** 3.4 | **Status:** done
 
 **Do.** Introduce `EncoderConfig` and move into it: the limit on enumerated rounding neighbours (8), the grid tolerance (1e-9, used twice), the attempts factor for the random subset of categorical assignments (20) and the ordering rule applied when a choice leaves `is_ordered` unset (today: numeric with more than two values; make it a named rule selected in the configuration). Mark the three unit-cube midpoint literals `# structural: unit-cube midpoint`. Delete the matching baseline lines.
 

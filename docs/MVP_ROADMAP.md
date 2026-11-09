@@ -86,55 +86,55 @@ A wave is a set of cards whose needs (outside the ignored edges and the cards al
 
 **MVP-1 path.**
 
-| Wave | Card | Title | Size | Scope |
-|---|---|---|---|---|
-| 1 | P2-01 | ADR-0012: outcomes, trials and observations | S | full |
-| 1 | P2-02 | Prefix the legacy types and move the legacy snapshot | S | full |
-| 1 | P3-01 | Move the encoder and the expression compiler | S | full |
-| 1 | P4-01 | ADR-0013: goals, policies and recipes | S | full |
-| 2 | P2-04 | Parameter-type registry | M | full |
-| 2 | P2-06 | Outcomes and outcome kinds | M | full |
-| 2 | P2-07 | Trial lifecycle | S | full |
-| 2 | P3-02 | Torch runtime helpers | S | full |
-| 2 | P3-04 | Move constraint encoding and feasible sampling | S | full |
-| 3 | P2-05 | Constraint-type registry | S | full |
-| 3 | P2-08 | Observations | S | full |
-| 3 | P3-03 | Encoder policy values to configuration | S | full |
-| 3 | P3-05 | Sampling and constraint policy values to configuration | S | full |
-| 4 | P2-09 | Pure expression evaluator | S | full |
-| 5 | P2-10 | Problem and problem facts | S | full |
-| 6 | P3-07 | Surrogate contract and registry | S | full |
-| 6 | P4-02 | Goal contract and registry | S | full |
-| 6 | P4-06 | Design contract and sobol_v1 | S | full |
-| 7 | P3-08 | Trials to tensors | S | full |
-| 7 | P3-09 | Surrogate wrapper and predictions | M | full |
-| 7 | P3-10 | Kernel kind | S | full |
-| 7 | P3-11 | Likelihood kind | S | full |
-| 7 | P3-12 | Outcome-transform kind | S | full |
-| 7 | P3-13 | MAP fitter | S | full |
-| 7 | P4-03 | optimize_v1 goal | M | full |
-| 7 | P6-01 | Policy contract and study-state view | S | full |
-| 8 | P3-14 | single_task_gp_v1 surrogate | M | full |
-| 8 | P3-17 | Surrogate cache | S | full |
-| 8 | P5-01 | Acquisition contract and registry | S | full |
-| 8 | P7-01 | Analysis contract and registry | S | full |
-| 9 | P5-03 | qlog_nei_v1 acquisition | S | full |
-| 9 | P5-11 | Optimizer contract and registry | S | full |
-| 9 | P7-02 | Best-point analyses | S | full |
-| 10 | P5-12 | botorch_relaxed_v1 optimizer | M | full |
-| 10 | P6-02 | Composed policy configuration | S | full |
-| 11 | P5-13 | botorch_mixed_v1 optimizer | M | full |
-| 11 | P6-03 | Composed policy: design phase | S | full |
-| 11 | P6-05 | Need resolution | S | full |
-| 12 | P6-04 | Composed policy: model phase | M | full |
-| 12 | P6-07 | Recipes for optimize goals | S | slice |
-| 13 | P6-09 | Study construction and history | M | full |
-| 14 | P6-10 | Study ask | M | full |
-| 14 | P6-11 | Study tell, fail and abandon | S | full |
-| 14 | P7-11 | Study analyze, shouldStop and default analyses | S | slice |
-| 15 | P6-12 | Study attach | S | full |
-| 15 | P6-13 | Study seeds and determinism | S | full |
-| 15 | P9-01 | UC-1: single-objective optimization | M | slice |
+| Wave | Card | Title | Size | Scope | Status |
+|---|---|---|---|---|---|
+| 1 | P2-01 | ADR-0012: outcomes, trials and observations | S | full | done |
+| 1 | P2-02 | Prefix the legacy types and move the legacy snapshot | S | full | done |
+| 1 | P3-01 | Move the encoder and the expression compiler | S | full | done |
+| 1 | P4-01 | ADR-0013: goals, policies and recipes | S | full | done |
+| 2 | P2-04 | Parameter-type registry | M | full | done |
+| 2 | P2-06 | Outcomes and outcome kinds | M | full | done |
+| 2 | P2-07 | Trial lifecycle | S | full | done |
+| 2 | P3-02 | Torch runtime helpers | S | full | done |
+| 2 | P3-04 | Move constraint encoding and feasible sampling | S | full | done |
+| 3 | P2-05 | Constraint-type registry | S | full | done |
+| 3 | P2-08 | Observations | S | full | done |
+| 3 | P3-03 | Encoder policy values to configuration | S | full | done |
+| 3 | P3-05 | Sampling and constraint policy values to configuration | S | full | todo |
+| 4 | P2-09 | Pure expression evaluator | S | full | todo |
+| 5 | P2-10 | Problem and problem facts | S | full | todo |
+| 6 | P3-07 | Surrogate contract and registry | S | full | todo |
+| 6 | P4-02 | Goal contract and registry | S | full | todo |
+| 6 | P4-06 | Design contract and sobol_v1 | S | full | todo |
+| 7 | P3-08 | Trials to tensors | S | full | todo |
+| 7 | P3-09 | Surrogate wrapper and predictions | M | full | todo |
+| 7 | P3-10 | Kernel kind | S | full | todo |
+| 7 | P3-11 | Likelihood kind | S | full | todo |
+| 7 | P3-12 | Outcome-transform kind | S | full | todo |
+| 7 | P3-13 | MAP fitter | S | full | todo |
+| 7 | P4-03 | optimize_v1 goal | M | full | todo |
+| 7 | P6-01 | Policy contract and study-state view | S | full | todo |
+| 8 | P3-14 | single_task_gp_v1 surrogate | M | full | todo |
+| 8 | P3-17 | Surrogate cache | S | full | todo |
+| 8 | P5-01 | Acquisition contract and registry | S | full | todo |
+| 8 | P7-01 | Analysis contract and registry | S | full | todo |
+| 9 | P5-03 | qlog_nei_v1 acquisition | S | full | todo |
+| 9 | P5-11 | Optimizer contract and registry | S | full | todo |
+| 9 | P7-02 | Best-point analyses | S | full | todo |
+| 10 | P5-12 | botorch_relaxed_v1 optimizer | M | full | todo |
+| 10 | P6-02 | Composed policy configuration | S | full | todo |
+| 11 | P5-13 | botorch_mixed_v1 optimizer | M | full | todo |
+| 11 | P6-03 | Composed policy: design phase | S | full | todo |
+| 11 | P6-05 | Need resolution | S | full | todo |
+| 12 | P6-04 | Composed policy: model phase | M | full | todo |
+| 12 | P6-07 | Recipes for optimize goals | S | slice | todo |
+| 13 | P6-09 | Study construction and history | M | full | todo |
+| 14 | P6-10 | Study ask | M | full | todo |
+| 14 | P6-11 | Study tell, fail and abandon | S | full | todo |
+| 14 | P7-11 | Study analyze, shouldStop and default analyses | S | slice | todo |
+| 15 | P6-12 | Study attach | S | full | todo |
+| 15 | P6-13 | Study seeds and determinism | S | full | todo |
+| 15 | P9-01 | UC-1: single-objective optimization | M | slice | todo |
 
 **ADR numbers.** `scripts/new_adr.py` takes the next free number, and roadmap cards cite ADR-0012, ADR-0013 and ADR-0014 by number. Run P2-01 before P4-01, and P8-01 (MVP-2) after both, as the phase order of the roadmap does.
 

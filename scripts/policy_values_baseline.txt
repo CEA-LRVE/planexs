@@ -32,13 +32,6 @@ src/planexs/domain/constraints/validateExpression.py :: <module> :: module level
 src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 200
 src/planexs/domain/parameters/Range.py :: Range._validate_default :: function body :: 1e-09
 src/planexs/encoding/EncodedConstraints.py :: EncodedConstraints.isFeasible :: signature default :: 1e-06
-src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.categoricalFixedFeatures :: function body :: 20
-src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.roundingNeighbors :: signature default :: 8
-src/planexs/encoding/SearchSpaceEncoder.py :: SearchSpaceEncoder.snapColumns :: function body :: 0.5
-src/planexs/encoding/SearchSpaceEncoder.py :: _floorAndCeil :: function body :: 1e-09
-src/planexs/encoding/SearchSpaceEncoder.py :: _readValue :: function body :: 0.5
-src/planexs/encoding/SearchSpaceEncoder.py :: _snapRaw :: function body :: 1e-09
-src/planexs/encoding/SearchSpaceEncoder.py :: _writeCenter :: function body :: 0.5
 src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 10
 src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 200
 src/planexs/encoding/sampleFeasibleEncoded.py :: <module> :: module level :: 25
