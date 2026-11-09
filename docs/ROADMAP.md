@@ -538,7 +538,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-09. Pure expression evaluator
 
-**Size:** S | **Needs:** P2-05 | **Spec:** 3.9, 5.3 | **Status:** todo
+**Size:** S | **Needs:** P2-05 | **Spec:** 3.9, 5.3 | **Status:** done
 
 **Do.** Add a pure-Python evaluator of validated expressions (the `math` module, the same function allowlist as `validateExpression`) and give `NonlinearConstraint` a way to say whether a parameterization of natural values satisfies it, so that constraints can be checked without torch. A result that is undefined (for example `sqrt` of a negative) counts as infeasible, as in the compiled form.
 

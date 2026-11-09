@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+from typing import Any
+
 import pytest
 
 from planexs import LinearConstraint, NonlinearConstraint, Real, SearchSpace
@@ -43,7 +46,7 @@ class TestConstruction:
 
     def test_rejects_equality_comparator(self) -> None:
         with pytest.raises(ValueError):
-            NonlinearConstraint("x * y", "=", 1.0)  # type: ignore[arg-type]
+            NonlinearConstraint("x * y", "=", 1.0)
 
 
 class TestExpressionGrammar:
@@ -164,3 +167,100 @@ class TestSerialization:
     def test_unknown_type_message_lists_both_supported_types(self) -> None:
         with pytest.raises(ConfigError, match=r"linear.*nonlinear"):
             constraintFromDict({"type": "quadratic"})
+
+
+class TestIsSatisfiedBy:
+    """The feasibility check on natural values, with no machine-learning library (P2-09)."""
+
+    def test_the_spec_example(self) -> None:
+        constraint = NonlinearConstraint("var * x ** z", "<=", 50.0)
+
+        assert constraint.isSatisfiedBy({"var": 2.0, "x": 3.0, "z": 2.0})  # 18 <= 50
+        assert not constraint.isSatisfiedBy({"var": 10.0, "x": 3.0, "z": 2.0})  # 90 > 50
+
+    @pytest.mark.parametrize(
+        ("comparator", "x", "expected"),
+        [
+            ("<=", 1.9, True),
+            ("<=", 2.0, True),  # on the bound: satisfied
+            ("<=", 2.1, False),
+            (">=", 1.9, False),
+            (">=", 2.0, True),  # on the bound: satisfied
+            (">=", 2.1, True),
+        ],
+    )
+    def test_each_comparator_inside_on_and_outside_the_bound(
+        self, comparator: Any, x: float, expected: bool
+    ) -> None:
+        constraint = NonlinearConstraint("x ** 2", comparator, 4.0)
+
+        assert constraint.isSatisfiedBy({"x": x}) is expected
+
+    @pytest.mark.parametrize(
+        ("comparator", "x"),
+        [("<=", math.nextafter(2.0, 3.0)), (">=", math.nextafter(2.0, 1.0))],
+    )
+    def test_the_comparison_is_exact_there_is_no_tolerance(
+        self, comparator: Any, x: float
+    ) -> None:
+        # One representable number past the bound is already infeasible.
+        constraint = NonlinearConstraint("x", comparator, 2.0)
+        assert constraint.isSatisfiedBy({"x": 2.0})
+
+        assert not constraint.isSatisfiedBy({"x": x})
+
+    @pytest.mark.parametrize("comparator", ["<=", ">="])
+    @pytest.mark.parametrize(
+        ("expression", "point"),
+        [
+            ("sqrt(x)", {"x": -1.0}),
+            ("log(x)", {"x": 0.0}),
+            ("x ** (1 / 3)", {"x": -8.0}),
+            ("1 / x", {"x": 0.0}),
+            ("exp(x)", {"x": 1000.0}),
+        ],
+    )
+    def test_an_undefined_point_is_infeasible_for_both_comparators(
+        self, comparator: Any, expression: str, point: dict[str, float]
+    ) -> None:
+        constraint = NonlinearConstraint(expression, comparator, 0.0)
+
+        assert constraint.isSatisfiedBy(point) is False
+
+    def test_a_whole_parameterization_can_be_passed(self) -> None:
+        constraint = NonlinearConstraint("x ** 2 + y", "<=", 4.0)
+        parameterization = {"x": 2, "y": 0, "solvent": "water", "dry": True}
+
+        assert constraint.isSatisfiedBy(parameterization)
+
+    def test_integer_values_are_numbers(self) -> None:
+        assert NonlinearConstraint("x * y", ">=", 6.0).isSatisfiedBy({"x": 2, "y": 3})
+
+    def test_a_missing_parameter_is_an_error_not_an_infeasible_point(self) -> None:
+        constraint = NonlinearConstraint("x * y", "<=", 1.0)
+
+        with pytest.raises(ValueError, match=r"\['y'\].*no value"):
+            constraint.isSatisfiedBy({"x": 1.0})
+
+    @pytest.mark.parametrize("value", ["2.0", True])
+    def test_a_parameter_that_is_not_a_number_is_an_error(self, value: object) -> None:
+        constraint = NonlinearConstraint("x * y", "<=", 1.0)
+
+        with pytest.raises(ValueError, match=r"needs a number for 'x'"):
+            constraint.isSatisfiedBy({"x": value, "y": 1.0})
+
+    def test_a_rebuilt_constraint_checks_the_same(self) -> None:
+        constraint = NonlinearConstraint("x ** 2 + y", "<=", 4.0)
+        rebuilt = constraintFromDict(constraint.toDict())
+
+        assert isinstance(rebuilt, NonlinearConstraint)
+        for point in ({"x": 1.0, "y": 1.0}, {"x": 2.0, "y": 1.0}, {"x": -3.0, "y": 0.0}):
+            assert rebuilt.isSatisfiedBy(point) == constraint.isSatisfiedBy(point)
+
+    def test_it_does_not_change_the_constraint(self) -> None:
+        constraint = NonlinearConstraint("x ** 2", "<=", 4.0)
+        before = constraint.toDict()
+
+        constraint.isSatisfiedBy({"x": 1.0})
+
+        assert constraint.toDict() == before

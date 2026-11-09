@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import model_validator
 
 from planexs.domain.constraints.Constraint import Constraint
+from planexs.domain.constraints.evaluateExpression import evaluateExpression
 from planexs.domain.constraints.NonlinearConstraintConfig import NonlinearConstraintConfig
 from planexs.domain.constraints.registerConstraint import registerConstraint
 from planexs.domain.constraints.validateExpression import validateExpression
@@ -27,7 +29,9 @@ class NonlinearConstraint(Constraint):
     domain object. It is parsed and evaluated by a small restricted evaluator
     (arithmetic and the short allowlist in
     `validateExpression.ALLOWED_EXPRESSION_FUNCTIONS`), never Python's own
-    `eval`.
+    `eval`. Two evaluators exist: `isSatisfiedBy` checks one parameterization with
+    plain numbers and imports no machine-learning library, and the acquisition
+    layer compiles the same expression to tensors (`encoding/compileExpression.py`).
 
     No `"="` comparator: an exact nonlinear equality is a measure-zero set a
     numerical optimizer cannot meaningfully target, unlike `LinearConstraint`'s
@@ -103,6 +107,37 @@ class NonlinearConstraint(Constraint):
             The set of variable names in `expression`.
         """
         return validateExpression(self.expression)
+
+    def isSatisfiedBy(self, parameters: Mapping[str, object]) -> bool:
+        """Whether a parameterization of natural values satisfies this constraint.
+
+        Evaluates `expression` with `evaluateExpression`, on plain numbers and without any
+        machine-learning library, and compares it with `bound`. The comparison is exact: a
+        value on the bound satisfies it, and there is no tolerance (the acquisition layer
+        applies its own to encoded points, see `EncodedConstraints`). Where the expression is
+        undefined or has no finite value (`sqrt` of a negative number, a division by zero, an
+        overflow) the point is infeasible.
+
+        Parses the expression each call, so it is a method rather than a property.
+
+        Args:
+            parameters: Parameter name to value, on natural values. Only the names this
+                constraint uses are read, so a whole parameterization can be passed, with
+                categorical and boolean parameters in it.
+
+        Returns:
+            `True` if the constraint holds.
+
+        Raises:
+            ValueError: if a name the expression uses is missing from `parameters`, or its
+                value is not an `int` or `float` (a `bool` or a string is not a number).
+                These are errors of the call, not infeasible points: a point whose parameter
+                is inactive, for example, cannot be judged by this constraint.
+        """
+        value = evaluateExpression(self.expression, parameters)
+        if math.isnan(value):
+            return False
+        return value <= self.bound if self.comparator == "<=" else value >= self.bound
 
     def toDict(self) -> dict[str, Any]:
         """Serializes the constraint.
