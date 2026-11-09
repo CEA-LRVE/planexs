@@ -199,7 +199,7 @@ Make the repository safe to refactor. Fix the defect that breaks a fresh clone o
 
 ### P0-03. Add the CI workflow
 
-**Size:** S | **Needs:** P0-02, P0-08 | **Spec:** 10.13 | **Decision:** D-6 | **Status:** todo
+**Size:** S | **Needs:** P0-02, P0-08 | **Spec:** 10.13 | **Decision:** D-6 | **Status:** doing
 
 **Do.** Add `.github/workflows/ci.yaml`, triggered on push and on pull request, using `uv`. Three jobs: `lint` (`ruff check .`, `ruff format --check .`, `scripts/check_naming_convention.py`), `types` (`mypy`) and `tests` (`pytest` with coverage, failing under a floor one point below the coverage measured in P0-02), on the Python versions of D-6. Add a status badge to `README.md`.
 

@@ -156,8 +156,11 @@ source = ["src/planexs"]
 # this table, so `pytest` fails under the same number locally and in CI
 # (.github/workflows/ci.yaml does not repeat it).
 #
-# Value: one point below the 94.55% that task P0-02 measured at commit d1c0b46. The margin
-# absorbs ordinary churn; losing tests, or adding untested code, does not fit in it.
+# History of the value (add a line here each time it moves, newest last):
+#   93.55  task P0-03: one point below the 94.55% that task P0-02 measured at commit d1c0b46.
+#          The margin absorbs ordinary churn; losing tests, or adding untested code, does not
+#          fit in it.
+#   95.00  commit a3bfa0e: raised when coverage rose.
 #
 # It may only go up. Raise it when coverage rises. Never lower it to make a change pass: add
 # the missing tests instead.
