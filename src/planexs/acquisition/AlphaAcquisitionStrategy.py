@@ -28,11 +28,8 @@ from planexs.acquisition.MultiObjectiveExplorationExploitationAcquisition import
 from planexs.domain.LegacyObjective import LegacyObjective
 from planexs.domain.SearchSpace import SearchSpace
 from planexs.encoding.EncodedConstraints import EncodedConstraints
-from planexs.encoding.sampleFeasibleEncoded import (
-    DEFAULT_POLYTOPE_BURN_IN,
-    DEFAULT_POLYTOPE_THINNING,
-    sampleFeasibleEncoded,
-)
+from planexs.encoding.FeasibleSamplingConfig import FeasibleSamplingConfig
+from planexs.encoding.sampleFeasibleEncoded import sampleFeasibleEncoded
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 logger = logging.getLogger(__name__)
@@ -90,10 +87,11 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
         max_categorical_combinations: Cap on enumerated categorical assignments.
         max_iterations: Iteration cap of each optimizer run.
         polytope_burn_in: Burn-in steps of the hit-and-run sampler that draws starting
-            points inside linear constraints (only used when there are some). BoTorch's
-            own default is 10000. See `DEFAULT_POLYTOPE_BURN_IN`.
-        polytope_thinning: Steps between two kept points of that sampler. BoTorch's own
-            default is 32. See `DEFAULT_POLYTOPE_THINNING`.
+            points inside linear constraints (only used when there are some). `None`
+            means the `polytope_burn_in` of `FeasibleSamplingConfig`, which says why its
+            default is not BoTorch's own.
+        polytope_thinning: Steps between two kept points of that sampler. `None` means
+            the `polytope_thinning` of `FeasibleSamplingConfig`.
     """
 
     def __init__(
@@ -104,15 +102,24 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
         n_mc_samples: int = 256,
         max_categorical_combinations: int = 32,
         max_iterations: int = 200,
-        polytope_burn_in: int = DEFAULT_POLYTOPE_BURN_IN,
-        polytope_thinning: int = DEFAULT_POLYTOPE_THINNING,
+        polytope_burn_in: int | None = None,
+        polytope_thinning: int | None = None,
     ) -> None:
         """Stores the budgets and sampler settings of the optimizer.
 
         Every argument is described in the class docstring.
         """
-        self._polytope_burn_in = polytope_burn_in
-        self._polytope_thinning = polytope_thinning
+        defaults = FeasibleSamplingConfig()
+        self._polytope_burn_in = (
+            defaults.polytope_burn_in if polytope_burn_in is None else polytope_burn_in
+        )
+        self._polytope_thinning = (
+            defaults.polytope_thinning if polytope_thinning is None else polytope_thinning
+        )
+        self._sampling = FeasibleSamplingConfig(
+            polytope_burn_in=self._polytope_burn_in,
+            polytope_thinning=self._polytope_thinning,
+        )
         self._num_restarts = num_restarts
         self._raw_samples = raw_samples
         self._n_reference_points = n_reference_points
@@ -234,8 +241,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
                 self._n_reference_points,
                 seed=seed,
                 snap=True,
-                n_burnin=self._polytope_burn_in,
-                n_thinning=self._polytope_thinning,
+                config=self._sampling,
             )
             acquisition = self.buildAcquisitionFunction(
                 model, objective, alpha, reference_points
@@ -281,8 +287,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
             n_points,
             seed=seed,
             snap=True,
-            n_burnin=self._polytope_burn_in,
-            n_thinning=self._polytope_thinning,
+            config=self._sampling,
         )
         return [encoder.decode(point) for point in points]
 
@@ -324,8 +329,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
                     n * q,
                     seed=generator_seed,
                     snap=False,
-                    n_burnin=self._polytope_burn_in,
-                    n_thinning=self._polytope_thinning,
+                    config=self._sampling,
                 )
                 return draws.reshape(n, q, -1)
 
@@ -375,8 +379,7 @@ class AlphaAcquisitionStrategy(AcquisitionStrategy):
             self._raw_samples,
             seed=seed,
             snap=True,
-            n_burnin=self._polytope_burn_in,
-            n_thinning=self._polytope_thinning,
+            config=self._sampling,
         )
         with torch.no_grad():
             values = acquisition(pool.unsqueeze(1))

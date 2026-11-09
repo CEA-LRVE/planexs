@@ -624,7 +624,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-05. Sampling and constraint policy values to configuration
 
-**Size:** S | **Needs:** P3-04, P3-02, P1-09 | **Spec:** 3.4 | **Status:** todo
+**Size:** S | **Needs:** P3-04, P3-02, P1-09 | **Spec:** 3.4 | **Status:** done
 
 **Do.** Introduce `FeasibleSamplingConfig` (rounds, oversampling factor, minimum draw, polytope burn-in and thinning, and the feasibility tolerance that `EncodedConstraints.isFeasible` takes by default) and pass it explicitly. Move the two long comments that justify burn-in and thinning into the field descriptions. Delete the matching baseline lines.
 

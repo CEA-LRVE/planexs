@@ -10,6 +10,7 @@ from torch import Tensor
 from planexs.domain.constraints.LinearConstraint import LinearConstraint
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
 from planexs.domain.SearchSpace import SearchSpace
+from planexs.encoding.FeasibleSamplingConfig import FeasibleSamplingConfig
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.encoding.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 
@@ -36,9 +37,15 @@ class EncodedConstraints:
         nonlinear: BoTorch `nonlinear_inequality_constraints` acting on encoded
             points, or `None`.
 
+    The tolerance with which `isFeasible` accepts a point is a field of
+    `FeasibleSamplingConfig` (`feasibility_tolerance`), not a value written here
+    (specification 3.4).
+
     Args:
         search_space: The space whose constraints to encode.
         encoder: The encoder defining the columns.
+        config: The sampling settings, of which the constraints use the feasibility
+            tolerance. `None` means `FeasibleSamplingConfig()`, the defaults of the schema.
 
     Raises:
         ValueError: if a linear constraint references a parameter that is not a
@@ -47,11 +54,17 @@ class EncodedConstraints:
         TypeError: if a constraint is of an unknown kind.
     """
 
-    def __init__(self, search_space: SearchSpace, encoder: SearchSpaceEncoder) -> None:
+    def __init__(
+        self,
+        search_space: SearchSpace,
+        encoder: SearchSpaceEncoder,
+        config: FeasibleSamplingConfig | None = None,
+    ) -> None:
         """Rewrites every constraint of `search_space` on the encoded columns.
 
         Arguments and errors are described in the class docstring.
         """
+        self._config = FeasibleSamplingConfig() if config is None else config
         inequality: list[tuple[Tensor, Tensor, float]] = []
         equality: list[tuple[Tensor, Tensor, float]] = []
         nonlinear_constraints: list[NonlinearConstraint] = []
@@ -81,6 +94,13 @@ class EncodedConstraints:
         self.nonlinear: list[tuple[Callable[[Tensor], Tensor], bool]] | None = [
             (_onEncoded(function, encoder), True) for function, _ in compiled
         ] or None
+
+    @property
+    def config(self) -> FeasibleSamplingConfig:
+        """The sampling settings these constraints were built with (stored value,
+        snake_case).
+        """
+        return self._config
 
     @property
     def has_constraints(self) -> bool:
@@ -115,18 +135,21 @@ class EncodedConstraints:
             worst = torch.maximum(worst, margin)
         return worst.clamp_min(0.0)
 
-    def isFeasible(self, x: Tensor, tolerance: float = 1e-6) -> Tensor:
+    def isFeasible(self, x: Tensor, tolerance: float | None = None) -> Tensor:
         """Whether each encoded point satisfies every constraint, up to
         `tolerance` (relative to each constraint's scale).
 
         Args:
             x: A tensor of shape `(..., d)`.
-            tolerance: Largest accepted `violation`.
+            tolerance: Largest accepted `violation`. `None` means the
+                `feasibility_tolerance` of the constraints' `FeasibleSamplingConfig`; a
+                number overrides it for this call.
 
         Returns:
             A boolean tensor of shape `(...)`.
         """
-        return self.violation(x) <= tolerance
+        limit = self._config.feasibility_tolerance if tolerance is None else tolerance
+        return self.violation(x) <= limit
 
 
 def _encodeLinear(

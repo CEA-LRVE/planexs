@@ -10,11 +10,8 @@ import torch
 
 from planexs import AlphaAcquisitionStrategy, LinearConstraint, Real, SearchSpace
 from planexs.encoding.EncodedConstraints import EncodedConstraints
-from planexs.encoding.sampleFeasibleEncoded import (
-    DEFAULT_POLYTOPE_BURN_IN,
-    DEFAULT_POLYTOPE_THINNING,
-    sampleFeasibleEncoded,
-)
+from planexs.encoding.FeasibleSamplingConfig import FeasibleSamplingConfig
+from planexs.encoding.sampleFeasibleEncoded import sampleFeasibleEncoded
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 
 _SAMPLER_MODULE = "planexs.encoding.sampleFeasibleEncoded"
@@ -44,14 +41,16 @@ def sampler_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
 
 class TestDefaults:
     def test_the_documented_defaults_are_the_ones_used(self) -> None:
-        assert (DEFAULT_POLYTOPE_BURN_IN, DEFAULT_POLYTOPE_THINNING) == (200, 10)
+        defaults = FeasibleSamplingConfig()
+        assert (defaults.polytope_burn_in, defaults.polytope_thinning) == (200, 10)
 
     def test_the_strategy_defaults_to_them(self, sampler_calls: list[dict[str, Any]]) -> None:
         AlphaAcquisitionStrategy().suggestSpaceFilling(_mixture(), 3, seed=0)
 
         assert sampler_calls
+        defaults = FeasibleSamplingConfig()
         assert {(c["n_burnin"], c["n_thinning"]) for c in sampler_calls} == {
-            (DEFAULT_POLYTOPE_BURN_IN, DEFAULT_POLYTOPE_THINNING)
+            (defaults.polytope_burn_in, defaults.polytope_thinning)
         }
 
 
@@ -61,7 +60,11 @@ class TestSamplerFunction:
         encoder = SearchSpaceEncoder(space)
 
         sampleFeasibleEncoded(
-            encoder, EncodedConstraints(space, encoder), 5, seed=0, n_burnin=7, n_thinning=3
+            encoder,
+            EncodedConstraints(space, encoder),
+            5,
+            seed=0,
+            config=FeasibleSamplingConfig(polytope_burn_in=7, polytope_thinning=3),
         )
 
         assert {(c["n_burnin"], c["n_thinning"]) for c in sampler_calls} == {(7, 3)}
@@ -83,7 +86,13 @@ class TestSamplerFunction:
 
         for burn_in, thinning in ((1, 1), (50, 2), (400, 20)):
             points = sampleFeasibleEncoded(
-                encoder, constraints, 30, seed=1, n_burnin=burn_in, n_thinning=thinning
+                encoder,
+                constraints,
+                30,
+                seed=1,
+                config=FeasibleSamplingConfig(
+                    polytope_burn_in=burn_in, polytope_thinning=thinning
+                ),
             )
             assert torch.allclose(
                 points.sum(dim=-1), torch.ones(30, dtype=torch.double), atol=1e-6

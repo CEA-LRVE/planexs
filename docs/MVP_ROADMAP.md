@@ -100,7 +100,7 @@ A wave is a set of cards whose needs (outside the ignored edges and the cards al
 | 3 | P2-05 | Constraint-type registry | S | full | done |
 | 3 | P2-08 | Observations | S | full | done |
 | 3 | P3-03 | Encoder policy values to configuration | S | full | done |
-| 3 | P3-05 | Sampling and constraint policy values to configuration | S | full | todo |
+| 3 | P3-05 | Sampling and constraint policy values to configuration | S | full | done |
 | 4 | P2-09 | Pure expression evaluator | S | full | todo |
 | 5 | P2-10 | Problem and problem facts | S | full | todo |
 | 6 | P3-07 | Surrogate contract and registry | S | full | todo |

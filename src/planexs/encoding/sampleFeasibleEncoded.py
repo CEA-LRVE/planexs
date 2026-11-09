@@ -7,29 +7,8 @@ from botorch.optim.initializers import sample_q_batches_from_polytope
 from torch import Tensor
 
 from planexs.encoding.EncodedConstraints import EncodedConstraints
+from planexs.encoding.FeasibleSamplingConfig import FeasibleSamplingConfig
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
-
-#: Defaults of the hit-and-run sampler that draws points inside a linear polytope (see
-#: `sampleFeasibleEncoded`). They are the only two knobs of that Markov chain. BoTorch's own
-#: defaults (burn-in 10000, thinning 32) are much more expensive, and these lower values were
-#: chosen from two measurements rather than from theory:
-#:
-#: - `n_burnin`: steps discarded before the first kept point (the chain starts at an arbitrary
-#:   interior point and must forget it). On a simplex, whose exact law is known, 200 and 10000
-#:   gave indistinguishable means and variances in 3 and 10 dimensions, so the cheaper value
-#:   is used.
-#: - `n_thinning`: steps between two kept points (consecutive states are correlated). This is
-#:   the expensive knob: on an equality-constrained mixed problem, 32 instead of 10 made
-#:   suggesting 3 points 2.7 times slower. The price of 10 is more correlated samples in high
-#:   dimension (lag-1 autocorrelation 0.76 in 10 dimensions, against 0.43 with 32). The
-#:   samples only seed the optimizer's restarts and normalize the acquisition terms, so this
-#:   was judged acceptable; raise it for a high-dimensional polytope.
-DEFAULT_POLYTOPE_BURN_IN = 200
-DEFAULT_POLYTOPE_THINNING = 10
-
-#: How many rounds of oversampled draws to try before giving up.
-_MAX_ROUNDS = 25
-_OVERSAMPLE = 8
 
 
 def sampleFeasibleEncoded(
@@ -38,9 +17,7 @@ def sampleFeasibleEncoded(
     n: int,
     seed: int | None = None,
     snap: bool = True,
-    tolerance: float = 1e-6,
-    n_burnin: int = DEFAULT_POLYTOPE_BURN_IN,
-    n_thinning: int = DEFAULT_POLYTOPE_THINNING,
+    config: FeasibleSamplingConfig | None = None,
 ) -> Tensor:
     """Draws `n` encoded points that satisfy every constraint.
 
@@ -49,6 +26,12 @@ def sampleFeasibleEncoded(
     such as a mixture summing to one is met exactly, which rejection sampling
     could never do). Nonlinear constraints are then met by rejection, oversampling
     until `n` points survive.
+
+    The draws go in rounds. The first draws the larger of `oversampling_factor * n` and
+    `min_draw` candidates, and round `k` (counted from 1) draws `k` times as many, until `n`
+    feasible points exist or `max_rounds` rounds have been drawn. Every number that these
+    rounds, the polytope chain and the feasibility check use is a field of
+    `FeasibleSamplingConfig`: none is written in this file (specification 3.4).
 
     Used for the alpha layer's reference set, its cold-start (no model yet)
     suggestions, and as the source of feasible starting points for constrained
@@ -61,11 +44,9 @@ def sampleFeasibleEncoded(
         seed: Seed of the draws.
         snap: Whether to round points onto valid values. Leave `False` for
             continuous relaxations.
-        tolerance: Constraint violation accepted (see `EncodedConstraints`).
-        n_burnin: Burn-in steps of the polytope sampler, used only when the space has
-            linear constraints. See `DEFAULT_POLYTOPE_BURN_IN`.
-        n_thinning: Thinning of the polytope sampler, used only when the space has
-            linear constraints. See `DEFAULT_POLYTOPE_THINNING`.
+        config: The sampling settings: the rounds, the polytope chain and the tolerance
+            with which a candidate counts as feasible. `None` means the settings that the
+            constraints were built with (`constraints.config`).
 
     Returns:
         A tensor of shape `(n, d)`. If fewer than `n` distinct feasible points
@@ -78,19 +59,21 @@ def sampleFeasibleEncoded(
     if not constraints.has_constraints:
         return encoder.sampleEncoded(n, seed=seed, snap=snap)
 
+    settings = constraints.config if config is None else config
     kept: list[Tensor] = []
     n_kept = 0
     n_drawn = 0
-    for round_index in range(_MAX_ROUNDS):
-        n_draw = max(_OVERSAMPLE * n, 64) * (1 + round_index)
+    for round_index in range(settings.max_rounds):
+        first_round = max(settings.oversampling_factor * n, settings.min_draw)
+        n_draw = first_round * (1 + round_index)
         round_seed = None if seed is None else seed + round_index
         if constraints.inequality is not None or constraints.equality is not None:
             draws = sample_q_batches_from_polytope(
                 n=n_draw,
                 q=1,
                 bounds=encoder.unit_bounds,
-                n_burnin=n_burnin,
-                n_thinning=n_thinning,
+                n_burnin=settings.polytope_burn_in,
+                n_thinning=settings.polytope_thinning,
                 seed=round_seed,
                 inequality_constraints=constraints.inequality,
                 equality_constraints=constraints.equality,
@@ -100,7 +83,7 @@ def sampleFeasibleEncoded(
         else:
             draws = encoder.sampleEncoded(n_draw, seed=round_seed, snap=snap)
         n_drawn += n_draw
-        feasible = draws[constraints.isFeasible(draws, tolerance)]
+        feasible = draws[constraints.isFeasible(draws, settings.feasibility_tolerance)]
         if feasible.shape[0] > 0:
             kept.append(feasible)
             n_kept += feasible.shape[0]
