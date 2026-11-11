@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict
@@ -29,7 +30,11 @@ class Constraint(BaseModel, ABC):
     - `toDict` writes that form, with the type name under the key `type`;
     - `fromConfig` is the builder: it makes the constraint from the validated configuration;
     - `constraintFromDict` reads the form back through the registry, so a type that someone
-      registers (a plugin, for example) is saved and reloaded like the built-in ones.
+      registers (a plugin, for example) is saved and reloaded like the built-in ones;
+    - `referencedNames` and `violation` are the feasibility check on natural values
+      (specification 6): which parameters the constraint is about, and how far a
+      parameterization is from satisfying it. A problem checks a parameterization through
+      them, without knowing any type by name.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -76,6 +81,43 @@ class Constraint(BaseModel, ABC):
             The constraint, an instance of the class this is called on.
         """
         return cls(**config.model_dump(exclude={"type"}))
+
+    @abstractmethod
+    def referencedNames(self) -> frozenset[str]:
+        """The names of the parameters that this constraint is about.
+
+        A problem checks that every one of them is a parameter of its search space, and judges
+        the constraint only on a parameterization that has all of them.
+
+        Returns:
+            The parameter names. At least one: a constraint on nothing is not a constraint.
+        """
+
+    @abstractmethod
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        """How far a parameterization is from satisfying this constraint.
+
+        Evaluated on natural values (what the caller sees, not the encoding), with plain
+        numbers and no machine-learning library. The measure is the kind that
+        `EncodedConstraints.violation` gives for encoded points, so that one tolerance suits
+        every constraint type: it is relative to the scale of the constraint, so that `1e-6`
+        means the same for a mixture that sums to one and for a limit of a million.
+
+        Args:
+            parameters: Parameter name to value. Only the names in `referencedNames` are read,
+                so a whole parameterization can be passed, with categorical and boolean
+                parameters in it.
+
+        Returns:
+            `0.0` where the constraint holds, a positive number where it does not, and `inf`
+            where it cannot be judged because the value is undefined (the square root of a
+            negative number, say). Never negative, never `nan`.
+
+        Raises:
+            ValueError: if a name in `referencedNames` is missing from `parameters`, or its
+                value is not an `int` or a `float`. These are errors of the call, not
+                violations.
+        """
 
     @abstractmethod
     def toDict(self) -> dict[str, Any]:

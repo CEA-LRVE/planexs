@@ -11,7 +11,7 @@ The types below are never registered: they only write a form that the registry d
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import pytest
@@ -26,12 +26,18 @@ class UnknownParameter(Parameter):
     def _validate_default(self) -> None:
         return None
 
+    def validateValue(self, value: object, options: Any = None) -> None:
+        return None
+
     def toDict(self) -> dict[str, Any]:
         return {"type": "cyclic", "name": self.name}
 
 
 class UntaggedParameter(Parameter):
     def _validate_default(self) -> None:
+        return None
+
+    def validateValue(self, value: object, options: Any = None) -> None:
         return None
 
     def toDict(self) -> dict[str, Any]:
@@ -42,21 +48,42 @@ class NonStringTagParameter(Parameter):
     def _validate_default(self) -> None:
         return None
 
+    def validateValue(self, value: object, options: Any = None) -> None:
+        return None
+
     def toDict(self) -> dict[str, Any]:
         return {"type": 3, "name": self.name}
 
 
 class UnknownConstraint(Constraint):
+    def referencedNames(self) -> frozenset[str]:
+        return frozenset()
+
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        return 0.0
+
     def toDict(self) -> dict[str, Any]:
         return {"type": "ordering"}
 
 
 class UntaggedConstraint(Constraint):
+    def referencedNames(self) -> frozenset[str]:
+        return frozenset()
+
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        return 0.0
+
     def toDict(self) -> dict[str, Any]:
         return {}
 
 
 class NonStringTagConstraint(Constraint):
+    def referencedNames(self) -> frozenset[str]:
+        return frozenset()
+
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        return 0.0
+
     def toDict(self) -> dict[str, Any]:
         return {"type": None}
 

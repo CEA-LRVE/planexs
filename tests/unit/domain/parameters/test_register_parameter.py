@@ -57,6 +57,9 @@ def defineCyclic(register: bool = True) -> tuple[type[Parameter], type[Component
             if self.default is not None and not 0.0 <= float(self.default) < self.period:
                 raise ValueError(f"Cyclic {self.name!r} has a default outside one turn.")
 
+        def validateValue(self, value: object, options: Any = None) -> None:
+            return None
+
         def toDict(self) -> dict[str, Any]:
             return {
                 "type": "cyclic",
@@ -168,6 +171,9 @@ class TestASpaceIsRefusedWhenItCouldNotBeReadBack:
     ) -> None:
         class Untagged(Parameter):
             def _validate_default(self) -> None:
+                return None
+
+            def validateValue(self, value: object, options: Any = None) -> None:
                 return None
 
             def toDict(self) -> dict[str, Any]:

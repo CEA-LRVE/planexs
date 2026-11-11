@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import model_validator
@@ -75,6 +77,53 @@ class LinearConstraint(Constraint):
         """
         return self.comparator == "="
 
+    def referencedNames(self) -> frozenset[str]:
+        """The names of the parameters in the sum.
+
+        Returns:
+            The keys of `coefficients`.
+        """
+        return frozenset(self.coefficients)
+
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        """How far a parameterization is from satisfying `sum(c * value) <comparator> bound`.
+
+        The sum is exactly rounded (`math.fsum`), so that a mixture of ten parameters of `0.1`
+        sums to `1.0` as it should, and not to the `0.9999999999999999` of a left-to-right
+        float addition. The violation is how far the sum is on the wrong side of the bound (any
+        distance from it for `"="`), divided by the scale `max(1, |bound|, sum(|c * value|))`,
+        so that it measures rounding error, whatever the units of the parameters.
+
+        Args:
+            parameters: Parameter name to value. Only the names in `coefficients` are read.
+
+        Returns:
+            `0.0` where the constraint holds, otherwise the relative violation. `inf` if the
+            sum has no finite value (an overflow).
+
+        Raises:
+            ValueError: if a name in `coefficients` is missing from `parameters`, or its
+                value is not an `int` or a `float` (a `bool` or a string is not a number).
+        """
+        terms = [
+            coefficient * _numberOf(parameters, name)
+            for name, coefficient in self.coefficients.items()
+        ]
+        try:
+            total = math.fsum(terms)
+            magnitude = math.fsum(abs(term) for term in terms)
+        except (OverflowError, ValueError):  # a sum too large for a float, or inf - inf
+            return math.inf
+        if not math.isfinite(total):
+            return math.inf
+        if self.comparator == "=":
+            excess = abs(total - self.bound)
+        elif self.comparator == "<=":
+            excess = total - self.bound
+        else:
+            excess = self.bound - total
+        return max(0.0, excess) / max(1.0, abs(self.bound), magnitude)
+
     def toDict(self) -> dict[str, Any]:
         """Serializes the constraint.
 
@@ -87,3 +136,36 @@ class LinearConstraint(Constraint):
             "bound": self.bound,
             "comparator": self.comparator,
         }
+
+
+def _numberOf(parameters: Mapping[str, object], name: str) -> float:
+    """The value of one parameter of the sum, as a float.
+
+    Args:
+        parameters: Parameter name to value.
+        name: The parameter.
+
+    Returns:
+        The value as a `float`.
+
+    Raises:
+        ValueError: if there is no value for `name`, or it is not an `int` or a `float` that a
+            float can hold. An error of the call, which is never mistaken for a violation.
+    """
+    if name not in parameters:
+        raise ValueError(
+            f"The linear constraint uses {name!r}, which has no value among the given "
+            f"parameters {sorted(parameters)!r}."
+        )
+    value = parameters[name]
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(
+            f"The linear constraint needs a number for {name!r}; got {value!r} "
+            f"({type(value).__name__}). Only int and float values are numbers."
+        )
+    try:
+        return float(value)
+    except OverflowError:
+        raise ValueError(
+            f"The linear constraint: the value of {name!r} is too large for a float."
+        ) from None

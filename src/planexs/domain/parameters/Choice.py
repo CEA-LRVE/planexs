@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from planexs.core.ComponentConfig import ComponentConfig
 from planexs.domain.parameters.ChoiceConfig import ChoiceConfig
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.ParameterValueError import ParameterValueError
 from planexs.domain.parameters.registerParameter import registerParameter
+
+if TYPE_CHECKING:
+    from planexs.domain.ParameterizationCheckConfig import ParameterizationCheckConfig
 
 # `bool` first, `int` before `float`: see Parameter.default's comment.
 ChoiceValue = bool | int | float | str
@@ -99,6 +103,44 @@ class Choice(Parameter):
                 f"not one of its own values {self.values!r}."
             )
 
+    def validateValue(
+        self, value: object, options: ParameterizationCheckConfig | None = None
+    ) -> None:
+        """Checks that `value` is one of the values of this choice.
+
+        A value matches a level if it is equal to it and of the same family: a boolean for a
+        boolean level, a string for a string level, a number for a numeric level. Python
+        makes `True` equal to `1`, so a plain membership test would accept `1` for a boolean
+        choice and `True` for an integer one, which are mistakes and are refused. `3.0`
+        matches the level `3`: both are the number three.
+
+        Args:
+            value: The value as the caller gave it.
+            options: Not used: the check is exact. Accepted so that every parameter type is
+                checked through the same call.
+
+        Raises:
+            ParameterValueError: if the value matches none of the levels. The message lists
+                them.
+        """
+        if not any(_isLevel(value, level) for level in self.values):
+            raise ParameterValueError(
+                f"The value {value!r} of the choice {self.name!r} is not one of its values "
+                f"{list(self.values)!r}.",
+                component=f"parameter {self.name!r}",
+                field_path=self.name,
+                suggestion=f"give one of {list(self.values)!r}",
+            )
+
+    def activations(self) -> Mapping[Any, Sequence[str]]:
+        """Which parameters each value of this choice switches on (FR14).
+
+        Returns:
+            The `dependent_parameters` of the choice: value to the names of the parameters
+            that only exist when it is chosen. Empty if it has none.
+        """
+        return self.dependent_parameters or {}
+
     @classmethod
     def fromConfig(cls, config: ComponentConfig) -> Self:
         """The builder of the `choice` type: makes the choice that a validated
@@ -140,3 +182,23 @@ class Choice(Parameter):
             "dependent_parameters": dependent,
             "default": self.default,
         }
+
+
+def _family(value: object) -> str | None:
+    """The family of a parameter value: boolean, string or number (`None` for anything else).
+
+    `bool` is tested first because it is an `int` in Python.
+    """
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, str):
+        return "str"
+    if isinstance(value, (int, float)):
+        return "number"
+    return None
+
+
+def _isLevel(value: object, level: object) -> bool:
+    """Whether `value` is the level `level`: of the same family, and equal."""
+    family = _family(value)
+    return family is not None and family == _family(level) and bool(value == level)

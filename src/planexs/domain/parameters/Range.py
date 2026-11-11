@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 from typing import Any, Literal
 
+from planexs.domain.ParameterizationCheckConfig import ParameterizationCheckConfig
+from planexs.domain.parameters.isNumber import isNumber
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.ParameterValueError import ParameterValueError
 from planexs.domain.parameters.RangeConfig import RangeConfig
 from planexs.domain.parameters.registerParameter import registerParameter
 
@@ -101,6 +104,68 @@ class Range(Parameter):
                     f"does not land on the step_size={self.step_size!r} grid "
                     f"starting at {lower!r}."
                 )
+
+    def validateValue(
+        self, value: object, options: ParameterizationCheckConfig | None = None
+    ) -> None:
+        """Checks that `value` is a number of this range.
+
+        The rules, in this order, so that the message names the first one that fails: it is a
+        finite `int` or `float` (not a `bool`, a string or `nan`); it is within the bounds,
+        inclusive; for an `int` range it is a whole number (`3.0` is one, `2.5` is not); and
+        for a range with a `step_size` it is on the grid `lower + k * step_size`, within
+        `options.grid_tolerance` steps. The scaling of the range does not matter: a log range
+        holds the same values as a linear one.
+
+        Args:
+            value: The value as the caller gave it.
+            options: The tolerances of the check. `None` means the defaults of
+                `ParameterizationCheckConfig`.
+
+        Raises:
+            ParameterValueError: if one of the rules fails.
+        """
+        tolerance = (options or ParameterizationCheckConfig()).grid_tolerance
+        lower, upper = self.bounds
+        if not isNumber(value):
+            raise self._refuse(
+                value, "is not a finite number (an int or a float)", "give a number"
+            )
+        number = float(value)
+        if not lower <= number <= upper:
+            raise self._refuse(
+                value,
+                f"is outside the bounds {lower!r} to {upper!r}",
+                f"give a value from {lower!r} to {upper!r}, inclusive",
+            )
+        if self.parameter_type == "int" and not number.is_integer():
+            raise self._refuse(value, "is not a whole number", "give a whole number")
+        if self.step_size is not None and self.step_size > 0:
+            steps = (number - lower) / self.step_size
+            if abs(steps - round(steps)) > tolerance:
+                raise self._refuse(
+                    value,
+                    f"is not on the grid of step {self.step_size!r} that starts at {lower!r}",
+                    f"give {lower!r} plus a whole number of steps of {self.step_size!r}",
+                )
+
+    def _refuse(self, value: object, what: str, suggestion: str) -> ParameterValueError:
+        """Builds the error for a value that breaks one rule of the range.
+
+        Args:
+            value: The value.
+            what: What is wrong with it, as the end of a sentence.
+            suggestion: How to fix it.
+
+        Returns:
+            The error, to be raised by the caller.
+        """
+        return ParameterValueError(
+            f"The value {value!r} of the range {self.name!r} {what}.",
+            component=f"parameter {self.name!r}",
+            field_path=self.name,
+            suggestion=suggestion,
+        )
 
     def toDict(self) -> dict[str, Any]:
         """Serializes the parameter.

@@ -9,6 +9,7 @@ because a registered name is permanent and must not outlive the test that regist
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from typing import Any, Literal
 
 import pytest
@@ -50,6 +51,12 @@ def defineOrdering(register: bool = True) -> tuple[type[Constraint], type[Compon
 
         def __init__(self, first: str, second: str) -> None:
             super().__init__(first=first, second=second)
+
+        def referencedNames(self) -> frozenset[str]:
+            return frozenset({self.first, self.second})
+
+        def violation(self, parameters: Mapping[str, object]) -> float:
+            return max(0.0, float(parameters[self.first]) - float(parameters[self.second]))
 
         def toDict(self) -> dict[str, Any]:
             return {"type": "ordering", "first": self.first, "second": self.second}
@@ -153,6 +160,12 @@ class TestASpaceIsRefusedWhenItCouldNotBeReadBack:
         self, isolatedDomainKinds: KindTable
     ) -> None:
         class Untagged(Constraint):
+            def referencedNames(self) -> frozenset[str]:
+                return frozenset()
+
+            def violation(self, parameters: Mapping[str, object]) -> float:
+                return 0.0
+
             def toDict(self) -> dict[str, Any]:
                 return {}
 

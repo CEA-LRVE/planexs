@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from planexs.domain.parameters.DerivedConfig import DerivedConfig
+from planexs.domain.parameters.isNumber import isNumber
 from planexs.domain.parameters.Parameter import Parameter
+from planexs.domain.parameters.ParameterValueError import ParameterValueError
 from planexs.domain.parameters.registerParameter import registerParameter
+
+if TYPE_CHECKING:
+    from planexs.domain.ParameterizationCheckConfig import ParameterizationCheckConfig
 
 
 @registerParameter(
@@ -72,6 +77,49 @@ class Derived(Parameter):
         if not self.expression.strip():
             raise ValueError(f"Derived parameter {self.name!r} has an empty expression.")
 
+    @property
+    def is_computed(self) -> bool:
+        """`True`: the value of a derived parameter is computed from the others, so a caller
+        who reports a point does not have to give it. Cheap (no work), snake_case.
+        """
+        return True
+
+    def validateValue(
+        self, value: object, options: ParameterizationCheckConfig | None = None
+    ) -> None:
+        """Checks that `value` has the type that this parameter's expression evaluates to.
+
+        Only the type is checked: a `float` or an `int` is a finite number (an `int` a whole
+        one), a `bool` is a `bool`, a `str` is a string. The value is not recomputed from the
+        other parameters to see that it is the right one: that would need a tolerance of its
+        own, and the study computes it where it is needed.
+
+        Args:
+            value: The value as the caller gave it.
+            options: Not used: the check is exact. Accepted so that every parameter type is
+                checked through the same call.
+
+        Raises:
+            ParameterValueError: if the value is not of the type.
+        """
+        legal: bool
+        if self.parameter_type == "bool":
+            legal = isinstance(value, bool)
+        elif self.parameter_type == "str":
+            legal = isinstance(value, str)
+        else:
+            legal = isNumber(value) and (
+                self.parameter_type == "float" or float(value).is_integer()
+            )
+        if not legal:
+            raise ParameterValueError(
+                f"The value {value!r} of the derived parameter {self.name!r} is not "
+                f"{_describeType(self.parameter_type)}.",
+                component=f"parameter {self.name!r}",
+                field_path=self.name,
+                suggestion="leave the parameter out: it is computed from the others",
+            )
+
     def toDict(self) -> dict[str, Any]:
         """Serializes the parameter.
 
@@ -84,3 +132,13 @@ class Derived(Parameter):
             "expression": self.expression,
             "parameter_type": self.parameter_type,
         }
+
+
+def _describeType(parameter_type: str) -> str:
+    """The type of a derived parameter as a phrase for a message."""
+    return {
+        "float": "a finite number",
+        "int": "a whole number",
+        "bool": "a bool",
+        "str": "a string",
+    }[parameter_type]

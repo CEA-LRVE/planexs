@@ -139,6 +139,31 @@ class NonlinearConstraint(Constraint):
             return False
         return value <= self.bound if self.comparator == "<=" else value >= self.bound
 
+    def violation(self, parameters: Mapping[str, object]) -> float:
+        """How far a parameterization is from satisfying `expression <comparator> bound`.
+
+        Evaluates `expression` with `evaluateExpression`. The violation is how far the value is
+        on the wrong side of the bound, divided by the scale `max(1, |bound|)`, which is the
+        scale that `EncodedConstraints` uses for a nonlinear constraint, so that one tolerance
+        suits every constraint.
+
+        Args:
+            parameters: Parameter name to value. Only the names the expression uses are read.
+
+        Returns:
+            `0.0` where the constraint holds, otherwise the relative violation. `inf` where the
+            expression is undefined or has no finite value (see `isSatisfiedBy`).
+
+        Raises:
+            ValueError: if a name the expression uses is missing from `parameters`, or its
+                value is not an `int` or a `float` (a `bool` or a string is not a number).
+        """
+        value = evaluateExpression(self.expression, parameters)
+        if math.isnan(value):
+            return math.inf
+        excess = value - self.bound if self.comparator == "<=" else self.bound - value
+        return max(0.0, excess) / max(1.0, abs(self.bound))
+
     def toDict(self) -> dict[str, Any]:
         """Serializes the constraint.
 
