@@ -135,6 +135,13 @@ class TestRange:
         with pytest.raises(ParameterValueError, match="not on the grid"):
             parameter.validateValue(0.34)
 
+    def test_a_value_exactly_on_the_grid_is_accepted_with_no_tolerance_at_all(self) -> None:
+        strict = ParameterizationCheckConfig(grid_tolerance=0.0)
+        parameter = Real("x", 0.0, 1.0, step_size=0.5)
+
+        for value in (0.0, 0.5, 1.0):
+            parameter.validateValue(value, strict)
+
     def test_options_default_to_the_defaults_of_the_config(self) -> None:
         parameter = Real("x", 0.0, 1.0, step_size=0.1)
 

@@ -548,7 +548,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-10. Problem and problem facts
 
-**Size:** S | **Needs:** P2-06, P2-09, P2-04, P2-05 | **Spec:** 5.3, 5.12 | **Status:** todo
+**Size:** S | **Needs:** P2-06, P2-09, P2-04, P2-05 | **Spec:** 5.3, 5.12 | **Status:** done
 
 **Do.** Add `domain/Problem.py`: a search space plus at least one outcome (unique names), with a function that validates a parameterization (legal values, inactive conditional parameters absent, every constraint satisfied on natural values) and a pure-data `ProblemFacts` summary (number of outcomes, outcome types, parameter and constraint types present, whether conditional parameters, equality constraints or categorical parameters exist). Mapping facts to capability tags is not done here: it needs the vocabulary and belongs to the policies layer (P6-05).
 

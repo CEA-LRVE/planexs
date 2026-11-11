@@ -98,6 +98,18 @@ class TestLinear:
 
         assert constraint.violation({"a": 10.0, "b": 10.0}) == math.inf
 
+    def test_terms_that_are_finite_but_sum_to_more_than_a_float_can_hold(self) -> None:
+        # Neither term overflows, their exact sum does: `math.fsum` raises OverflowError.
+        constraint = LinearConstraint({"a": 1.0, "b": 1.0}, bound=1.0, comparator="<=")
+
+        assert constraint.violation({"a": 1e308, "b": 1e308}) == math.inf
+
+    def test_terms_that_are_infinite_with_opposite_signs(self) -> None:
+        # inf + -inf has no value: `math.fsum` raises ValueError.
+        constraint = LinearConstraint({"a": 1e308, "b": -1e308}, bound=1.0, comparator="=")
+
+        assert constraint.violation({"a": 10.0, "b": 10.0}) == math.inf
+
     def test_it_is_never_negative_and_never_nan(self) -> None:
         constraint = LinearConstraint({"a": 1.0, "b": 1.0}, bound=1.0, comparator="<=")
         generator = random.Random(20261110)
