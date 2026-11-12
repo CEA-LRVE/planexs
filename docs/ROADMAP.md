@@ -645,7 +645,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-07. Surrogate contract and registry
 
-**Size:** S | **Needs:** P1-10, P1-08, P3-02, P2-10 | **Spec:** 5.6, 6 | **Status:** todo
+**Size:** S | **Needs:** P1-10, P1-08, P3-02, P2-10 | **Spec:** 5.6, 6 | **Status:** done
 
 **Do.** Create the `surrogates` package and the `surrogate` kind: the abstract builder (registered name, configuration schema, a build method that receives a `SurrogateBuildContext` and returns a `BuiltSurrogate`), the context (problem, encoder, train inputs, outcome tensors, optional noise tensors, random generator, runtime settings), `FitStatus` (observation count, low-data flag, warnings), the registry and `registerSurrogate`. Register the vocabulary tags `posterior:gaussian`, `posterior:latent_gaussian`, `posterior:marginal_normal`, `outputs:single`, `outputs:multi`, `noise:known` and `noise:inferred`.
 
