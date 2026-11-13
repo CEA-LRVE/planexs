@@ -557,7 +557,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-11. Lazy top-level exports
 
-**Size:** S | **Needs:** P2-02 | **Spec:** 8, 3.9 | **Status:** todo
+**Size:** S | **Needs:** P2-02 | **Spec:** 8, 3.9 | **Status:** done
 
 **Do.** `planexs/__init__.py` imports every layer eagerly, so `import planexs.domain` imports torch. Make the re-exports lazy (a module-level `__getattr__`, with imports under `TYPE_CHECKING` for type checkers) and keep `__all__` and `__version__`.
 
