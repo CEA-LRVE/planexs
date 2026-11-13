@@ -774,7 +774,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-02. Goal contract and registry
 
-**Size:** S | **Needs:** P4-01, P1-10, P2-10 | **Spec:** 5.7, 6 | **Status:** todo
+**Size:** S | **Needs:** P4-01, P1-10, P2-10 | **Spec:** 5.7, 6 | **Status:** done
 
 **Do.** Create the `goals` package and the `goal` kind: the abstract goal (configuration schema; validation against a problem; its capability tags; recipes as an ordered list of policy configurations; default analyses), the registry and `registerGoal`. Register the vocabulary tags `goal:optimize`, `goal:level_set`, `goal:explore`, `objectives:single` and `objectives:multi`.
 
