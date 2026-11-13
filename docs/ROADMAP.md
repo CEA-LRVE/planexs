@@ -567,7 +567,7 @@ Make the domain a pure, registry-driven description of problems: parameter and c
 
 ### P2-12. Domain and core purity tests
 
-**Size:** S | **Needs:** P2-11, P2-03 | **Spec:** 3.9, 10.11 | **Status:** todo
+**Size:** S | **Needs:** P2-11, P2-03 | **Spec:** 3.9, 10.11 | **Status:** done
 
 **Do.** Add tests that import `planexs.core` and `planexs.domain` in a fresh subprocess and assert that `torch`, `botorch`, `gpytorch` and `ax` are not in `sys.modules`, and that `planexs.core` imports no other planexs layer.
 
