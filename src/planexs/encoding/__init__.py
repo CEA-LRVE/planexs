@@ -9,8 +9,9 @@ decisions with (`EncoderConfig`), the compiler that turns a validated constraint
 into a tensor-evaluating function (`compileExpression`), the constraints of a search space
 rewritten on the encoded columns (`EncodedConstraints`, `toBotorchNonlinearConstraints`),
 the sampler of feasible encoded points (`sampleFeasibleEncoded`) with the values it decides
-with (`FeasibleSamplingConfig`), and the helpers that turn the runtime settings and the
-study's seeds into torch objects (`torch_runtime`).
+with (`FeasibleSamplingConfig`) and the type of the draw that supplies its raw points
+(`UniformDraw`), and the helpers that turn the runtime settings and the study's seeds into
+torch objects (`torch_runtime`).
 
 The rule of this layer: it may import `planexs.core` and `planexs.domain`, and no higher
 layer. Unlike those two, it may import torch and BoTorch; only `adapters` may import Ax.

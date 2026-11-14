@@ -9,6 +9,7 @@ from torch import Tensor
 from planexs.encoding.EncodedConstraints import EncodedConstraints
 from planexs.encoding.FeasibleSamplingConfig import FeasibleSamplingConfig
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
+from planexs.encoding.UniformDraw import UniformDraw
 
 
 def sampleFeasibleEncoded(
@@ -18,6 +19,7 @@ def sampleFeasibleEncoded(
     seed: int | None = None,
     snap: bool = True,
     config: FeasibleSamplingConfig | None = None,
+    draw: UniformDraw | None = None,
 ) -> Tensor:
     """Draws `n` encoded points that satisfy every constraint.
 
@@ -47,6 +49,12 @@ def sampleFeasibleEncoded(
         config: The sampling settings: the rounds, the polytope chain and the tolerance
             with which a candidate counts as feasible. `None` means the settings that the
             constraints were built with (`constraints.config`).
+        draw: Draws the raw points that the candidates are made from (see `UniformDraw`).
+            `None` means a scrambled Sobol sequence seeded with `seed`, as always. A draw is
+            called again, for more points, in each round that follows one that left too few
+            feasible ones, and it continues its own sequence. It is used for every candidate
+            except those that the hit-and-run chain draws inside linear constraints: that chain
+            has no raw points to draw, and only `seed` governs it.
 
     Returns:
         A tensor of shape `(n, d)`. If fewer than `n` distinct feasible points
@@ -57,7 +65,7 @@ def sampleFeasibleEncoded(
             region may be empty, or too small to hit by sampling).
     """
     if not constraints.has_constraints:
-        return encoder.sampleEncoded(n, seed=seed, snap=snap)
+        return encoder.sampleEncoded(n, seed=seed, snap=snap, draw=draw)
 
     settings = constraints.config if config is None else config
     kept: list[Tensor] = []
@@ -81,7 +89,7 @@ def sampleFeasibleEncoded(
             if snap:
                 draws = encoder.snapColumns(draws)
         else:
-            draws = encoder.sampleEncoded(n_draw, seed=round_seed, snap=snap)
+            draws = encoder.sampleEncoded(n_draw, seed=round_seed, snap=snap, draw=draw)
         n_drawn += n_draw
         feasible = draws[constraints.isFeasible(draws, settings.feasibility_tolerance)]
         if feasible.shape[0] > 0:

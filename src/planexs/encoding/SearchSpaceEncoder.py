@@ -21,6 +21,7 @@ from planexs.encoding.compileExpression import compileExpression
 from planexs.encoding.EncoderConfig import ChoiceOrderingRule, EncoderConfig
 from planexs.encoding.ParameterEncoding import LevelValue, ParameterEncoding
 from planexs.encoding.torch_runtime import torchDtype
+from planexs.encoding.UniformDraw import UniformDraw
 
 
 class SearchSpaceEncoder:
@@ -292,23 +293,52 @@ class SearchSpaceEncoder:
                 ).scatter_(-1, winner, 1.0)
         return out
 
-    def sampleEncoded(self, n: int, seed: int | None = None, snap: bool = True) -> Tensor:
-        """Draws `n` space-filling (scrambled Sobol) points of the space.
+    def sampleEncoded(
+        self,
+        n: int,
+        seed: int | None = None,
+        snap: bool = True,
+        draw: UniformDraw | None = None,
+    ) -> Tensor:
+        """Draws `n` points of the space: by default space-filling (scrambled Sobol) ones.
+
+        The raw points are drawn in the unit cube, one column per searched parameter, and
+        each column is then turned into the encoding of its parameter. By default they come
+        from a scrambled Sobol sequence seeded with `seed`, which is how the points of this
+        method were always drawn and what the callers that predate designs rely on. A caller
+        that wants other raw points (an unscrambled sequence, uniform draws) gives `draw`.
 
         Args:
             n: Number of points.
-            seed: Seed of the Sobol scrambling.
+            seed: Seed of the Sobol scrambling. Ignored when `draw` is given: a draw owns its
+                randomness (see `UniformDraw`).
             snap: Whether to round the points onto valid values (`snapColumns`).
                 Leave `False` to get continuous relaxations, as constrained
                 optimization needs for its starting points.
+            draw: Draws the raw points, `draw(n, dimension)` with `dimension` the number of
+                searched parameters. `None` means a scrambled Sobol sequence.
 
         Returns:
             A tensor of shape `(n, d)`.
+
+        Raises:
+            ValueError: if `draw` returns a tensor that does not have the shape
+                `(n, dimension)`.
         """
-        engine = SobolEngine(  # type: ignore[no-untyped-call]
-            dimension=len(self._encodings), scramble=True, seed=seed
-        )
-        uniform = engine.draw(n).to(self._dtype)
+        dimension = len(self._encodings)
+        if draw is None:
+            engine = SobolEngine(  # type: ignore[no-untyped-call]
+                dimension=dimension, scramble=True, seed=seed
+            )
+            raw = engine.draw(n)
+        else:
+            raw = draw(n, dimension)
+            if tuple(raw.shape) != (n, dimension):
+                raise ValueError(
+                    f"The draw returned a tensor of shape {tuple(raw.shape)}, but {n} points "
+                    f"of {dimension} searched parameter(s) need the shape ({n}, {dimension})."
+                )
+        uniform = raw.to(self._dtype)
         points = torch.zeros(n, self._n_columns, dtype=self._dtype)
         for latent, encoding in enumerate(self._encodings):
             if encoding.kind != "categorical":

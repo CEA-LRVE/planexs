@@ -812,7 +812,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-06. Design contract and sobol_v1
 
-**Size:** S | **Needs:** P3-05, P3-02, P1-10, P2-10 | **Spec:** 5.8, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-05, P3-02, P1-10, P2-10 | **Spec:** 5.8, 6 | **Status:** done
 
 **Do.** Create the `designs` package and the `design` kind (abstract design, registry, `registerDesign`) and register `sobol_v1`: scrambled Sobol points in the encoded space, constraint-satisfying through the feasible sampler, with `n_points` and `scramble` as configuration, and an option to count existing observations so that a warm start shortens the initial phase.
 
