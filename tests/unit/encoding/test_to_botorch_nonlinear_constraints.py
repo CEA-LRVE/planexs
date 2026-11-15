@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from planexs import NonlinearConstraint
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.encoding.toBotorchNonlinearConstraints import toBotorchNonlinearConstraints
 
 
@@ -112,3 +113,34 @@ class TestErrors:
             toBotorchNonlinearConstraints(
                 [NonlinearConstraint("x * w", "<=", 1.0)], ["x", "y"]
             )
+
+
+class TestLimitsOfTheConstraint:
+    """Each expression is compiled under the limits of its own constraint (roadmap P3-06)."""
+
+    def test_a_constraint_accepted_with_larger_limits_compiles(self) -> None:
+        deep = NonlinearConstraint(
+            "-" * 250 + "x", "<=", 5.0, limits=ExpressionLimitsConfig(max_depth=250)
+        )
+        name = "v" * 1500
+        long = NonlinearConstraint(
+            name, ">=", 1.0, limits=ExpressionLimitsConfig(max_length=1500)
+        )
+
+        [(deep_function, _)] = toBotorchNonlinearConstraints([deep], ["x"])
+        [(long_function, _)] = toBotorchNonlinearConstraints([long], [name])
+
+        assert float(deep_function(_point(2.0))) == pytest.approx(3.0)  # 5 - 2
+        assert float(deep_function(_point(6.0))) == pytest.approx(-1.0)  # 5 - 6
+        assert float(long_function(_point(3.0))) == pytest.approx(2.0)  # 3 - 1
+
+    def test_each_constraint_keeps_its_own_limits_in_one_call(self) -> None:
+        wide = NonlinearConstraint(
+            "-" * 250 + "x", "<=", 5.0, limits=ExpressionLimitsConfig(max_depth=250)
+        )
+        plain = NonlinearConstraint("x * y", "<=", 1.0)
+
+        compiled = toBotorchNonlinearConstraints([wide, plain], ["x", "y"])
+
+        assert float(compiled[0][0](_point(2.0, 0.0))) == pytest.approx(3.0)
+        assert float(compiled[1][0](_point(0.5, 0.5))) == pytest.approx(0.75)

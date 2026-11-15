@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from typing import Any
 
@@ -10,9 +11,9 @@ import pytest
 from planexs import LinearConstraint, NonlinearConstraint, Real, SearchSpace
 from planexs.core.ConfigError import ConfigError
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.validateExpression import (
     ALLOWED_EXPRESSION_FUNCTIONS,
-    MAX_EXPRESSION_LENGTH,
     validateExpression,
 )
 
@@ -109,7 +110,7 @@ class TestExpressionGrammar:
 
     def test_rejects_overlong_expressions(self) -> None:
         with pytest.raises(ValueError, match="limited"):
-            validateExpression("x + " * MAX_EXPRESSION_LENGTH + "x")
+            validateExpression("x + " * ExpressionLimitsConfig().max_length + "x")
 
     def test_redundant_parentheses_are_not_nesting(self) -> None:
         assert validateExpression("(" * 200 + "x" + ")" * 200) == {"x"}
@@ -264,3 +265,208 @@ class TestIsSatisfiedBy:
         constraint.isSatisfiedBy({"x": 1.0})
 
         assert constraint.toDict() == before
+
+
+# Expressions that the default limits (1000 characters, 200 levels) refuse, each with limits
+# that allow it. The first is long and shallow (a single name), the second deep and short (a
+# chain of unary minus signs, which an even count leaves as `x`), the third both (a sum).
+LONG_NAME = "v" * 1500
+DEEP_CHAIN = "-" * 250 + "x"
+LONG_SUM = " + ".join(f"p{i}" for i in range(250))
+BEYOND_THE_DEFAULTS = [
+    pytest.param(LONG_NAME, ExpressionLimitsConfig(max_length=1500), id="too-long"),
+    pytest.param(DEEP_CHAIN, ExpressionLimitsConfig(max_depth=250), id="too-deep"),
+    pytest.param(
+        LONG_SUM,
+        ExpressionLimitsConfig(max_length=2000, max_depth=300),
+        id="too-long-and-deep",
+    ),
+]
+
+
+class TestExpressionLimits:
+    """The limits an expression is accepted under belong to the constraint (roadmap P3-06)."""
+
+    @pytest.mark.parametrize(("expression", "limits"), BEYOND_THE_DEFAULTS)
+    def test_an_expression_the_defaults_refuse_is_accepted_under_larger_limits(
+        self, expression: str, limits: ExpressionLimitsConfig
+    ) -> None:
+        with pytest.raises(ValueError):
+            NonlinearConstraint(expression, "<=", 5.0)
+
+        constraint = NonlinearConstraint(expression, "<=", 5.0, limits=limits)
+
+        assert constraint.limits == limits
+        assert constraint.referencedNames() == validateExpression(expression, limits)
+
+    @pytest.mark.parametrize(("expression", "limits"), BEYOND_THE_DEFAULTS)
+    def test_it_survives_a_round_trip_through_json(
+        self, expression: str, limits: ExpressionLimitsConfig
+    ) -> None:
+        constraint = NonlinearConstraint(expression, "<=", 5.0, limits=limits)
+
+        stored = json.loads(json.dumps(constraint.toDict()))
+        rebuilt = constraintFromDict(stored)
+
+        assert isinstance(rebuilt, NonlinearConstraint)
+        assert rebuilt == constraint
+        assert rebuilt.limits == limits
+        assert rebuilt.toDict() == constraint.toDict()
+
+    def test_the_limits_are_written_in_full_even_when_only_one_differs(self) -> None:
+        # In full, so that a later change of a default cannot alter how this one reads back.
+        constraint = NonlinearConstraint(
+            LONG_NAME, "<=", 5.0, limits=ExpressionLimitsConfig(max_length=1500)
+        )
+
+        assert constraint.toDict()["limits"] == {"max_length": 1500, "max_depth": 200}
+
+    def test_the_default_round_trip_is_unchanged(self) -> None:
+        constraint = NonlinearConstraint("var * x ** z", "<=", 50.0)
+
+        stored = constraint.toDict()
+
+        assert stored == {
+            "type": "nonlinear",
+            "expression": "var * x ** z",
+            "comparator": "<=",
+            "bound": 50.0,
+        }
+        rebuilt = constraintFromDict(json.loads(json.dumps(stored)))
+        assert rebuilt == constraint
+        assert rebuilt.limits == ExpressionLimitsConfig()
+
+    def test_limits_that_are_the_defaults_are_the_same_constraint_and_are_not_written(
+        self,
+    ) -> None:
+        plain = NonlinearConstraint("x * y", "<=", 1.0)
+        explicit = NonlinearConstraint("x * y", "<=", 1.0, limits=ExpressionLimitsConfig())
+        written = NonlinearConstraint(
+            "x * y", "<=", 1.0, limits=ExpressionLimitsConfig(max_length=1000, max_depth=200)
+        )
+
+        assert plain == explicit == written
+        assert "limits" not in explicit.toDict()
+        assert "limits" not in written.toDict()
+
+    def test_the_limits_of_a_stored_form_may_be_given_in_part(self) -> None:
+        stored = {
+            "type": "nonlinear",
+            "expression": LONG_NAME,
+            "comparator": "<=",
+            "bound": 5.0,
+            "limits": {"max_length": 1500},
+        }
+
+        rebuilt = constraintFromDict(stored)
+
+        assert isinstance(rebuilt, NonlinearConstraint)
+        assert rebuilt.limits == ExpressionLimitsConfig(max_length=1500, max_depth=200)
+
+    def test_a_stored_expression_beyond_its_own_limits_is_refused(self) -> None:
+        stored = {
+            "type": "nonlinear",
+            "expression": LONG_NAME,
+            "comparator": "<=",
+            "bound": 5.0,
+            "limits": {"max_length": 100},
+        }
+
+        with pytest.raises(ValueError, match="limited to 100 characters"):
+            constraintFromDict(stored)
+
+    @pytest.mark.parametrize(
+        ("limits", "path"),
+        [
+            ({"max_length": 0}, "limits.max_length"),
+            ({"max_depth": -1}, "limits.max_depth"),
+            ({"max_widht": 5}, "limits.max_widht"),
+        ],
+    )
+    def test_a_bad_stored_limit_is_refused_with_its_path(
+        self, limits: dict[str, int], path: str
+    ) -> None:
+        stored = {
+            "type": "nonlinear",
+            "expression": "x * y",
+            "comparator": "<=",
+            "bound": 1.0,
+            "limits": limits,
+        }
+
+        with pytest.raises(ConfigError) as caught:
+            constraintFromDict(stored)
+
+        assert caught.value.field_path == path
+
+    def test_tighter_limits_refuse_an_expression_the_defaults_accept(self) -> None:
+        with pytest.raises(ValueError, match="deeply"):
+            NonlinearConstraint(
+                "x + y + z", "<=", 1.0, limits=ExpressionLimitsConfig(max_depth=1)
+            )
+
+    def test_a_search_space_keeps_the_limits_of_each_constraint_through_json(self) -> None:
+        space = SearchSpace(
+            [Real("x", 0.1, 5.0), Real("y", 0.1, 5.0)],
+            constraints=[
+                NonlinearConstraint("x * y ** 2", "<=", 20.0),
+                NonlinearConstraint(
+                    DEEP_CHAIN, "<=", 3.0, limits=ExpressionLimitsConfig(max_depth=250)
+                ),
+            ],
+        )
+
+        document = space.model_dump_json()
+        rebuilt = SearchSpace.model_validate_json(document)
+
+        stored = json.loads(document)["constraints"]
+        assert "limits" not in stored[0]
+        assert stored[1]["limits"] == {"max_length": 1000, "max_depth": 250}
+        assert rebuilt.constraints == space.constraints
+        assert [
+            c.limits for c in rebuilt.constraints if isinstance(c, NonlinearConstraint)
+        ] == [
+            ExpressionLimitsConfig(),
+            ExpressionLimitsConfig(max_depth=250),
+        ]
+
+
+class TestEveryReaderOfTheExpressionUsesTheLimitsOfTheConstraint:
+    """A constraint that was accepted must also be checkable: if any method forgot to pass its
+    limits on, it would refuse the very expression the constructor accepted.
+    """
+
+    DEEP = NonlinearConstraint(
+        DEEP_CHAIN, "<=", 5.0, limits=ExpressionLimitsConfig(max_depth=250)
+    )
+    LONG = NonlinearConstraint(
+        "v" * 1500, "<=", 5.0, limits=ExpressionLimitsConfig(max_length=1500)
+    )
+
+    @pytest.mark.parametrize("constraint", [DEEP, LONG], ids=["deep", "long"])
+    def test_is_satisfied_by_judges_a_point(self, constraint: NonlinearConstraint) -> None:
+        name = next(iter(constraint.referencedNames()))
+
+        assert constraint.isSatisfiedBy({name: 2.0}) is True
+        assert constraint.isSatisfiedBy({name: 6.0}) is False
+
+    @pytest.mark.parametrize("constraint", [DEEP, LONG], ids=["deep", "long"])
+    def test_violation_measures_a_point(self, constraint: NonlinearConstraint) -> None:
+        name = next(iter(constraint.referencedNames()))
+
+        assert constraint.violation({name: 2.0}) == 0.0
+        assert constraint.violation({name: 6.0}) == pytest.approx(1.0 / 5.0)
+
+    @pytest.mark.parametrize("constraint", [DEEP, LONG], ids=["deep", "long"])
+    def test_a_rebuilt_constraint_judges_the_same_points(
+        self, constraint: NonlinearConstraint
+    ) -> None:
+        rebuilt = constraintFromDict(json.loads(json.dumps(constraint.toDict())))
+        name = next(iter(constraint.referencedNames()))
+
+        assert isinstance(rebuilt, NonlinearConstraint)
+        for value in (2.0, 5.0, 6.0):
+            assert rebuilt.isSatisfiedBy({name: value}) == constraint.isSatisfiedBy(
+                {name: value}
+            )
+            assert rebuilt.violation({name: value}) == constraint.violation({name: value})

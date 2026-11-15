@@ -32,6 +32,9 @@ def toBotorchNonlinearConstraints(
     tensor column is which parameter, since the callable only sees a tensor,
     not named values.
 
+    Each expression is compiled under the `limits` of its own constraint, the ones it was
+    validated with, so a constraint that was accepted with larger limits is not refused here.
+
     Args:
         constraints: The constraints to compile.
         parameter_order: Names of the tensor's columns, in order.
@@ -50,7 +53,7 @@ def toBotorchNonlinearConstraints(
     compiled: list[tuple[Callable[[Tensor], Tensor], bool]] = []
     for constraint in constraints:
         try:
-            function = compileExpression(constraint.expression, available)
+            function = compileExpression(constraint.expression, available, constraint.limits)
         except ValueError as error:
             raise ValueError(
                 f"Cannot use NonlinearConstraint {constraint.expression!r} "

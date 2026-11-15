@@ -18,6 +18,7 @@ from planexs import (
     SearchSpace,
 )
 from planexs.core.RuntimeConfig import RuntimeConfig
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.encoding.EncodedConstraints import EncodedConstraints
 from planexs.encoding.sampleFeasibleEncoded import sampleFeasibleEncoded
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
@@ -351,3 +352,32 @@ class TestPrecisionFollowsTheEncoder:
         assert points.dtype == encoder.dtype
         assert tuple(points.shape) == (16, 2)
         assert bool(constraints.isFeasible(points).all())
+
+
+class TestAConstraintWithLargerExpressionLimits:
+    """A nonlinear constraint accepted under larger limits is usable by the acquisition layer:
+    the constraints are encoded, checked, and sampled under the limits it carries (P3-06).
+    """
+
+    @staticmethod
+    def _space() -> SearchSpace:
+        # An even number of minus signs, so the expression is the value of `x`: x <= 5.
+        constraint = NonlinearConstraint(
+            "-" * 250 + "x", "<=", 5.0, limits=ExpressionLimitsConfig(max_depth=250)
+        )
+        return SearchSpace([Real("x", 0.0, 10.0)], constraints=[constraint])
+
+    def test_the_feasibility_check_follows_the_expression(self) -> None:
+        encoder, constraints = _build(self._space())
+
+        assert constraints.has_constraints
+        assert bool(constraints.isFeasible(encoder.encodeParameters({"x": 4.0})))
+        assert not bool(constraints.isFeasible(encoder.encodeParameters({"x": 8.0})))
+
+    def test_sampled_points_all_satisfy_it(self) -> None:
+        encoder, constraints = _build(self._space())
+
+        points = sampleFeasibleEncoded(encoder, constraints, 16, seed=3)
+
+        assert bool(constraints.isFeasible(points).all())
+        assert all(encoder.decode(point)["x"] <= 5.0 for point in points)

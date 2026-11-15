@@ -7,6 +7,7 @@ import math
 from collections.abc import Callable, Mapping
 from typing import cast
 
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.validateExpression import validateExpression
 
 
@@ -56,7 +57,11 @@ _FUNCTIONS: dict[str, Callable[..., float]] = {
 }
 
 
-def evaluateExpression(expression: str, variables: Mapping[str, object]) -> float:
+def evaluateExpression(
+    expression: str,
+    variables: Mapping[str, object],
+    limits: ExpressionLimitsConfig | None = None,
+) -> float:
     """Evaluates `expression` on plain Python numbers and returns its value.
 
     This is the pure counterpart of `encoding/compileExpression.py`: the same restricted
@@ -79,16 +84,20 @@ def evaluateExpression(expression: str, variables: Mapping[str, object]) -> floa
         variables: Maps each name the expression uses to its value, which must be an `int` or a
             `float` (a `bool` or a string is not a number here). Names the expression does not
             use are ignored.
+        limits: The largest text and the deepest nesting that `validateExpression` accepts.
+            `None` means `ExpressionLimitsConfig()`, the defaults of the schema. Pass the
+            limits that the expression was validated with, or an expression that they allow
+            is refused here.
 
     Returns:
         The value as a `float`, or `nan` where it is undefined or not finite.
 
     Raises:
-        ValueError: if `expression` is invalid (see `validateExpression`), uses a name that is
-            not in `variables`, or a name whose value is not an `int` or `float` that a float
-            can hold.
+        ValueError: if `expression` is invalid or exceeds `limits` (see `validateExpression`),
+            uses a name that is not in `variables`, or a name whose value is not an `int` or
+            `float` that a float can hold.
     """
-    referenced = validateExpression(expression)
+    referenced = validateExpression(expression, limits)
     numbers = _numbersFor(expression, referenced, variables)
     body = ast.parse(expression.strip(), mode="eval").body
     try:

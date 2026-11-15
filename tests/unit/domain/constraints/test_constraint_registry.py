@@ -22,6 +22,7 @@ from planexs.core.ConfigError import ConfigError
 from planexs.core.KindTable import KindTable
 from planexs.domain.constraints.constraintFromDict import constraintFromDict
 from planexs.domain.constraints.constraintRegistry import constraintRegistry
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.LinearConstraintConfig import LinearConstraintConfig
 from planexs.domain.constraints.NonlinearConstraintConfig import NonlinearConstraintConfig
 
@@ -112,7 +113,13 @@ class TestTheSchemasStayInStepWithTheClasses:
             in_schema = schema.model_fields[field]
             assert in_schema.is_required() == in_class.is_required(), field
             if not in_class.is_required():
-                assert in_schema.default == in_class.default, field
+                # Compared by what the field gives, factory included: `.default` alone is
+                # `PydanticUndefined` for a field with a `default_factory` (such as the
+                # nonlinear `limits`), so comparing it would hold whatever the two factories
+                # build.
+                assert in_schema.get_default(
+                    call_default_factory=True
+                ) == in_class.get_default(call_default_factory=True), field
 
     @pytest.mark.parametrize("name", sorted(REGISTERED))
     def test_every_field_of_a_schema_is_described(self, name: str) -> None:
@@ -135,6 +142,13 @@ EXACT_EXAMPLES: list[Constraint] = [
     NonlinearConstraint("x * y", ">=", 2.0),
     NonlinearConstraint("sqrt(x) + log(y) - 1.5", "<=", 0.1 + 0.2),
     NonlinearConstraint("-x ** 2 + max(a, b)", ">=", -1e-9),
+    # Limits that differ from the defaults are written, in full, and read back as they were.
+    NonlinearConstraint(
+        "-" * 250 + "x", "<=", 5.0, limits=ExpressionLimitsConfig(max_depth=250)
+    ),
+    NonlinearConstraint(
+        "x * y", ">=", 2.0, limits=ExpressionLimitsConfig(max_length=5000, max_depth=500)
+    ),
 ]
 
 

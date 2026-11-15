@@ -6,10 +6,11 @@ import math
 from collections.abc import Mapping
 from typing import Any, Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from planexs.domain.constraints.Constraint import Constraint
 from planexs.domain.constraints.evaluateExpression import evaluateExpression
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.NonlinearConstraintConfig import NonlinearConstraintConfig
 from planexs.domain.constraints.registerConstraint import registerConstraint
 from planexs.domain.constraints.validateExpression import validateExpression
@@ -51,21 +52,37 @@ class NonlinearConstraint(Constraint):
     negative base with a fractional power) is that the point counts as
     infeasible.
 
+    How large the expression may be is a policy value (specification 3.4), not part of the
+    grammar: the `limits` field holds the longest text and the deepest nesting that the
+    constraint accepts, as an `ExpressionLimitsConfig`. The limits are applied wherever the
+    expression is read (the validation here, `isSatisfiedBy`, `violation`, and the compiled
+    form of the acquisition layer), so a constraint that was accepted can always be checked
+    and optimized. They are saved with the constraint only when they are not the defaults.
+
     Attributes:
         expression: The left-hand side, over parameter names.
         comparator: `"<="` or `">="`.
         bound: The right-hand side. Must be finite.
+        limits: The largest text and the deepest nesting that `expression` may have.
     """
 
     expression: str
     comparator: Literal["<=", ">="]
     bound: float
+    limits: ExpressionLimitsConfig = Field(
+        default_factory=ExpressionLimitsConfig,
+        description=(
+            "The largest text and the deepest nesting that the expression may have, as the "
+            "two fields of ExpressionLimitsConfig. The defaults are those of that schema."
+        ),
+    )
 
     def __init__(
         self,
         expression: str,
         comparator: Literal["<=", ">="],
         bound: float,
+        limits: ExpressionLimitsConfig | None = None,
     ) -> None:
         """Creates a nonlinear constraint from an expression string.
 
@@ -73,15 +90,24 @@ class NonlinearConstraint(Constraint):
             expression: The left-hand side, over parameter names.
             comparator: `"<="` or `">="`.
             bound: The right-hand side. Must be finite.
+            limits: The largest text and the deepest nesting that `expression` may have.
+                `None` means `ExpressionLimitsConfig()`, the defaults of the schema.
 
         Raises:
-            ValueError: if the bound is not finite or the expression is invalid.
+            ValueError: if the bound is not finite, or the expression is invalid or exceeds
+                the limits.
         """
-        super().__init__(expression=expression, comparator=comparator, bound=bound)
+        super().__init__(
+            expression=expression,
+            comparator=comparator,
+            bound=bound,
+            limits=ExpressionLimitsConfig() if limits is None else limits,
+        )
 
     @model_validator(mode="after")
     def _validateExpressionAndBound(self) -> NonlinearConstraint:
-        """Checks the bound is finite and the expression uses only the allowed grammar.
+        """Checks the bound is finite and the expression uses only the allowed grammar, within
+        the limits.
 
         Returns:
             The constraint itself.
@@ -91,7 +117,7 @@ class NonlinearConstraint(Constraint):
         """
         if not math.isfinite(self.bound):
             raise ValueError(f"NonlinearConstraint bound must be finite; got {self.bound!r}.")
-        validateExpression(self.expression)
+        validateExpression(self.expression, self.limits)
         return self
 
     @property
@@ -106,17 +132,17 @@ class NonlinearConstraint(Constraint):
         Returns:
             The set of variable names in `expression`.
         """
-        return validateExpression(self.expression)
+        return validateExpression(self.expression, self.limits)
 
     def isSatisfiedBy(self, parameters: Mapping[str, object]) -> bool:
         """Whether a parameterization of natural values satisfies this constraint.
 
-        Evaluates `expression` with `evaluateExpression`, on plain numbers and without any
-        machine-learning library, and compares it with `bound`. The comparison is exact: a
-        value on the bound satisfies it, and there is no tolerance (the acquisition layer
-        applies its own to encoded points, see `EncodedConstraints`). Where the expression is
-        undefined or has no finite value (`sqrt` of a negative number, a division by zero, an
-        overflow) the point is infeasible.
+        Evaluates `expression` with `evaluateExpression` (under this constraint's `limits`), on
+        plain numbers and without any machine-learning library, and compares it with `bound`.
+        The comparison is exact: a value on the bound satisfies it, and there is no tolerance
+        (the acquisition layer applies its own to encoded points, see `EncodedConstraints`).
+        Where the expression is undefined or has no finite value (`sqrt` of a negative number,
+        a division by zero, an overflow) the point is infeasible.
 
         Parses the expression each call, so it is a method rather than a property.
 
@@ -134,7 +160,7 @@ class NonlinearConstraint(Constraint):
                 These are errors of the call, not infeasible points: a point whose parameter
                 is inactive, for example, cannot be judged by this constraint.
         """
-        value = evaluateExpression(self.expression, parameters)
+        value = evaluateExpression(self.expression, parameters, self.limits)
         if math.isnan(value):
             return False
         return value <= self.bound if self.comparator == "<=" else value >= self.bound
@@ -158,7 +184,7 @@ class NonlinearConstraint(Constraint):
             ValueError: if a name the expression uses is missing from `parameters`, or its
                 value is not an `int` or a `float` (a `bool` or a string is not a number).
         """
-        value = evaluateExpression(self.expression, parameters)
+        value = evaluateExpression(self.expression, parameters, self.limits)
         if math.isnan(value):
             return math.inf
         excess = value - self.bound if self.comparator == "<=" else self.bound - value
@@ -167,12 +193,19 @@ class NonlinearConstraint(Constraint):
     def toDict(self) -> dict[str, Any]:
         """Serializes the constraint.
 
+        The `limits` are written only when they differ from the defaults, and then in full, so
+        that a constraint with the default limits keeps the form it always had, and one with
+        other limits is read back with exactly the limits it was validated with.
+
         Returns:
             A type-tagged, JSON-compatible form, rebuilt by `constraintFromDict`.
         """
-        return {
+        data: dict[str, Any] = {
             "type": "nonlinear",
             "expression": self.expression,
             "comparator": self.comparator,
             "bound": self.bound,
         }
+        if self.limits != ExpressionLimitsConfig():
+            data["limits"] = self.limits.model_dump(mode="json")
+        return data

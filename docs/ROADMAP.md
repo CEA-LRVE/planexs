@@ -635,7 +635,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-06. Expression limits to configuration
 
-**Size:** S | **Needs:** P2-05, P1-09 | **Spec:** 3.4 | **Status:** todo
+**Size:** S | **Needs:** P2-05, P1-09 | **Spec:** 3.4 | **Status:** done
 
 **Do.** Introduce `ExpressionLimitsConfig` (maximum length 1000 and nesting depth 200 today) and let `NonlinearConstraint` carry an optional `limits` field that is serialized only when it differs from the default. `validateExpression` takes the limits as an argument. Delete the matching baseline lines.
 

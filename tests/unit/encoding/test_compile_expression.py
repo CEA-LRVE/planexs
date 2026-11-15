@@ -8,6 +8,7 @@ import math
 import pytest
 import torch
 
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.validateExpression import ALLOWED_EXPRESSION_FUNCTIONS
 from planexs.encoding.compileExpression import compileExpression
 
@@ -94,3 +95,37 @@ class TestErrors:
 def test_function_table_matches_the_domain_allowlist() -> None:
     module = importlib.import_module("planexs.encoding.compileExpression")
     assert set(module._FUNCTIONS) == set(ALLOWED_EXPRESSION_FUNCTIONS)
+
+
+class TestLimits:
+    """The compiler reads an expression under the limits it is given (roadmap P3-06)."""
+
+    def test_an_expression_too_deep_for_the_defaults_compiles_under_larger_limits(
+        self,
+    ) -> None:
+        expression = "-" * 250 + "x"  # an even number of minus signs: the value of `x`
+        with pytest.raises(ValueError, match="deeply"):
+            compileExpression(expression, ["x"])
+
+        function = compileExpression(expression, ["x"], ExpressionLimitsConfig(max_depth=250))
+
+        assert float(function({"x": torch.tensor(2.0, dtype=torch.double)})) == 2.0
+
+    def test_an_expression_too_long_for_the_defaults_compiles_under_larger_limits(
+        self,
+    ) -> None:
+        name = "v" * 1500
+        with pytest.raises(ValueError, match="limited"):
+            compileExpression(name, [name])
+
+        function = compileExpression(name, [name], ExpressionLimitsConfig(max_length=1500))
+
+        assert float(function({name: torch.tensor(3.0, dtype=torch.double)})) == 3.0
+
+    def test_tighter_limits_refuse_what_the_defaults_accept(self) -> None:
+        assert compileExpression("x + y + z", ["x", "y", "z"])
+
+        with pytest.raises(ValueError, match="deeply"):
+            compileExpression(
+                "x + y + z", ["x", "y", "z"], ExpressionLimitsConfig(max_depth=1)
+            )

@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from planexs.domain.constraints.evaluateExpression import evaluateExpression
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.NonlinearConstraint import NonlinearConstraint
 from planexs.domain.constraints.validateExpression import (
     ALLOWED_EXPRESSION_FUNCTIONS,
@@ -305,3 +306,60 @@ class TestWhereTheyDiffer:
                         assert compiledMargin(constraint, point) >= 0.0, (constraint, point)
 
         assert permitted > 0, f"the pure check accepted none of {checked} points"
+
+
+class TestLimits:
+    """The validator, the pure evaluator and the compiler take the same limits and apply them
+    alike (roadmap P3-06): none of them keeps a limit of its own.
+    """
+
+    @pytest.mark.parametrize(
+        ("expression", "limits"),
+        [
+            ("-" * 250 + "x", ExpressionLimitsConfig(max_depth=250)),
+            ("x" * 1500, ExpressionLimitsConfig(max_length=1500)),
+            ("x + y + z", ExpressionLimitsConfig(max_depth=1)),
+            ("x" * 20, ExpressionLimitsConfig(max_length=10)),
+        ],
+        ids=["wider-depth", "wider-length", "tighter-depth", "tighter-length"],
+    )
+    def test_the_three_accept_and_refuse_the_same_expressions(
+        self, expression: str, limits: ExpressionLimitsConfig
+    ) -> None:
+        names = sorted(
+            validateExpression(
+                expression, ExpressionLimitsConfig(max_length=10**6, max_depth=10**6)
+            )
+        )
+        values = {name: 1.0 for name in names}
+
+        def verdicts(limits_argument: ExpressionLimitsConfig | None) -> list[bool]:
+            return [
+                accepts(validateExpression, expression, limits_argument),
+                accepts(evaluateExpression, expression, values, limits_argument),
+                accepts(compileExpression, expression, names, limits_argument),
+            ]
+
+        by_default = verdicts(None)
+        with_limits = verdicts(limits)
+
+        assert len(set(by_default)) == 1, by_default
+        assert len(set(with_limits)) == 1, with_limits
+        assert by_default != with_limits  # the limits changed the verdict, in all three
+
+    def test_the_two_forms_still_agree_on_the_value_of_a_deep_expression(self) -> None:
+        expression = "-" * 250 + "x"
+        limits = ExpressionLimitsConfig(max_depth=250)
+        constraint = NonlinearConstraint(expression, "<=", 5.0, limits=limits)
+        ((margin, _),) = toBotorchNonlinearConstraints([constraint], ["x"])
+
+        for value in (-1.0, 2.0, 5.0, 6.0):
+            compiled = compileExpression(expression, ["x"], limits)(
+                {"x": torch.tensor(value, dtype=torch.double)}
+            )
+            assert evaluateExpression(expression, {"x": value}, limits) == pytest.approx(
+                float(compiled)
+            )
+            # The pure check and the compiled margin judge the point alike.
+            feasible = float(margin(torch.tensor([value], dtype=torch.double))) >= 0.0
+            assert constraint.isSatisfiedBy({"x": value}) == feasible

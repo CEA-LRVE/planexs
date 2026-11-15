@@ -28,8 +28,6 @@ src/planexs/api/BayesianOptimizer.py :: <module> :: module level :: 31
 src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer.__init__ :: function body :: 31
 src/planexs/api/BayesianOptimizer.py :: BayesianOptimizer._askWithAlpha :: function body :: 1000003
 src/planexs/backends/ax/AxBackend.py :: AxBackend.__init__ :: function body :: 31
-src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 1000
-src/planexs/domain/constraints/validateExpression.py :: <module> :: module level :: 200
 src/planexs/domain/parameters/Range.py :: Range._validate_default :: function body :: 1e-09
 src/planexs/models/buildSurrogateModel.py :: <module> :: module level :: 1e-10
 src/planexs/models/buildSurrogateModel.py :: buildSurrogateModel :: signature default :: 5

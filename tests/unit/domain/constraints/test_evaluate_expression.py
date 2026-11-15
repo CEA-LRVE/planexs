@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 from planexs.domain.constraints.evaluateExpression import evaluateExpression
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.validateExpression import ALLOWED_EXPRESSION_FUNCTIONS
 
 SRC = Path(__file__).resolve().parents[4] / "src"
@@ -223,7 +224,10 @@ class TestGrammarDrift:
         module = importlib.import_module("planexs.domain.constraints.evaluateExpression")
         # Stand in for a grammar change that was not mirrored here: the validator lets a
         # list through. The evaluator must refuse it loudly, not call it an undefined point.
-        monkeypatch.setattr(module, "validateExpression", lambda expression: frozenset())
+        # The stand-in takes the `limits` argument the real validator takes.
+        monkeypatch.setattr(
+            module, "validateExpression", lambda expression, limits=None: frozenset()
+        )
 
         with pytest.raises(ValueError, match=r"Unsupported expression node List"):
             evaluateExpression("[x]", {})
@@ -301,3 +305,48 @@ print("ok")
 
         assert result.returncode == 0, result.stderr
         assert result.stdout.strip() == "ok"
+
+
+class TestLimits:
+    """The evaluator reads an expression under the limits it is given (roadmap P3-06)."""
+
+    def test_an_expression_too_deep_for_the_defaults_is_evaluated_under_larger_limits(
+        self,
+    ) -> None:
+        expression = "-" * 250 + "x"  # an even number of minus signs: the value of `x`
+        with pytest.raises(ValueError, match="deeply"):
+            evaluateExpression(expression, {"x": 2.0})
+
+        value = evaluateExpression(
+            expression, {"x": 2.0}, ExpressionLimitsConfig(max_depth=250)
+        )
+
+        assert value == 2.0
+
+    def test_an_expression_too_long_for_the_defaults_is_evaluated_under_larger_limits(
+        self,
+    ) -> None:
+        name = "v" * 1500
+        with pytest.raises(ValueError, match="limited"):
+            evaluateExpression(name, {name: 3.0})
+
+        value = evaluateExpression(name, {name: 3.0}, ExpressionLimitsConfig(max_length=1500))
+
+        assert value == 3.0
+
+    def test_tighter_limits_refuse_what_the_defaults_accept(self) -> None:
+        assert evaluateExpression("x + y + z", {"x": 1.0, "y": 2.0, "z": 3.0}) == 6.0
+
+        with pytest.raises(ValueError, match="deeply"):
+            evaluateExpression(
+                "x + y + z",
+                {"x": 1.0, "y": 2.0, "z": 3.0},
+                ExpressionLimitsConfig(max_depth=1),
+            )
+
+    def test_none_means_the_defaults(self) -> None:
+        variables = {"x": 4.0}
+
+        assert evaluateExpression("sqrt(x)", variables, None) == evaluateExpression(
+            "sqrt(x)", variables, ExpressionLimitsConfig()
+        )

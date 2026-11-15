@@ -9,6 +9,7 @@ from typing import cast
 import torch
 from torch import Tensor
 
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 from planexs.domain.constraints.validateExpression import validateExpression
 
 _FUNCTIONS: dict[str, Callable[..., Tensor]] = {
@@ -28,7 +29,9 @@ _FUNCTIONS: dict[str, Callable[..., Tensor]] = {
 
 
 def compileExpression(
-    expression: str, allowed_variables: Collection[str]
+    expression: str,
+    allowed_variables: Collection[str],
+    limits: ExpressionLimitsConfig | None = None,
 ) -> Callable[[Mapping[str, Tensor]], Tensor]:
     """Compiles `expression` into a function of named tensors.
 
@@ -42,6 +45,10 @@ def compileExpression(
         expression: The expression, e.g. `"var * x ** z"`.
         allowed_variables: The names the returned function will be given. Every
             variable in `expression` must be among them.
+        limits: The largest text and the deepest nesting that `validateExpression` accepts.
+            `None` means `ExpressionLimitsConfig()`, the defaults of the schema. Pass the
+            limits that the expression was validated with, or an expression that they allow
+            is refused here.
 
     Returns:
         A function taking a mapping from variable name to a tensor (all of one
@@ -49,10 +56,10 @@ def compileExpression(
         shape holding the expression's value.
 
     Raises:
-        ValueError: if `expression` is invalid (see `validateExpression`) or
-            references a name not in `allowed_variables`.
+        ValueError: if `expression` is invalid or exceeds `limits` (see
+            `validateExpression`) or references a name not in `allowed_variables`.
     """
-    referenced = validateExpression(expression)
+    referenced = validateExpression(expression, limits)
     unknown = referenced - set(allowed_variables)
     if unknown:
         raise ValueError(

@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from planexs.core.ComponentConfig import ComponentConfig
+from planexs.domain.constraints.ExpressionLimitsConfig import ExpressionLimitsConfig
 
 
 class NonlinearConstraintConfig(ComponentConfig):
@@ -24,6 +25,7 @@ class NonlinearConstraintConfig(ComponentConfig):
         expression: The left-hand side, over parameter names.
         comparator: `"<="` or `">="`.
         bound: The right-hand side.
+        limits: The largest text and the deepest nesting that the expression may have.
     """
 
     type: Literal["nonlinear"] = Field(
@@ -58,5 +60,17 @@ class NonlinearConstraintConfig(ComponentConfig):
             "The right-hand side of the inequality, in the unit of the expression. It must "
             "be finite. There is no default: only the caller knows the limit that the "
             "constraint states."
+        ),
+    )
+    limits: ExpressionLimitsConfig = Field(
+        default_factory=ExpressionLimitsConfig,
+        description=(
+            "The largest text and the deepest nesting that the expression may have: the "
+            "two fields of ExpressionLimitsConfig, 'max_length' (characters) and "
+            "'max_depth' (levels of nesting), each described there. Left out, it holds the "
+            "defaults of that schema, which is what a constraint that sets nothing is "
+            "validated with, and a constraint writes this field only when its limits "
+            "differ from them. Raise a limit for an expression that is generated and "
+            "longer or deeper than the defaults allow."
         ),
     )
