@@ -5,9 +5,14 @@ A surrogate is chosen by name in configuration, so this layer is organized aroun
 `surrogate` kind of components: the contract that every surrogate honours
 (`AbstractSurrogateBuilder`), what it is given (`SurrogateBuildContext`) and what it returns
 (`BuiltSurrogate`, with its `FitStatus`), the registry (`surrogateRegistry`) and the
-registration decorator (`registerSurrogate`). The surrogates themselves, the nested kinds they
-are composed of (kernels, likelihoods, outcome transforms, fitters), the `Surrogate` wrapper
-and the cache come with the later tasks of roadmap Phase 3.
+registration decorator (`registerSurrogate`). A built surrogate is used through the
+`Surrogate` wrapper, which binds the native model to the encoding and the outcomes it covers:
+it predicts at parameterizations (`Prediction`, which states its space and whether the
+observation noise is included) and draws posterior samples, with its options in an options
+object (`PredictionConfig`, `SamplingConfig`) and a `SurrogateModelError` for a model that does
+not answer as a surrogate needs. The surrogates themselves, the nested kinds they are composed
+of (kernels, likelihoods, outcome transforms, fitters) and the cache come with the later tasks
+of roadmap Phase 3.
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain` and `planexs.encoding`,
 and no higher layer. Like `encoding`, it may import torch and BoTorch; only `adapters` may

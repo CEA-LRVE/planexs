@@ -665,7 +665,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-09. Surrogate wrapper and predictions
 
-**Size:** M | **Needs:** P3-07 | **Spec:** 5.6, 3.11 | **Status:** todo
+**Size:** M | **Needs:** P3-07 | **Spec:** 5.6, 3.11 | **Status:** done
 
 **Do.** Add `surrogates/Surrogate.py`, binding a native model to the encoder and the outcomes: predict at parameterizations (returns a `Prediction` with a mean and a standard deviation per outcome, the space they live in, latent or response, and whether observation noise is included), draw posterior samples, return the native model, report the fit status and the outcomes. Options (noise inclusion, sample count) travel in an options object, not in defaulted arguments. `Prediction` replaces `PredictionResult`; `variance` stays a cheap derived property. The wrapper never imports a concrete model class and works with a fake model in tests.
 
