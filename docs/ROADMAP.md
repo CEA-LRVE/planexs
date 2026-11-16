@@ -675,7 +675,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-10. Kernel kind
 
-**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** done
 
 **Do.** Add the `kernel` kind with `botorch_default_v1` (leave the choice to the engine), `matern_v1` (smoothness `nu`, ARD flag) and `rbf_v1` (ARD flag). Builders receive the number of encoded columns and return a native GPyTorch kernel (or nothing, for the engine default).
 

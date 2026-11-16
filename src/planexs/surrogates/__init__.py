@@ -25,6 +25,6 @@ imported here, one line per module, or the surrogate is silently unregistered
 (specification 5.12, 10.6).
 """
 
-from planexs.surrogates import surrogateRegistry
+from planexs.surrogates import kernels, surrogateRegistry
 
-__all__ = ["surrogateRegistry"]
+__all__ = ["kernels", "surrogateRegistry"]
