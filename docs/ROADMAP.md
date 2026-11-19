@@ -655,7 +655,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-08. Trials to tensors
 
-**Size:** S | **Needs:** P2-08, P3-07, P3-03 | **Spec:** 5.4, 5.6 | **Status:** todo
+**Size:** S | **Needs:** P2-08, P3-07, P3-03 | **Spec:** 5.4, 5.6 | **Status:** done
 
 **Do.** Add to `surrogates/` the function that turns completed trials into train inputs, outcome tensors (one column per outcome) and noise tensors, using the encoder. Pending, failed and abandoned trials are excluded. Partial noise information follows `NoisePolicyConfig` (`ignore_with_warning` or `error`; the first is today's behaviour).
 
@@ -675,7 +675,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-10. Kernel kind
 
-**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** done
 
 **Do.** Add the `kernel` kind with `botorch_default_v1` (leave the choice to the engine), `matern_v1` (smoothness `nu`, ARD flag) and `rbf_v1` (ARD flag). Builders receive the number of encoded columns and return a native GPyTorch kernel (or nothing, for the engine default).
 
