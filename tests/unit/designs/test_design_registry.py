@@ -3,7 +3,7 @@
 
 The registry contract test (`tests/unit/core/test_registry_contract.py`) runs over every kind
 of the process-wide table, so the kind is covered by it as soon as it is in the table, and
-`sobol_v1` with it: what is tested here is that they are, and what makes it so.
+`sobol_v1` and `random_v1` with it: what is tested here is that they are, and what makes it so.
 """
 
 from __future__ import annotations
@@ -46,6 +46,12 @@ class TestTheKind:
             designRegistry().lookup("sobol_v1").description
         ]
 
+    def test_random_v1_is_registered(self) -> None:
+        assert "random_v1" in designRegistry()
+        assert designRegistry().lookup("random_v1").description.splitlines() == [
+            designRegistry().lookup("random_v1").description
+        ]
+
     def test_an_unknown_design_is_an_error_that_names_the_kind_and_the_known_designs(
         self,
     ) -> None:
@@ -68,7 +74,7 @@ class TestTheRegistryIsLookedUpAtEachCall:
     ) -> None:
         defineFake("only_in_the_test_v1")
 
-        assert designRegistry().names() == ["only_in_the_test_v1", "sobol_v1"]
+        assert designRegistry().names() == ["only_in_the_test_v1", "random_v1", "sobol_v1"]
 
     def test_the_real_registry_is_back_after_the_test(self) -> None:
         # Runs after the test above in file order, and fails if the swap leaked.
@@ -81,7 +87,7 @@ class TestImportingThePackage:
     interpreter that has imported nothing else: the population rule (specification 5.12).
     """
 
-    def test_it_defines_the_kind_and_registers_sobol_v1(self) -> None:
+    def test_it_defines_the_kind_and_registers_the_built_in_designs(self) -> None:
         program = (
             "import planexs.designs\n"
             "from planexs.designs.designRegistry import designRegistry\n"
@@ -93,7 +99,7 @@ class TestImportingThePackage:
         )
 
         assert result.returncode == 0, result.stderr
-        assert result.stdout.strip() == "['sobol_v1']"
+        assert result.stdout.strip() == "['random_v1', 'sobol_v1']"
 
     def test_importing_the_registration_decorator_alone_defines_the_kind(self) -> None:
         # A plugin imports `registerDesign` and nothing else of the layer.

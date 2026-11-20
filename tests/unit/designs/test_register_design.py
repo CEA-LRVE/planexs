@@ -71,7 +71,7 @@ class TestRegistering:
     ) -> None:
         defineFake("a_v1")
 
-        assert designRegistry().names() == ["a_v1", "sobol_v1"]
+        assert designRegistry().names() == ["a_v1", "random_v1", "sobol_v1"]
 
     def test_registering_builds_nothing(self, isolatedDesignKind: KindTable) -> None:
         # A builder is free of side effects at import and registration time (specification 6).
@@ -153,7 +153,9 @@ class TestFromAConfigurationToAPoint:
     ) -> None:
         defineFake("a_v1")
 
-        with pytest.raises(ConfigError, match="Registered names: a_v1, sobol_v1") as caught:
+        with pytest.raises(
+            ConfigError, match="Registered names: a_v1, random_v1, sobol_v1"
+        ) as caught:
             resolveComponent(designRegistry(), {"type": "c_v1"})
 
         assert caught.value.field_path == "type"
@@ -161,7 +163,7 @@ class TestFromAConfigurationToAPoint:
 
 class TestARegistrationThatIsRefused:
     def assertNothingWasAdded(self, table: KindTable) -> None:
-        assert table.registry("design").names() == ["sobol_v1"]
+        assert table.registry("design").names() == ["random_v1", "sobol_v1"]
 
     @pytest.mark.parametrize(
         "name", ["Upper", "1st_v1", "with space", "trailing_", "", "a__b"]

@@ -822,7 +822,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-07. random_v1 design
 
-**Size:** S | **Needs:** P4-06 | **Spec:** 5.8, 3.10 | **Status:** todo
+**Size:** S | **Needs:** P4-06 | **Spec:** 5.8, 3.10 | **Status:** done
 
 **Do.** Register `random_v1`: uniform draws in the encoded space with the same constraint handling and options as `sobol_v1`. It is the second design (rule of two).
 
