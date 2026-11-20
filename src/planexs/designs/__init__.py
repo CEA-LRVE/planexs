@@ -8,7 +8,7 @@ used is a choice of configuration, so this layer is organized around the `design
 components: the contract that every design honours (`AbstractDesign`), what it is given
 (`DesignContext`), the registry (`designRegistry`) and the registration decorator
 (`registerDesign`). The designs themselves are the scrambled Sobol points of `sobol_v1`
-(`SobolDesign`) and, with the next task, uniform random draws.
+(`SobolDesign`) and the uniform random draws of `random_v1` (`RandomDesign`).
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain` and `planexs.encoding`,
 and no higher layer. Like `encoding`, it may import torch and BoTorch; only `adapters` may
@@ -19,6 +19,6 @@ silently unregistered (specification 5.12, 10.6). Importing the package also def
 `design` kind, which `designRegistry` is imported for.
 """
 
-from planexs.designs import SobolDesign, designRegistry
+from planexs.designs import RandomDesign, SobolDesign, designRegistry
 
-__all__ = ["SobolDesign", "designRegistry"]
+__all__ = ["RandomDesign", "SobolDesign", "designRegistry"]
