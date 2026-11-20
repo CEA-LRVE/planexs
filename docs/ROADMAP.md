@@ -748,7 +748,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-17. Surrogate cache
 
-**Size:** S | **Needs:** P3-09 | **Spec:** 5.6 | **Status:** todo
+**Size:** S | **Needs:** P3-09 | **Spec:** 5.6 | **Status:** done
 
 **Do.** Add `surrogates/SurrogateCache.py`: get-or-build keyed by the history version and the resolved surrogate configuration. Any new trial or any configuration change invalidates; only the latest entry is kept.
 
