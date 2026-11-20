@@ -7,8 +7,8 @@ exist is a choice of configuration, so this layer is organized around the `goal`
 components: the contract that every goal honours (`AbstractGoal`), the registry
 (`goalRegistry`) and the registration decorator (`registerGoal`). The goals themselves
 arrive one task at a time in roadmap Phase 4: the level set (`LevelSetGoal`, registered as
-`level_set_v1`) is here, the optimize and explore goals come with the next tasks, and the
-recipes of the goals with Phase 6.
+`level_set_v1`) and the exploration (`ExploreGoal`, registered as `explore_v1`) are here, the
+optimize goal comes with its own task, and the recipes of the goals with Phase 6.
 
 The rule of this layer: it may import `planexs.core` and `planexs.domain`, and no higher layer.
 A goal is configuration, so the layer has no use for torch, BoTorch or Ax.
@@ -19,6 +19,6 @@ below. A module that registers a goal must be imported here, one line per module
 is silently unregistered (specification 5.12, 10.6).
 """
 
-from planexs.goals import LevelSetGoal, goalRegistry
+from planexs.goals import ExploreGoal, LevelSetGoal, goalRegistry
 
-__all__ = ["LevelSetGoal", "goalRegistry"]
+__all__ = ["ExploreGoal", "LevelSetGoal", "goalRegistry"]

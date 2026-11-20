@@ -803,7 +803,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-05. explore_v1 goal
 
-**Size:** S | **Needs:** P4-02 | **Spec:** 5.7, FR21 | **Status:** todo
+**Size:** S | **Needs:** P4-02 | **Spec:** 5.7, FR21 | **Status:** done
 
 **Do.** Add the `explore_v1` goal: learn the named outcomes (all of them by default) as well as possible, with no direction. It supports `goal:explore`.
 
