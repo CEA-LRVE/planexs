@@ -686,7 +686,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-11. Likelihood kind
 
-**Size:** S | **Needs:** P3-07, P2-06 | **Spec:** 5.6, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-07, P2-06 | **Spec:** 5.6, 6 | **Status:** done
 
 **Do.** Add the `likelihood` kind with `gaussian_v1` (inferred noise with an optional lower bound, and a floor `min_observation_variance` for known noise, which is `_MIN_OBSERVATION_VARIANCE = 1e-10` in the legacy code) and `bernoulli_v1`. Entries declare which outcome kinds they support.
 
