@@ -16,12 +16,14 @@ def isolatedGoalKind(monkeypatch: pytest.MonkeyPatch) -> KindTable:
     what a test registers must never reach the real registry or the real vocabulary: it would
     be there for every test that runs after it, and for the registry contract test. The table
     that this fixture swaps in holds a copy of every kind of the real one, with the very same
-    entries (the `goal` kind has none yet, the goals arrive with the next tasks), so a test can
-    register a fake next to them. Every kind is copied, and not the `goal` kind alone, because
-    a goal test builds a `Problem`, whose outcomes look their kind up in the `outcome_kind`
-    registry of the process-wide table. Its capability tags are checked against a copy of the
-    process-wide vocabulary, so a tag that a test registers stays in the copy. `monkeypatch`
-    swaps the real table back, which is left exactly as it was.
+    entries, so a test can register a fake next to them. The one exception is the `goal` kind,
+    which starts empty: the contract tests of the kind count and list the goals that they
+    register, and the real goals (`level_set_v1` and the ones to come) must not change what
+    they see. Every other kind is copied, because a goal test builds a `Problem`, whose
+    outcomes look their kind up in the `outcome_kind` registry of the process-wide table. Its
+    capability tags are checked against a copy of the process-wide vocabulary, so a tag that a
+    test registers stays in the copy. `monkeypatch` swaps the real table back, which is left
+    exactly as it was.
     """
     real = KindTable.default()
     source = real.vocabulary
@@ -31,6 +33,8 @@ def isolatedGoalKind(monkeypatch: pytest.MonkeyPatch) -> KindTable:
     table = KindTable(vocabulary)
     for kind in real.kinds():
         copy = table.define(kind)
+        if kind == "goal":
+            continue
         original = real.registry(kind)
         for name in original.names():
             copy.register(original.lookup(name))

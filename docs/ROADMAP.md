@@ -794,7 +794,7 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-04. level_set_v1 goal
 
-**Size:** S | **Needs:** P4-02 | **Spec:** 5.7, FR20 | **Status:** todo
+**Size:** S | **Needs:** P4-02 | **Spec:** 5.7, FR20 | **Status:** done
 
 **Do.** Add the `level_set_v1` goal: one outcome and a `level`. For a continuous outcome the level is required and is in the outcome's units; for a binary outcome it is a probability and has a documented default. It supports `goal:level_set`. Recipes are added in P6-08.
 
