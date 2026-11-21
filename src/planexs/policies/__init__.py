@@ -8,7 +8,8 @@ that every policy honours (`AbstractPolicy`), the read-only view of the study th
 receives (`StudyStateView`), what it returns (`Suggestion`), the registry (`policyRegistry`)
 and the registration decorator (`registerPolicy`). The policies themselves arrive one task at
 a time in roadmap Phase 6: the composed policy, made of a design, a surrogate, an acquisition
-and an optimizer, and the opaque ones, which are any object that honours the contract.
+and an optimizer, and the opaque ones, which are any object that honours the contract, of which
+random search (`random_policy_v1`, `RandomPolicy`) is the first.
 
 The rule of this layer: it may import every layer below it (specification 5.1), and no higher
 one. A policy does not import the study, which drives it: it sees the study through the view.
@@ -18,6 +19,6 @@ below. A module that registers a policy must be imported here, one line per modu
 policy is silently unregistered (specification 5.12, 10.6).
 """
 
-from planexs.policies import policyRegistry
+from planexs.policies import RandomPolicy, policyRegistry
 
-__all__ = ["policyRegistry"]
+__all__ = ["RandomPolicy", "policyRegistry"]

@@ -1041,7 +1041,7 @@ Introduce the `policy` kind, the composed policy, the goals' default recipes and
 
 ### P6-06. random_policy_v1
 
-**Size:** S | **Needs:** P6-01, P4-06 | **Spec:** 5.9, 3.10, FR27 | **Status:** todo
+**Size:** S | **Needs:** P6-01, P4-06 | **Spec:** 5.9, 3.10, FR27 | **Status:** done
 
 **Do.** Register an opaque policy that draws from a design (selected by name in its configuration) and ignores observations. It is the second policy implementation (rule of two) and the baseline for use-case tests.
 
