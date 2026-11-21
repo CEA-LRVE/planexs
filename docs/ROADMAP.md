@@ -696,7 +696,7 @@ Move the encoder under `encoding/` with its policy values in configuration. Then
 
 ### P3-12. Outcome-transform kind
 
-**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-07 | **Spec:** 5.6, 6 | **Status:** done
 
 **Do.** Add the `outcome_transform` kind with `standardize_v1` (the floor on the standard deviation is configuration), `log_v1` and `none_v1`. A surrogate configuration may hold a list of transforms applied in order.
 
