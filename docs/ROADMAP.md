@@ -784,13 +784,15 @@ Introduce the `goal` kind and its first three goal types, which replace the obje
 
 ### P4-03. optimize_v1 goal
 
-**Size:** M | **Needs:** P4-02, P2-10 | **Spec:** 5.7, FR2, FR15 | **Status:** todo
+**Size:** M | **Needs:** P4-02, P2-10 | **Spec:** 5.7, FR2, FR15 | **Status:** done
 
 **Do.** Add the `optimize_v1` goal: outcomes with a direction each, optional scalarizing weights (one per outcome), optional outcome constraints (outcome, comparator, bound; bounds relative to a baseline stay out of scope, as today), validated against the problem. It supports `goal:optimize` and `objectives:single` (one outcome, or several with weights) or `objectives:multi` (several without weights), and needs `outcome_constraints:supported` when it has outcome constraints. It replaces the roles of `LegacyObjective` and `LegacyOutcomeConstraint`. Recipes are added in P6-07.
 
 **Done when.**
 - [ ] tests: single, several and weighted outcomes; a constraint on an unknown outcome is rejected; a weight-count mismatch is rejected; tags in each case; round trip;
 - [ ] a conversion test builds the same goal from a `LegacyObjective` fixture, to keep parity data for later tasks.
+
+**Note.** Decisions taken by this task, for the owner's review. (1) The weights are a mapping from outcome name to weight and not a list in the order of the outcomes, so that a weight can never be applied to the wrong outcome: the surrogate's outcomes follow the order of the problem. A weight is a finite number above zero, since the direction belongs to `outcomes` alone. (2) The tag `outcome_constraints:supported` is registered with the goal tags in `goals/goalRegistry.py`, because the entry of `optimize_v1` has to declare it as a need before any acquisition exists: P5-01 therefore no longer registers it. (3) The kinds of outcome that an optimize goal accepts are the field `outcome_kinds` of its configuration (default: `continuous`), a policy value that a plugin's outcome kind can use without a change to planexs (specification 3.3, 3.4). (4) The `OutcomeConstraint` class has a file of its own in `goals/` because any goal can hold outcome constraints; a constraint may name any outcome of the problem, not only an optimized one. (5) The conversion from `LegacyObjective` lives in `tests/unit/goals/legacy_objective_cases.py`, since no source module may import a legacy type. Out of scope, as the card says: the recipes (P6-07) and the default analyses (Phase 7).
 
 ### P4-04. level_set_v1 goal
 
@@ -839,13 +841,15 @@ Introduce the `acquisition` and `acquisition_optimizer` kinds. Port what the leg
 
 ### P5-01. Acquisition contract and registry
 
-**Size:** S | **Needs:** P3-09, P4-02, P1-08 | **Spec:** 5.8, 6 | **Status:** todo
+**Size:** S | **Needs:** P3-09, P4-02, P1-08 | **Spec:** 5.8, 6 | **Status:** done
 
-**Do.** Create the `acquisition` package and the `acquisition` kind: the abstract builder (registered name, configuration schema, a build method receiving an `AcquisitionBuildContext` and returning a native acquisition function), the context (surrogate, goal, pending points, a reference set of encoded points, encoder, random generator), the registry and `registerAcquisition`. A builder declares through a class-level flag whether it needs a reference set, its size comes from its own configuration, and the policy draws the set with the feasible sampler. Register the tags `acquisition:differentiable`, `pending:supported` and `outcome_constraints:supported`.
+**Do.** Create the `acquisition` package and the `acquisition` kind: the abstract builder (registered name, configuration schema, a build method receiving an `AcquisitionBuildContext` and returning a native acquisition function), the context (surrogate, goal, pending points, a reference set of encoded points, encoder, random generator), the registry and `registerAcquisition`. A builder declares through a class-level flag whether it needs a reference set, its size comes from its own configuration, and the policy draws the set with the feasible sampler. Register the tags `acquisition:differentiable` and `pending:supported`. The tag `outcome_constraints:supported` is already registered with the goal tags (P4-03, `goals/goalRegistry.py`): the acquisitions only declare it in their `supports`, and registering it a second time is an error.
 
 **Done when.**
 - [ ] tests with a fake builder: registration, tag validation, immutability of the context;
 - [ ] the contract test covers the kind.
+
+**Note.** Decisions taken by this task, for the owner's review. (1) The `encoder` (and the `problem`) of the context are read from the surrogate (`context.encoder`, a property) and not stored as a field beside it, so that they can never disagree with the model the acquisition is built on. (2) The policy learns the size of the reference set through `AbstractAcquisitionBuilder.referencePointCount`, which a builder with `needs_reference_points` overrides to read the size from its configuration; `registerAcquisition` refuses a builder whose flag and override disagree, and `requireReferencePoints` is the guard that reports a missing set in the same words for every builder. (3) `outcome_constraints:supported` stays registered with the goal tags (P4-03); `acquisitionRegistry` imports the goal registry for that effect, so that all three tags exist whenever the kind does. (4) An empty set of pending points, shape `(0, d)`, is read as `None`, so that "no pending point" has one representation; an empty reference set is refused. (5) `AcquisitionContextError` is the error of a context that does not fit, as `SurrogateContextError` is for surrogates. (6) The `isolatedAcquisitionKind` test fixture starts its `acquisition` kind empty, for the registration tests to count exactly what they register whatever real acquisitions exist by then (as `isolatedGoalKind` does for goals). The package also holds the legacy alpha-layer modules, which are not imported by its `__init__` and are ported by P5-07 and P5-08.
 
 ### P5-02. log_ei_v1 acquisition
 

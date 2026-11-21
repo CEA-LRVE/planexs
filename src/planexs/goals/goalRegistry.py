@@ -17,6 +17,10 @@ _KIND = "goal"
 #: criteria need them from it: `log_ei_v1` needs a goal that is `goal:optimize` and
 #: `objectives:single`, the straddle a goal that is `goal:level_set`. A plugin may register
 #: more of its own.
+#: `outcome_constraints:supported` runs the other way: a goal needs it (an optimize goal with
+#: outcome constraints) and an acquisition supports it. It is registered here and not with the
+#: acquisitions because the goal is what introduces the need, and a goal's registry entry must
+#: be able to declare it before any acquisition exists (roadmap task P4-03).
 _CAPABILITY_TAGS = {
     "goal:optimize": "The goal is to optimize one or several outcomes.",
     "goal:level_set": "The goal is to find where an outcome crosses a level.",
@@ -25,6 +29,7 @@ _CAPABILITY_TAGS = {
     "objectives:single": "The goal has a single objective: one outcome, or several scalarized "
     "by weights.",
     "objectives:multi": "The goal has several objectives with no preference between them.",
+    "outcome_constraints:supported": "The policy can enforce limits on observed outcomes.",
 }
 
 
