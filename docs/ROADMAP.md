@@ -993,7 +993,7 @@ Introduce the `policy` kind, the composed policy, the goals' default recipes and
 
 ### P6-01. Policy contract and study-state view
 
-**Size:** S | **Needs:** P1-10, P2-07, P2-10, P4-02 | **Spec:** 5.9, 6 | **Status:** todo
+**Size:** S | **Needs:** P1-10, P2-07, P2-10, P4-02 | **Spec:** 5.9, 6 | **Status:** done
 
 **Do.** Create the `policies` package and the `policy` kind: the abstract policy (registered name, configuration schema, a suggest operation, a notification for each trial state change, export and import of opaque state), the read-only `StudyStateView` it receives (problem, goal, trials in every state, history version, ask index, random sources) and a `Suggestion` (a parameterization plus metadata such as the phase that produced it). Registry and `registerPolicy`.
 
