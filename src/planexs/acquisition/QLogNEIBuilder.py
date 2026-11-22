@@ -1,0 +1,232 @@
+"""The `qlog_nei_v1` acquisition: the Monte Carlo log noisy expected improvement."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import torch
+from botorch.acquisition.acquisition import AcquisitionFunction
+from botorch.acquisition.logei import qLogNoisyExpectedImprovement
+from botorch.acquisition.objective import LinearMCObjective
+from botorch.acquisition.utils import prune_inferior_points
+from botorch.sampling.normal import SobolQMCNormalSampler
+from torch import Tensor
+
+from planexs.acquisition.AbstractAcquisitionBuilder import AbstractAcquisitionBuilder
+from planexs.acquisition.AcquisitionBuildContext import AcquisitionBuildContext
+from planexs.acquisition.AcquisitionContextError import AcquisitionContextError
+from planexs.acquisition.baselinePoints import baselinePoints
+from planexs.acquisition.outcomeConstraintCallables import outcomeConstraintCallables
+from planexs.acquisition.QLogNEIConfig import QLogNEIConfig
+from planexs.acquisition.registerAcquisition import registerAcquisition
+from planexs.core.ConfigError import ConfigError
+from planexs.goals.OptimizeGoalConfig import OptimizeGoalConfig
+
+#: Who the errors of this module are about.
+_COMPONENT = "acquisition 'qlog_nei_v1'"
+
+
+@registerAcquisition(
+    "qlog_nei_v1",
+    config=QLogNEIConfig,
+    description=(
+        "Monte Carlo log noisy expected improvement for one objective: handles noisy "
+        "observations, pending points, batches and outcome constraints."
+    ),
+    needs=frozenset({"posterior:gaussian", "objectives:single", "goal:optimize"}),
+    supports=frozenset(
+        {"pending:supported", "outcome_constraints:supported", "acquisition:differentiable"}
+    ),
+)
+class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
+    """Builds BoTorch's `qLogNoisyExpectedImprovement`, the log of the expected improvement
+    over the best observed value, estimated by Monte Carlo (specification 5.8, FR10, FR15).
+
+    The improvement of a candidate is measured against the best value among the observed
+    points, as the model believes it to be. It does not take the observed values as they are
+    (a noisy observation could then be an incumbent that is not real): the observed points are
+    sampled jointly with the candidate, so the incumbent is as uncertain as the model says.
+    That is what makes the acquisition right for noisy data, and what makes it cost more than
+    an analytic expected improvement. It is a log, so that the value stays finite and keeps a
+    gradient where the improvement is almost zero, which is where an optimizer starts.
+
+    **What it reads.** It needs a fitted surrogate whose posterior is Gaussian
+    (`posterior:gaussian`, which the Monte Carlo samples are drawn from) and an optimize goal
+    with one scalar objective (`goal:optimize`, `objectives:single`): one outcome, or several
+    that the goal's weights combine into one preference. The objective is the weighted sum of
+    the outcomes that the goal optimizes, each in its own direction: a minimized outcome is
+    negated, so that a higher score always means a better candidate (specification 4,
+    "Acquisition"). The weights are the goal's own, keyed by outcome name, and are applied to
+    the outputs of the model by name, so that the order of the model's outputs never matters.
+
+    **Pending points and batches** (`pending:supported`, FR10). The pending points of the
+    context are the points chosen but not evaluated yet, and they are part of the incumbent:
+    a candidate is scored by its *incremental* improvement over the best of the observed and
+    the pending points, so a candidate at a pending point, or next to it, scores low, and a
+    policy that builds a batch by choosing one point at a time and passing the chosen ones
+    back as pending gets a spread-out batch. The native function keeps the pending points
+    when its `set_X_pending` is called, so an optimizer that builds a batch sequentially works
+    with it.
+
+    **Outcome constraints** (`outcome_constraints:supported`, FR15). The legacy layer only
+    warned that it did not enforce the constraints of the goal. Here each one is passed to the
+    acquisition as a feasibility constraint on the posterior samples (see
+    `outcomeConstraintCallables`): a sample that violates a constraint contributes less in
+    proportion to how clearly it violates it, so a candidate that is predicted to violate a
+    constraint scores lower than one that is predicted to meet it, and an observed point that
+    violates one does not count as the incumbent. The constraint may be on any outcome that the
+    surrogate models, not only the ones the goal optimizes. The feasibility is a smooth
+    weighting of the improvement, not a hard filter: the acquisition ranks candidates, and
+    only the policy's feasible sampler guarantees constraints on the parameters.
+
+    **The settings** are the number of Monte Carlo samples and whether the baseline is pruned
+    (`QLogNEIConfig`). The samples are quasi-random, seeded from the generator of the context,
+    and the same for every candidate of one build, and so are the ones that decide the pruning,
+    so the function is deterministic for the configuration, the context and the generator, and
+    differentiable in the candidate (`acquisition:differentiable`).
+
+    A builder is configured once and builds as often as it is asked; it needs no reference set.
+    """
+
+    def build(self, context: AcquisitionBuildContext) -> AcquisitionFunction:
+        """Builds the log noisy expected improvement for the surrogate and the goal of the
+        context.
+
+        Args:
+            context: The surrogate, the goal, the pending points and the generator. Read-only.
+                Its goal must be an optimize goal with one scalar objective, and its surrogate
+                must model every outcome that the goal optimizes or constrains.
+
+        Returns:
+            A BoTorch `qLogNoisyExpectedImprovement` over the encoded space, scoring a batch of
+            `q` candidate points (shape `batch x q x d`) by their log improvement. It takes the
+            pending points of the context into account.
+
+        Raises:
+            ConfigError: if the goal is not an optimize goal, or has several outcomes and no
+                weights, so that its objective is not a single scalar.
+            AcquisitionContextError: if the surrogate does not model an outcome that the goal
+                optimizes or constrains, or its model holds no observed point.
+        """
+        goal_config = _requireOptimizeConfig(context)
+        names = context.surrogate.outcome_names
+        model = context.surrogate.model
+        baseline = baselinePoints(model)
+        objective = LinearMCObjective(_objectiveWeights(goal_config, names, baseline))
+        # An empty list is not "no constraint" for the engine, which would build an indicator
+        # over nothing.
+        constraints = (
+            outcomeConstraintCallables(model, baseline, goal_config.outcome_constraints, names)
+            or None
+        )
+        sample_shape = torch.Size([self.config.n_samples])
+        sampler = SobolQMCNormalSampler(sample_shape, seed=_drawSeed(context.generator))
+        if self.config.prune_baseline:
+            # The engine can prune the baseline itself (`prune_baseline=True`), but it draws
+            # the samples that decide the pruning from an unseeded sampler: two builds from
+            # one seed could keep different incumbents, and a run would not be reproducible.
+            # The pruning is done here with a sampler seeded from the generator, and the
+            # engine is told not to prune again.
+            baseline = prune_inferior_points(
+                model=model,
+                X=baseline,
+                objective=objective,
+                constraints=constraints,
+                sampler=SobolQMCNormalSampler(sample_shape, seed=_drawSeed(context.generator)),
+            )
+        return qLogNoisyExpectedImprovement(
+            model=model,
+            X_baseline=baseline,
+            sampler=sampler,
+            objective=objective,
+            X_pending=context.pending_points,
+            constraints=constraints,
+            prune_baseline=False,
+        )
+
+
+def _requireOptimizeConfig(context: AcquisitionBuildContext) -> OptimizeGoalConfig:
+    """The configuration of the goal of the context, which must be an optimize goal.
+
+    Args:
+        context: The build context.
+
+    Returns:
+        The configuration of the goal.
+
+    Raises:
+        ConfigError: if the goal is not configured like an optimize goal.
+    """
+    config = context.goal.config
+    if not isinstance(config, OptimizeGoalConfig):
+        raise ConfigError(
+            f"The acquisition 'qlog_nei_v1' improves on the best value of an objective, and "
+            f"the {context.goal.label} is not an optimize goal.",
+            component=_COMPONENT,
+            field_path="goal",
+            suggestion="use an optimize goal, or an acquisition that serves this goal",
+        )
+    return config
+
+
+def _objectiveWeights(
+    config: OptimizeGoalConfig, outcome_names: Sequence[str], like: Tensor
+) -> Tensor:
+    """The weight of each output of the model in the scalar objective of the goal.
+
+    Args:
+        config: The configuration of the optimize goal.
+        outcome_names: The names of the outcomes the model covers, in the order of its outputs.
+        like: A tensor whose precision and device the weights take, the observed points.
+
+    Returns:
+        A tensor of shape `(m,)`, one entry for each output of the model: the weight of the
+        outcome, negated for a minimized one, and zero for an output the goal does not
+        optimize (it may be there for a constraint).
+
+    Raises:
+        ConfigError: if the goal has several outcomes and no weights, a Pareto problem.
+        AcquisitionContextError: if an outcome that the goal optimizes is not modelled by the
+            surrogate.
+    """
+    if len(config.outcomes) > 1 and config.weights is None:
+        raise ConfigError(
+            f"The goal optimizes {len(config.outcomes)} outcomes {list(config.outcomes)!r} "
+            "with no weights: that is a Pareto problem, and the acquisition 'qlog_nei_v1' "
+            "improves on one scalar objective.",
+            component=_COMPONENT,
+            field_path="goal.weights",
+            suggestion="give a weight to each outcome of the goal, or use a "
+            "multi-objective acquisition such as 'qlog_nehvi_v1'",
+        )
+    names = list(outcome_names)
+    values = [0.0] * len(names)
+    for outcome, direction in config.outcomes.items():
+        if outcome not in names:
+            raise AcquisitionContextError(
+                f"The goal optimizes the outcome {outcome!r}, which the surrogate does not "
+                f"model. The surrogate covers: {', '.join(map(repr, names))}.",
+                component="acquisition build context",
+                field_path=f"goal.outcomes.{outcome}",
+                suggestion="fit the surrogate on every outcome that the goal optimizes",
+            )
+        weight = 1.0 if config.weights is None else config.weights[outcome]
+        values[names.index(outcome)] = -weight if direction == "minimize" else weight
+    return torch.tensor(values, dtype=like.dtype, device=like.device)
+
+
+def _drawSeed(generator: torch.Generator) -> int:
+    """A seed for the sampler, drawn from the generator of the build.
+
+    The seed is drawn, and not read from the generator, so that a generator that has been used
+    does not give the same samples as a fresh one. The generator may live on another device
+    than the default one, and `randint` wants them to agree.
+
+    Args:
+        generator: The generator of the build context. Drawing advances it.
+
+    Returns:
+        An integer seed.
+    """
+    high = torch.iinfo(torch.int32).max
+    return int(torch.randint(high, (1,), generator=generator, device=generator.device))

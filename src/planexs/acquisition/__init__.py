@@ -7,7 +7,11 @@ acquisition honours (`AbstractAcquisitionBuilder`), what it is given
 (`AcquisitionBuildContext`) and the error for a context that does not fit
 (`AcquisitionContextError`), the registry (`acquisitionRegistry`) and the registration
 decorator (`registerAcquisition`). The registered acquisitions come with the tasks of roadmap
-Phase 5.
+Phase 5: so far the Monte Carlo log noisy expected improvement, `qlog_nei_v1`
+(`QLogNEIBuilder`, with its settings in `QLogNEIConfig`), which handles noisy data, pending
+points, batches and the outcome constraints of the goal. Two helpers that it shares with the
+Monte Carlo acquisitions to come are `baselinePoints` (the observed points of a model) and
+`outcomeConstraintCallables` (the goal's constraints as BoTorch feasibility constraints).
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain`, `planexs.encoding`,
 `planexs.surrogates` and `planexs.goals`, and no higher layer. Like `encoding`, it may import
@@ -28,6 +32,6 @@ They are ported as registered builders (roadmap tasks P5-07 and P5-08), and dele
 rest of the legacy layer (P11-02).
 """
 
-from planexs.acquisition import acquisitionRegistry
+from planexs.acquisition import QLogNEIBuilder, acquisitionRegistry
 
-__all__ = ["acquisitionRegistry"]
+__all__ = ["QLogNEIBuilder", "acquisitionRegistry"]
