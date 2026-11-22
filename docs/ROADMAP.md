@@ -1145,7 +1145,7 @@ Introduce the `analysis` and `stopping` kinds with their first components, and g
 
 ### P7-01. Analysis contract and registry
 
-**Size:** S | **Needs:** P6-01, P3-09, P4-02 | **Spec:** 5.10, 6 | **Status:** todo
+**Size:** S | **Needs:** P6-01, P3-09, P4-02 | **Spec:** 5.10, 6 | **Status:** done
 
 **Do.** Create the `analyses` package and the `analysis` kind: the abstract analysis (registered name, configuration schema, needs and supports, a compute operation receiving a read-only study state and a way to obtain a surrogate on demand, returning a typed, serializable `AnalysisResult`), the registry and `registerAnalysis`.
 
