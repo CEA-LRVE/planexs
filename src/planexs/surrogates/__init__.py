@@ -11,10 +11,10 @@ it predicts at parameterizations (`Prediction`, which states its space and wheth
 observation noise is included) and draws posterior samples, with its options in an options
 object (`PredictionConfig`, `SamplingConfig`) and a `SurrogateModelError` for a model that does
 not answer as a surrogate needs. The nested kinds that a surrogate is composed of are
-subpackages, imported here: `kernels` holds the `kernel` kind and `likelihoods` the
-`likelihood` kind (`gaussian_v1`, `bernoulli_v1`). The surrogates themselves, the other nested
-kinds (outcome transforms, fitters) and the cache come with the later tasks of roadmap
-Phase 3.
+subpackages, imported here: `fitters` holds the `fitter` kind (`map_v1`), `kernels` the
+`kernel` kind, `likelihoods` the `likelihood` kind (`gaussian_v1`, `bernoulli_v1`) and
+`outcome_transforms` the `outcome_transform` kind. The surrogates themselves come with the
+later tasks of roadmap Phase 3.
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain` and `planexs.encoding`,
 and no higher layer. Like `encoding`, it may import torch and BoTorch; only `adapters` may
@@ -27,6 +27,12 @@ imported here, one line per module, or the surrogate is silently unregistered
 (specification 5.12, 10.6).
 """
 
-from planexs.surrogates import kernels, likelihoods, outcome_transforms, surrogateRegistry
+from planexs.surrogates import (
+    fitters,
+    kernels,
+    likelihoods,
+    outcome_transforms,
+    surrogateRegistry,
+)
 
-__all__ = ["kernels", "likelihoods", "outcome_transforms", "surrogateRegistry"]
+__all__ = ["fitters", "kernels", "likelihoods", "outcome_transforms", "surrogateRegistry"]
