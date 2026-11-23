@@ -18,7 +18,7 @@ and not in `conftest.py`, so that the test files can import what is not a fixtur
 from __future__ import annotations
 
 import warnings
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import torch
@@ -69,26 +69,46 @@ def makeToySurrogate(
     Returns:
         The surrogate, whose native model is in evaluation mode.
     """
+    functions: dict[str, Callable[[Tensor], Tensor]] = {
+        OBJECTIVE: lambda x: torch.sin(3.0 * x)
+    }
+    if not objective_only:
+        functions[CONSTRAINED] = lambda x: constraint_scale * x
+    return makeSurrogateOf(functions, observed_x)
+
+
+def makeSurrogateOf(
+    functions: Mapping[str, Callable[[Tensor], Tensor]],
+    observed_x: Sequence[float] | None = None,
+) -> Surrogate:
+    """A surrogate of outcomes that are known functions of one parameter `x` in `[0, 1]`, at
+    observed points that are exact.
+
+    Args:
+        functions: The outcomes, by name and in the order of the outputs of the model: each
+            maps the observed `x` (shape `(r, 1)`) to its values (shape `(r, 1)`).
+        observed_x: The places of the observed points, in `[0, 1]`. `None` means eight points
+            spread over the space.
+
+    Returns:
+        The surrogate, whose native model is in evaluation mode.
+    """
     runtime = RuntimeConfig()
     problem = Problem(
         search_space=SearchSpace([Real("x", 0.0, 1.0)]),
-        outcomes=[
-            Outcome(name=OBJECTIVE, type="continuous"),
-            Outcome(name=CONSTRAINED, type="continuous"),
-        ],
+        outcomes=[Outcome(name=name, type="continuous") for name in functions],
     )
     dtype = torchDtype(runtime)
     if observed_x is None:
         train_x = torch.linspace(0.05, 0.95, N_OBSERVATIONS, dtype=dtype).unsqueeze(-1)
     else:
         train_x = torch.tensor(list(observed_x), dtype=dtype).unsqueeze(-1)
-    columns = [torch.sin(3.0 * train_x)]
-    if not objective_only:
-        columns.append(constraint_scale * train_x)
-    train_y = torch.cat(columns, dim=-1)
+    train_y = torch.cat([function(train_x) for function in functions.values()], dim=-1)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", InputDataWarning)
-        model = SingleTaskGP(train_x, train_y, outcome_transform=Standardize(m=len(columns)))
+        model = SingleTaskGP(
+            train_x, train_y, outcome_transform=Standardize(m=train_y.shape[-1])
+        )
     model.eval()
     return Surrogate(
         BuiltSurrogate(
@@ -97,7 +117,7 @@ def makeToySurrogate(
         problem=problem,
         encoder=SearchSpaceEncoder(problem.search_space, runtime),
         runtime=runtime,
-        outcome_names=(OBJECTIVE,) if objective_only else (OBJECTIVE, CONSTRAINED),
+        outcome_names=tuple(functions),
     )
 
 

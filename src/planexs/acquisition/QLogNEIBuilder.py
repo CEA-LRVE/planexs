@@ -12,6 +12,7 @@ from botorch.sampling.normal import SobolQMCNormalSampler
 from planexs.acquisition.AbstractAcquisitionBuilder import AbstractAcquisitionBuilder
 from planexs.acquisition.AcquisitionBuildContext import AcquisitionBuildContext
 from planexs.acquisition.baselinePoints import baselinePoints
+from planexs.acquisition.drawSeed import drawSeed
 from planexs.acquisition.objectiveWeights import objectiveWeights
 from planexs.acquisition.outcomeConstraintCallables import outcomeConstraintCallables
 from planexs.acquisition.QLogNEIConfig import QLogNEIConfig
@@ -124,7 +125,7 @@ class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
             or None
         )
         sample_shape = torch.Size([self.config.n_samples])
-        sampler = SobolQMCNormalSampler(sample_shape, seed=_drawSeed(context.generator))
+        sampler = SobolQMCNormalSampler(sample_shape, seed=drawSeed(context.generator))
         if self.config.prune_baseline:
             # The engine can prune the baseline itself (`prune_baseline=True`), but it draws
             # the samples that decide the pruning from an unseeded sampler: two builds from
@@ -136,7 +137,7 @@ class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
                 X=baseline,
                 objective=objective,
                 constraints=constraints,
-                sampler=SobolQMCNormalSampler(sample_shape, seed=_drawSeed(context.generator)),
+                sampler=SobolQMCNormalSampler(sample_shape, seed=drawSeed(context.generator)),
             )
         return qLogNoisyExpectedImprovement(
             model=model,
@@ -147,20 +148,3 @@ class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
             constraints=constraints,
             prune_baseline=False,
         )
-
-
-def _drawSeed(generator: torch.Generator) -> int:
-    """A seed for the sampler, drawn from the generator of the build.
-
-    The seed is drawn, and not read from the generator, so that a generator that has been used
-    does not give the same samples as a fresh one. The generator may live on another device
-    than the default one, and `randint` wants them to agree.
-
-    Args:
-        generator: The generator of the build context. Drawing advances it.
-
-    Returns:
-        An integer seed.
-    """
-    high = torch.iinfo(torch.int32).max
-    return int(torch.randint(high, (1,), generator=generator, device=generator.device))
