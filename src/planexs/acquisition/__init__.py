@@ -9,9 +9,13 @@ acquisition honours (`AbstractAcquisitionBuilder`), what it is given
 decorator (`registerAcquisition`). The registered acquisitions come with the tasks of roadmap
 Phase 5: so far the Monte Carlo log noisy expected improvement, `qlog_nei_v1`
 (`QLogNEIBuilder`, with its settings in `QLogNEIConfig`), which handles noisy data, pending
-points, batches and the outcome constraints of the goal. Two helpers that it shares with the
-Monte Carlo acquisitions to come are `baselinePoints` (the observed points of a model) and
-`outcomeConstraintCallables` (the goal's constraints as BoTorch feasibility constraints).
+points, batches and the outcome constraints of the goal, and the analytic upper confidence
+bound, `ucb_v1` (`UCBBuilder`, with its settings in `UCBConfig`), which scores one point at a
+time. The acquisitions that score the value of one objective share `requireOptimizeGoalConfig`
+(the optimize goal of a build context) and `objectiveWeights` (the goal's scalar objective as a
+weight for each output of the model). The Monte Carlo ones also share `baselinePoints` (the
+observed points of a model) and `outcomeConstraintCallables` (the goal's constraints as BoTorch
+feasibility constraints).
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain`, `planexs.encoding`,
 `planexs.surrogates` and `planexs.goals`, and no higher layer. Like `encoding`, it may import
@@ -32,6 +36,6 @@ They are ported as registered builders (roadmap tasks P5-07 and P5-08), and dele
 rest of the legacy layer (P11-02).
 """
 
-from planexs.acquisition import QLogNEIBuilder, acquisitionRegistry
+from planexs.acquisition import QLogNEIBuilder, UCBBuilder, acquisitionRegistry
 
-__all__ = ["QLogNEIBuilder", "acquisitionRegistry"]
+__all__ = ["QLogNEIBuilder", "UCBBuilder", "acquisitionRegistry"]

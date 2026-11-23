@@ -18,6 +18,7 @@ and not in `conftest.py`, so that the test files can import what is not a fixtur
 from __future__ import annotations
 
 import warnings
+from collections.abc import Sequence
 from typing import Any
 
 import torch
@@ -49,7 +50,11 @@ CONSTRAINED = "c"
 N_OBSERVATIONS = 8
 
 
-def makeToySurrogate(constraint_scale: float = 1.0, objective_only: bool = False) -> Surrogate:
+def makeToySurrogate(
+    constraint_scale: float = 1.0,
+    objective_only: bool = False,
+    observed_x: Sequence[float] | None = None,
+) -> Surrogate:
     """A surrogate of the two toy outcomes, over eight observed points.
 
     Args:
@@ -57,6 +62,9 @@ def makeToySurrogate(constraint_scale: float = 1.0, objective_only: bool = False
             in, so that a test can change the unit of an outcome and nothing else.
         objective_only: Whether the surrogate models `y` alone, so that it does not cover the
             constrained outcome `c` that the problem has.
+        observed_x: The places of the observed points, in `[0, 1]`. `None` means eight points
+            spread over the space. A test that needs a place the model knows well and a place
+            it does not gives points on one side only.
 
     Returns:
         The surrogate, whose native model is in evaluation mode.
@@ -70,7 +78,10 @@ def makeToySurrogate(constraint_scale: float = 1.0, objective_only: bool = False
         ],
     )
     dtype = torchDtype(runtime)
-    train_x = torch.linspace(0.05, 0.95, N_OBSERVATIONS, dtype=dtype).unsqueeze(-1)
+    if observed_x is None:
+        train_x = torch.linspace(0.05, 0.95, N_OBSERVATIONS, dtype=dtype).unsqueeze(-1)
+    else:
+        train_x = torch.tensor(list(observed_x), dtype=dtype).unsqueeze(-1)
     columns = [torch.sin(3.0 * train_x)]
     if not objective_only:
         columns.append(constraint_scale * train_x)
@@ -81,7 +92,7 @@ def makeToySurrogate(constraint_scale: float = 1.0, objective_only: bool = False
     model.eval()
     return Surrogate(
         BuiltSurrogate(
-            model=model, status=FitStatus(n_observations=N_OBSERVATIONS, is_low_data=True)
+            model=model, status=FitStatus(n_observations=train_x.shape[0], is_low_data=True)
         ),
         problem=problem,
         encoder=SearchSpaceEncoder(problem.search_space, runtime),

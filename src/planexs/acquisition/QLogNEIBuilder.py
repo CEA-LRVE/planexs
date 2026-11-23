@@ -2,25 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 import torch
 from botorch.acquisition.acquisition import AcquisitionFunction
 from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 from botorch.acquisition.objective import LinearMCObjective
 from botorch.acquisition.utils import prune_inferior_points
 from botorch.sampling.normal import SobolQMCNormalSampler
-from torch import Tensor
 
 from planexs.acquisition.AbstractAcquisitionBuilder import AbstractAcquisitionBuilder
 from planexs.acquisition.AcquisitionBuildContext import AcquisitionBuildContext
-from planexs.acquisition.AcquisitionContextError import AcquisitionContextError
 from planexs.acquisition.baselinePoints import baselinePoints
+from planexs.acquisition.objectiveWeights import objectiveWeights
 from planexs.acquisition.outcomeConstraintCallables import outcomeConstraintCallables
 from planexs.acquisition.QLogNEIConfig import QLogNEIConfig
 from planexs.acquisition.registerAcquisition import registerAcquisition
-from planexs.core.ConfigError import ConfigError
-from planexs.goals.OptimizeGoalConfig import OptimizeGoalConfig
+from planexs.acquisition.requireOptimizeGoalConfig import requireOptimizeGoalConfig
 
 #: Who the errors of this module are about.
 _COMPONENT = "acquisition 'qlog_nei_v1'"
@@ -108,11 +104,19 @@ class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
             AcquisitionContextError: if the surrogate does not model an outcome that the goal
                 optimizes or constrains, or its model holds no observed point.
         """
-        goal_config = _requireOptimizeConfig(context)
+        goal_config = requireOptimizeGoalConfig(context, _COMPONENT)
         names = context.surrogate.outcome_names
         model = context.surrogate.model
         baseline = baselinePoints(model)
-        objective = LinearMCObjective(_objectiveWeights(goal_config, names, baseline))
+        objective = LinearMCObjective(
+            objectiveWeights(
+                goal_config,
+                names,
+                dtype=baseline.dtype,
+                device=baseline.device,
+                component=_COMPONENT,
+            )
+        )
         # An empty list is not "no constraint" for the engine, which would build an indicator
         # over nothing.
         constraints = (
@@ -143,76 +147,6 @@ class QLogNEIBuilder(AbstractAcquisitionBuilder[QLogNEIConfig]):
             constraints=constraints,
             prune_baseline=False,
         )
-
-
-def _requireOptimizeConfig(context: AcquisitionBuildContext) -> OptimizeGoalConfig:
-    """The configuration of the goal of the context, which must be an optimize goal.
-
-    Args:
-        context: The build context.
-
-    Returns:
-        The configuration of the goal.
-
-    Raises:
-        ConfigError: if the goal is not configured like an optimize goal.
-    """
-    config = context.goal.config
-    if not isinstance(config, OptimizeGoalConfig):
-        raise ConfigError(
-            f"The acquisition 'qlog_nei_v1' improves on the best value of an objective, and "
-            f"the {context.goal.label} is not an optimize goal.",
-            component=_COMPONENT,
-            field_path="goal",
-            suggestion="use an optimize goal, or an acquisition that serves this goal",
-        )
-    return config
-
-
-def _objectiveWeights(
-    config: OptimizeGoalConfig, outcome_names: Sequence[str], like: Tensor
-) -> Tensor:
-    """The weight of each output of the model in the scalar objective of the goal.
-
-    Args:
-        config: The configuration of the optimize goal.
-        outcome_names: The names of the outcomes the model covers, in the order of its outputs.
-        like: A tensor whose precision and device the weights take, the observed points.
-
-    Returns:
-        A tensor of shape `(m,)`, one entry for each output of the model: the weight of the
-        outcome, negated for a minimized one, and zero for an output the goal does not
-        optimize (it may be there for a constraint).
-
-    Raises:
-        ConfigError: if the goal has several outcomes and no weights, a Pareto problem.
-        AcquisitionContextError: if an outcome that the goal optimizes is not modelled by the
-            surrogate.
-    """
-    if len(config.outcomes) > 1 and config.weights is None:
-        raise ConfigError(
-            f"The goal optimizes {len(config.outcomes)} outcomes {list(config.outcomes)!r} "
-            "with no weights: that is a Pareto problem, and the acquisition 'qlog_nei_v1' "
-            "improves on one scalar objective.",
-            component=_COMPONENT,
-            field_path="goal.weights",
-            suggestion="give a weight to each outcome of the goal, or use a "
-            "multi-objective acquisition such as 'qlog_nehvi_v1'",
-        )
-    names = list(outcome_names)
-    values = [0.0] * len(names)
-    for outcome, direction in config.outcomes.items():
-        if outcome not in names:
-            raise AcquisitionContextError(
-                f"The goal optimizes the outcome {outcome!r}, which the surrogate does not "
-                f"model. The surrogate covers: {', '.join(map(repr, names))}.",
-                component="acquisition build context",
-                field_path=f"goal.outcomes.{outcome}",
-                suggestion="fit the surrogate on every outcome that the goal optimizes",
-            )
-        weight = 1.0 if config.weights is None else config.weights[outcome]
-        values[names.index(outcome)] = -weight if direction == "minimize" else weight
-    return torch.tensor(values, dtype=like.dtype, device=like.device)
 
 
 def _drawSeed(generator: torch.Generator) -> int:
