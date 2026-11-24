@@ -34,6 +34,8 @@ from planexs.domain.Outcome import Outcome
 from planexs.domain.Problem import Problem
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.encoding.torch_runtime import torchDtype, torchGenerator
+from planexs.goals.ExploreGoal import ExploreGoal
+from planexs.goals.ExploreGoalConfig import ExploreGoalConfig
 from planexs.goals.OptimizeGoal import OptimizeGoal
 from planexs.goals.OptimizeGoalConfig import OptimizeGoalConfig
 from planexs.surrogates.BuiltSurrogate import BuiltSurrogate
@@ -74,12 +76,13 @@ def makeToySurrogate(
     }
     if not objective_only:
         functions[CONSTRAINED] = lambda x: constraint_scale * x
-    return makeSurrogateOf(functions, observed_x)
+    return makeSurrogateOf(functions, observed_x, problem_outcomes=(OBJECTIVE, CONSTRAINED))
 
 
 def makeSurrogateOf(
     functions: Mapping[str, Callable[[Tensor], Tensor]],
     observed_x: Sequence[float] | None = None,
+    problem_outcomes: Sequence[str] | None = None,
 ) -> Surrogate:
     """A surrogate of outcomes that are known functions of one parameter `x` in `[0, 1]`, at
     observed points that are exact.
@@ -89,6 +92,9 @@ def makeSurrogateOf(
             maps the observed `x` (shape `(r, 1)`) to its values (shape `(r, 1)`).
         observed_x: The places of the observed points, in `[0, 1]`. `None` means eight points
             spread over the space.
+        problem_outcomes: The outcomes of the problem, which may be more than the surrogate
+            models (a surrogate that was not fitted on all of them). `None` means the
+            outcomes that are modelled.
 
     Returns:
         The surrogate, whose native model is in evaluation mode.
@@ -96,7 +102,10 @@ def makeSurrogateOf(
     runtime = RuntimeConfig()
     problem = Problem(
         search_space=SearchSpace([Real("x", 0.0, 1.0)]),
-        outcomes=[Outcome(name=name, type="continuous") for name in functions],
+        outcomes=[
+            Outcome(name=name, type="continuous")
+            for name in (functions if problem_outcomes is None else problem_outcomes)
+        ],
     )
     dtype = torchDtype(runtime)
     if observed_x is None:
@@ -142,6 +151,34 @@ def makeToyContext(
     return AcquisitionBuildContext(
         surrogate=surrogate,
         goal=OptimizeGoal(OptimizeGoalConfig(**goal)),
+        generator=torchGenerator(seed, RuntimeConfig()),
+        pending_points=pending_points,
+    )
+
+
+def makeExploreContext(
+    surrogate: Surrogate,
+    outcomes: Sequence[str] | None = None,
+    *,
+    pending_points: Tensor | None = None,
+    seed: int = 7,
+) -> AcquisitionBuildContext:
+    """A build context over a toy surrogate for an explore goal.
+
+    Args:
+        surrogate: The surrogate.
+        outcomes: The outcomes to learn, or `None` for all the outcomes of the problem.
+        pending_points: The pending points, shape `(n, 1)`, or `None` for none.
+        seed: The seed of the generator of the build.
+
+    Returns:
+        The context.
+    """
+    return AcquisitionBuildContext(
+        surrogate=surrogate,
+        goal=ExploreGoal.fromConfig(
+            ExploreGoalConfig(outcomes=None if outcomes is None else list(outcomes))
+        ),
         generator=torchGenerator(seed, RuntimeConfig()),
         pending_points=pending_points,
     )

@@ -11,17 +11,21 @@ Phase 5: so far the Monte Carlo log noisy expected improvement, `qlog_nei_v1`
 (`QLogNEIBuilder`, with its settings in `QLogNEIConfig`), which handles noisy data, pending
 points, batches and the outcome constraints of the goal, and the analytic upper confidence
 bound, `ucb_v1` (`UCBBuilder`, with its settings in `UCBConfig`), which scores one point at a
-time, and the multi-objective Monte Carlo log noisy expected hypervolume improvement,
+time, the multi-objective Monte Carlo log noisy expected hypervolume improvement,
 `qlog_nehvi_v1` (`QLogNEHVIBuilder`, with its settings in `QLogNEHVIConfig`, whose reference
 point of the hypervolume is either explicit, `ExplicitReferencePointConfig`, or read off the
-data by a named rule, `InferredReferencePointConfig`). The acquisitions that score the value of
+data by a named rule, `InferredReferencePointConfig`), and the negative integrated posterior
+variance, `neg_integrated_variance_v1` (`NegIntegratedVarianceBuilder`, with its settings in
+`NegIntegratedVarianceConfig`), which has no direction and learns the outcomes of an explore
+goal (`requireExploreGoal`, `exploreOutcomeWeights`). The acquisitions that score the value of
 one objective share `requireOptimizeGoalConfig` (the optimize goal of a build context) and
 `objectiveWeights` (the goal's scalar objective as a weight for each output of the model); the
 one for a Pareto problem reads the objectives apart instead (`selectParetoObjectives`,
 `ParetoObjectives`) and resolves the reference point (`resolveReferencePoint`,
 `predictedParetoFront`). The Monte Carlo ones also share `baselinePoints` (the observed points
 of a model), `outcomeConstraintCallables` (the goal's constraints as BoTorch feasibility
-constraints) and `drawSeed` (a seed for a sampler, drawn from the generator of the build).
+constraints), `outcomeSpreads` (the scale of each outcome) and `drawSeed` (a seed for a
+sampler, drawn from the generator of the build).
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain`, `planexs.encoding`,
 `planexs.surrogates` and `planexs.goals`, and no higher layer. Like `encoding`, it may import
@@ -43,10 +47,17 @@ rest of the legacy layer (P11-02).
 """
 
 from planexs.acquisition import (
+    NegIntegratedVarianceBuilder,
     QLogNEHVIBuilder,
     QLogNEIBuilder,
     UCBBuilder,
     acquisitionRegistry,
 )
 
-__all__ = ["QLogNEHVIBuilder", "QLogNEIBuilder", "UCBBuilder", "acquisitionRegistry"]
+__all__ = [
+    "NegIntegratedVarianceBuilder",
+    "QLogNEHVIBuilder",
+    "QLogNEIBuilder",
+    "UCBBuilder",
+    "acquisitionRegistry",
+]

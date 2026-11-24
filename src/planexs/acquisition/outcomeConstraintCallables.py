@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Sequence
-from typing import Any, cast
 
-import torch
 from botorch.models.model import Model
 from torch import Tensor
 
 from planexs.acquisition.AcquisitionContextError import AcquisitionContextError
+from planexs.acquisition.outcomeSpreads import outcomeSpreads
 from planexs.goals.OutcomeConstraint import OutcomeConstraint
 
 
@@ -71,30 +69,10 @@ def outcomeConstraintCallables(
         indices.append(names.index(constraint.outcome))
     if not constraints:
         return []
-    spreads = _spreads(model, baseline)
+    spreads = outcomeSpreads(model, baseline)
     return [
         _violation(index, constraint, spreads[index])
         for index, constraint in zip(indices, constraints, strict=True)
-    ]
-
-
-def _spreads(model: Model, baseline: Tensor) -> list[float]:
-    """The spread of each output of the model over the observed points.
-
-    Args:
-        model: The fitted native model.
-        baseline: The observed points, shape `(r, d)`.
-
-    Returns:
-        For each output, the standard deviation of the posterior mean at the observed points,
-        or 1.0 where that is zero or not finite, which leaves the outcome in its own unit.
-    """
-    with torch.no_grad():
-        mean = cast(Tensor, cast(Any, model.posterior(baseline)).mean)
-        points_axis = -2  # structural: the observed points of a mean of shape (r, m)
-        spread = torch.std(mean, dim=points_axis, correction=0)
-    return [
-        value if math.isfinite(value) and value > 0.0 else 1.0 for value in spread.tolist()
     ]
 
 
