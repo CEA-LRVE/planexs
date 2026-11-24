@@ -1,9 +1,10 @@
-"""Unit tests for the `fitter` kind and its registry (roadmap task P3-13, specification 5.12,
-10.6).
+"""Unit tests for the `fitter` kind and its registry (roadmap tasks P3-13 and P3-15,
+specification 5.12, 10.6).
 
 The registry contract test (`tests/unit/core/test_registry_contract.py`) runs over every kind
 of the process-wide table, so the kind is covered by it as soon as it is in the table, and
-`map_v1` with it: what is tested here is that they are, and what makes it so.
+`map_v1` and `variational_elbo_v1` with it: what is tested here is that they are, and what
+makes it so.
 """
 
 from __future__ import annotations
@@ -25,6 +26,8 @@ from planexs.core.DeclaredParticipant import DeclaredParticipant
 from planexs.core.KindTable import KindTable
 from planexs.core.RegistryError import RegistryError
 from planexs.surrogates.fitters.fitterRegistry import fitterRegistry
+from planexs.surrogates.fitters.MapFitter import MapFitter
+from planexs.surrogates.fitters.VariationalElboFitter import VariationalElboFitter
 
 #: The registry of the real table, taken before any test swaps it.
 _REAL_REGISTRY = fitterRegistry()
@@ -36,6 +39,12 @@ EXPECTED_FIELDS = {
         "max_attempts": 5,
         "pick_best_of_all_attempts": False,
         "maxiter": None,
+    },
+    "variational_elbo_v1": {
+        "type": "variational_elbo_v1",
+        "n_iterations": 100,
+        "learning_rate": 0.1,
+        "optimizer": "adam",
     },
 }
 
@@ -65,19 +74,23 @@ class TestTheKind:
             assert name in caught.value.message
 
 
-class TestTheMapFitter:
-    def test_exactly_the_fitter_of_the_card_is_registered(self) -> None:
-        assert fitterRegistry().names() == ["map_v1"]
+class TestTheFitters:
+    def test_exactly_the_fitters_of_the_cards_are_registered(self) -> None:
+        assert fitterRegistry().names() == ["map_v1", "variational_elbo_v1"]
 
-    def test_it_has_a_one_line_description(self) -> None:
-        description = fitterRegistry().lookup("map_v1").description
+    @pytest.mark.parametrize("name", EXPECTED_FIELDS)
+    def test_it_has_a_one_line_description(self, name: str) -> None:
+        description = fitterRegistry().lookup(name).description
 
         assert description.strip() and description.splitlines() == [description]
 
-    def test_its_configuration_describes_every_field_and_pins_its_type(self) -> None:
-        schema = fitterRegistry().lookup("map_v1").config_schema
+    @pytest.mark.parametrize("name", EXPECTED_FIELDS)
+    def test_its_configuration_describes_every_field_and_pins_its_type(
+        self, name: str
+    ) -> None:
+        schema = fitterRegistry().lookup(name).config_schema
 
-        assert schema.model_fields["type"].default == "map_v1"
+        assert schema.model_fields["type"].default == name
         for field, info in schema.model_fields.items():
             assert info.description and len(info.description.split()) >= 10, field
 
@@ -90,22 +103,45 @@ class TestTheMapFitter:
         assert set(schema.model_fields) == set(fields)
         assert schema().model_dump() == fields
 
-    def test_it_declares_that_it_needs_an_exact_gaussian_posterior(self) -> None:
+    def test_the_map_fitter_declares_that_it_needs_an_exact_gaussian_posterior(self) -> None:
         entry = fitterRegistry().lookup("map_v1")
 
         assert entry.needs == frozenset({"posterior:gaussian"})
         assert entry.supports == frozenset()
 
+    def test_the_variational_fitter_declares_that_it_needs_a_latent_gaussian_posterior(
+        self,
+    ) -> None:
+        entry = fitterRegistry().lookup("variational_elbo_v1")
+
+        assert entry.needs == frozenset({"posterior:latent_gaussian"})
+        assert entry.supports == frozenset()
+
+    @pytest.mark.parametrize(
+        ("name", "fitter_class"),
+        [("map_v1", MapFitter), ("variational_elbo_v1", VariationalElboFitter)],
+    )
+    def test_the_registered_builder_makes_the_fitter_of_the_name(
+        self, name: str, fitter_class: type
+    ) -> None:
+        entry = fitterRegistry().lookup(name)
+
+        built = entry.builder(entry.config_schema())
+
+        assert type(built) is fitter_class
+
 
 class TestTheDeclarationIsTruthful:
     """A fitter that needs a tag is refused beside a participant that does not support it, when
     a study is built (specification 3.6, 10.6): `map_v1` fits exact models, so it needs
-    `posterior:gaussian`, which an exact-GP surrogate supports and a classifier does not.
+    `posterior:gaussian`, which an exact-GP surrogate supports and a classifier does not, and
+    `variational_elbo_v1` fits approximate ones, so it needs `posterior:latent_gaussian`,
+    which a classifier supports and an exact-GP surrogate does not.
     """
 
     @staticmethod
-    def _fitter() -> DeclaredParticipant:
-        return DeclaredParticipant.fromEntry("fitter", fitterRegistry().lookup("map_v1"))
+    def _fitter(name: str = "map_v1") -> DeclaredParticipant:
+        return DeclaredParticipant.fromEntry("fitter", fitterRegistry().lookup(name))
 
     def test_it_is_accepted_beside_a_surrogate_with_an_exact_gaussian_posterior(self) -> None:
         surrogate = DeclaredParticipant(
@@ -125,6 +161,28 @@ class TestTheDeclarationIsTruthful:
         assert "posterior:gaussian" in caught.value.message
         assert "fitter 'map_v1'" in caught.value.message
 
+    def test_the_variational_fitter_is_accepted_beside_a_latent_gaussian_posterior(
+        self,
+    ) -> None:
+        classifier = DeclaredParticipant(
+            "surrogate 'classifier_v1'", supports=frozenset({"posterior:latent_gaussian"})
+        )
+
+        checkCompatibility([self._fitter("variational_elbo_v1"), classifier])
+
+    def test_the_variational_fitter_is_refused_beside_an_exact_gaussian_posterior(
+        self,
+    ) -> None:
+        exact = DeclaredParticipant(
+            "surrogate 'exact_v1'", supports=frozenset({"posterior:gaussian"})
+        )
+
+        with pytest.raises(CompatibilityError) as caught:
+            checkCompatibility([self._fitter("variational_elbo_v1"), exact])
+
+        assert "posterior:latent_gaussian" in caught.value.message
+        assert "fitter 'variational_elbo_v1'" in caught.value.message
+
 
 class TestTheRegistryIsLookedUpAtEachCall:
     def test_a_swapped_table_is_followed(self, isolatedFitterKind: KindTable) -> None:
@@ -133,12 +191,16 @@ class TestTheRegistryIsLookedUpAtEachCall:
         assert fitterRegistry() is swapped
         assert swapped is not _REAL_REGISTRY
 
-    def test_the_swapped_table_holds_the_real_fitter_and_what_a_test_adds(
+    def test_the_swapped_table_holds_the_real_fitters_and_what_a_test_adds(
         self, isolatedFitterKind: KindTable
     ) -> None:
         defineFake("only_in_the_test_v1")
 
-        assert fitterRegistry().names() == ["map_v1", "only_in_the_test_v1"]
+        assert fitterRegistry().names() == [
+            "map_v1",
+            "only_in_the_test_v1",
+            "variational_elbo_v1",
+        ]
 
     def test_the_real_registry_is_back_after_the_test(self) -> None:
         # Runs after the test above in file order, and fails if the swap leaked.
@@ -158,7 +220,7 @@ class TestImportingThePackage:
     """
 
     @pytest.mark.parametrize("package", ["planexs.surrogates", "planexs.surrogates.fitters"])
-    def test_it_defines_the_kind_and_registers_the_fitter(self, package: str) -> None:
+    def test_it_defines_the_kind_and_registers_the_fitters(self, package: str) -> None:
         result = _run(
             f"import {package}\n"
             "from planexs.surrogates.fitters.fitterRegistry import fitterRegistry\n"
@@ -166,7 +228,7 @@ class TestImportingThePackage:
         )
 
         assert result.returncode == 0, result.stderr
-        assert result.stdout.strip() == "['map_v1']"
+        assert result.stdout.strip() == "['map_v1', 'variational_elbo_v1']"
 
     def test_importing_the_registration_decorator_alone_defines_the_kind(self) -> None:
         # A plugin imports `registerFitter` and nothing else of the layer.
@@ -179,15 +241,22 @@ class TestImportingThePackage:
         assert result.returncode == 0, result.stderr
         assert result.stdout.strip() == "True"
 
+    @pytest.mark.parametrize(
+        ("module", "tag"),
+        [
+            ("MapFitter", "posterior:gaussian"),
+            ("VariationalElboFitter", "posterior:latent_gaussian"),
+        ],
+    )
     def test_the_capability_tag_that_the_fitter_needs_exists_whichever_module_comes_first(
-        self,
+        self, module: str, tag: str
     ) -> None:
         # `needs` is checked against the vocabulary when the fitter is registered, so the
         # tags of the surrogate layer must exist by then even when the fitters come first.
         result = _run(
-            "import planexs.surrogates.fitters.MapFitter\n"
+            f"import planexs.surrogates.fitters.{module}\n"
             "from planexs.core.CapabilityVocabulary import CapabilityVocabulary\n"
-            "print('posterior:gaussian' in CapabilityVocabulary.default())\n"
+            f"print({tag!r} in CapabilityVocabulary.default())\n"
         )
 
         assert result.returncode == 0, result.stderr

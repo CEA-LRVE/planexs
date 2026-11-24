@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 import pytest
-from fitter_fakes import defineFake, generatorOf, toyModel
+from fitter_fakes import defineFake, generatorOf, toyClassifier, toyModel
 from pydantic import BaseModel, ConfigDict, Field
 
 from planexs.core.ComponentConfig import ComponentConfig
@@ -27,6 +27,7 @@ from planexs.core.toResolvedConfig import toResolvedConfig
 from planexs.core.validateConfig import validateConfig
 from planexs.surrogates.fitters.fitterRegistry import fitterRegistry
 from planexs.surrogates.fitters.MapFitterConfig import MapFitterConfig
+from planexs.surrogates.fitters.VariationalElboFitterConfig import VariationalElboFitterConfig
 
 
 class StandInSurrogateConfig(BaseModel):
@@ -120,6 +121,88 @@ class TestAMistakeIsReportedAtTheFullPath:
             make({"fitter": {"max_attempts": 3}})
 
         assert caught.value.field_path == "fitter.type"
+
+
+class TestTheVariationalFitterInTheSameField:
+    """The field that holds `map_v1` holds `variational_elbo_v1` as well: the classifier
+    surrogate (roadmap P3-16) will name it in the same way.
+    """
+
+    def test_it_is_picked_by_name_with_its_own_fields(self) -> None:
+        config = make(
+            {
+                "fitter": {
+                    "type": "variational_elbo_v1",
+                    "n_iterations": 30,
+                    "learning_rate": 0.05,
+                    "optimizer": "rmsprop",
+                }
+            }
+        ).fitter
+
+        assert config == VariationalElboFitterConfig(
+            n_iterations=30, learning_rate=0.05, optimizer="rmsprop"
+        )
+
+    def test_a_field_of_the_other_fitter_is_refused_at_the_full_path(self) -> None:
+        with pytest.raises(ConfigError) as caught:
+            make({"fitter": {"type": "variational_elbo_v1", "max_attempts": 3}})
+
+        assert caught.value.field_path == "fitter.max_attempts"
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [("n_iterations", 0), ("learning_rate", 0.0), ("optimizer", "lbfgs")],
+    )
+    def test_a_bad_value_is_reported_at_the_full_path(self, field: str, value: Any) -> None:
+        with pytest.raises(ConfigError) as caught:
+            make({"fitter": {"type": "variational_elbo_v1", field: value}})
+
+        assert caught.value.field_path == f"fitter.{field}"
+
+    def test_an_unknown_fitter_lists_both_registered_ones(self) -> None:
+        with pytest.raises(ConfigError) as caught:
+            make({"fitter": {"type": "variational_elbo_v2"}})
+
+        assert "map_v1" in caught.value.message
+        assert "variational_elbo_v1" in caught.value.message
+
+    def test_the_resolved_configuration_writes_every_default_out(self) -> None:
+        resolved = toResolvedConfig(make({"fitter": {"type": "variational_elbo_v1"}}))
+
+        assert resolved == {
+            "fitter": {
+                "type": "variational_elbo_v1",
+                "n_iterations": 100,
+                "learning_rate": 0.1,
+                "optimizer": "adam",
+            }
+        }
+        assert toResolvedConfig(make(resolved)) == resolved
+
+    @pytest.mark.parametrize("file_format", ["json", "yaml"])
+    def test_a_file_means_what_the_python_mapping_means(self, file_format: Any) -> None:
+        data = {
+            "fitter": {
+                "type": "variational_elbo_v1",
+                "n_iterations": 12,
+                "optimizer": "adagrad",
+            }
+        }
+
+        text = dumpConfig(data, file_format)
+
+        assert make(parseConfig(text, file_format)) == make(data)
+
+    def test_the_fitter_it_names_fits_an_approximate_model_through_the_registry(self) -> None:
+        config = make({"fitter": {"type": "variational_elbo_v1", "n_iterations": 5}}).fitter
+        model = toyClassifier()
+
+        fitterRegistry().lookup(config.type).builder(config).fit(
+            model, generator=generatorOf(0)
+        )
+
+        assert not model.training
 
 
 ONE_CONFIGURATION = {

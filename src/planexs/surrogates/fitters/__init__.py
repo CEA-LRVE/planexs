@@ -7,14 +7,17 @@ builder exposes as a nested kind of components, so that it is selected by name i
 model that cannot be fitted (`FitterError`), the registry (`fitterRegistry`) and the
 registration decorator (`registerFitter`). A fitter does not make a native object, it acts on
 one: it receives the model and a seeded generator, changes the model in place and leaves it in
-evaluation mode. The built-in fitter is:
+evaluation mode. The built-in fitters are:
 
 - `map_v1` (`MapFitter`): maximizes the marginal likelihood of an exact GP together with the
   engine's priors (a MAP fit) through BoTorch's fitting routine, with the options of that
-  routine that the engine honours for every exact model (`MapFitterConfig`).
+  routine that the engine honours for every exact model (`MapFitterConfig`);
+- `variational_elbo_v1` (`VariationalElboFitter`): maximizes the variational ELBO of an
+  approximate GP, the model of a classifier, with an optimizer loop whose number of iterations,
+  learning rate and optimizer are configuration fields (`VariationalElboFitterConfig`).
 
-The variational fitter of the classifier surrogate joins it with roadmap task P3-15, which is
-what makes this a kind of its own (specification 3.10).
+That there are two of them, one for each kind of model, is what makes this a kind of its own
+(specification 3.10).
 
 The rule of this package is that of the layer: it may import `planexs.core`, `planexs.domain`
 and `planexs.encoding`, and no higher layer. Like `encoding`, it may import torch, BoTorch and
@@ -25,6 +28,6 @@ silently unregistered (specification 5.12, 10.6). Importing the package also def
 `fitter` kind, which `fitterRegistry` is imported for.
 """
 
-from planexs.surrogates.fitters import MapFitter, fitterRegistry
+from planexs.surrogates.fitters import MapFitter, VariationalElboFitter, fitterRegistry
 
-__all__ = ["MapFitter", "fitterRegistry"]
+__all__ = ["MapFitter", "VariationalElboFitter", "fitterRegistry"]

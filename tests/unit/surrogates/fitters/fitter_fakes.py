@@ -1,6 +1,6 @@
 """Fakes and toy models shared by the tests of `planexs.surrogates.fitters`: a fitter that
 stands for a plugin's, so that the contract of the kind is tested on its own, before and beside
-the real one, and small exact GPs to fit.
+the real one, and small exact and approximate GPs to fit.
 """
 
 from __future__ import annotations
@@ -9,9 +9,13 @@ from typing import Any, Literal
 
 import torch
 from botorch.models import ModelListGP, SingleTaskGP
+from botorch.models.approximate_gp import ApproximateGPyTorchModel, SingleTaskVariationalGP
 from botorch.models.model import Model
 from botorch.models.transforms.outcome import Standardize
-from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
+from botorch.utils.sampling import manual_seed
+from gpytorch.distributions import MultivariateNormal
+from gpytorch.likelihoods import BernoulliLikelihood, Likelihood
+from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood, VariationalELBO
 from pydantic import Field, create_model
 from torch import Tensor
 
@@ -79,6 +83,122 @@ def objective(model: Model) -> float:
     assert isinstance(model, SingleTaskGP)
     exact_mll = ExactMarginalLogLikelihood(model.likelihood, model)
     return float(exact_mll(model(*model.train_inputs), model.train_targets).sum().detach())
+
+
+def toyLabels(n_points: int = 30) -> tuple[Tensor, Tensor]:
+    """Labels that a smooth function of two columns makes true or false, with noise, so that
+    no function separates them: the same on every call.
+
+    Returns:
+        The inputs, shape `(n_points, 2)` in the unit cube, and the labels, 0 or 1, as a
+        column.
+    """
+    generator = torch.Generator().manual_seed(0)
+    train_x = torch.rand(n_points, N_COLUMNS, generator=generator, dtype=torch.float64)
+    noise = 0.3 * torch.randn(n_points, generator=generator, dtype=torch.float64)
+    latent = torch.sin(4 * train_x[:, 0]) + train_x[:, 1] - 0.5 + noise
+    return train_x, (latent > 0).double().unsqueeze(-1)
+
+
+def toyClassifier(
+    n_points: int = 30, likelihood: Likelihood | None = None
+) -> SingleTaskVariationalGP:
+    """An approximate GP on `toyLabels` with a Bernoulli likelihood, as a classifier surrogate
+    builds one: BoTorch's variational GP with its default kernel and inducing points. It is not
+    fitted, and is in training mode.
+
+    Args:
+        n_points: The number of labels.
+        likelihood: The likelihood, a `BernoulliLikelihood` by default.
+    """
+    train_x, labels = toyLabels(n_points)
+    return SingleTaskVariationalGP(
+        train_x, labels, likelihood=likelihood or BernoulliLikelihood()
+    )
+
+
+def toyApproximateRegressor(n_points: int = 10) -> SingleTaskVariationalGP:
+    """An approximate GP on `toyData` with BoTorch's default Gaussian likelihood: an
+    approximate model whose likelihood is not a label's. It is not fitted.
+    """
+    train_x, train_y = toyData(1, n_points)
+    return SingleTaskVariationalGP(train_x, train_y)
+
+
+def elbo(model: ApproximateGPyTorchModel) -> float:
+    """The variational ELBO that the fitter maximizes, at the current parameters of `model`:
+    GPyTorch's `VariationalELBO` (an average over the observations), on all the training data.
+
+    It puts the model in training mode (the bound is a function of the training data), and
+    leaves it there. The first evaluation of a variational GP perturbs its variational mean
+    with a random draw, so the evaluation is seeded and the global random state is put back:
+    the value is the same on every call, and the test that calls it is not at the mercy of the
+    tests that ran before it.
+    """
+    model.train()
+    latent = model.model
+    bound = VariationalELBO(model.likelihood, latent, num_data=latent.train_targets.shape[-1])
+    with torch.no_grad(), manual_seed(0):
+        return float(bound(latent(*latent.train_inputs), latent.train_targets).sum())
+
+
+class SamplingBernoulliLikelihood(BernoulliLikelihood):
+    """A Bernoulli likelihood whose expected log probability carries an error drawn from
+    torch's *global* random state, as a likelihood that integrates by sampling would: a second
+    place where the loop of the fitter can depend on a random number.
+    """
+
+    def expected_log_prob(
+        self,
+        observations: Tensor,
+        function_dist: MultivariateNormal,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
+        """The exact value, plus noise that is as large as 0.1 times the latent mean."""
+        exact = super().expected_log_prob(observations, function_dist, *args, **kwargs)
+        return exact + 0.1 * torch.randn_like(exact) * function_dist.mean
+
+
+class NotFiniteBernoulliLikelihood(BernoulliLikelihood):
+    """A Bernoulli likelihood whose expected log probability is not a number."""
+
+    def expected_log_prob(
+        self,
+        observations: Tensor,
+        function_dist: MultivariateNormal,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
+        """`nan` for every observation."""
+        return super().expected_log_prob(observations, function_dist, *args, **kwargs) * float(
+            "nan"
+        )
+
+
+class FailingBernoulliLikelihood(BernoulliLikelihood):
+    """A Bernoulli likelihood whose expected log probability raises a `RuntimeError` after it
+    has been computed `after` times, as the linear algebra of the bound does where a covariance
+    is not positive definite.
+    """
+
+    def __init__(self, after: int) -> None:
+        """Counts `after` computations that succeed, then fails every one."""
+        super().__init__()
+        self.remaining = after
+
+    def expected_log_prob(
+        self,
+        observations: Tensor,
+        function_dist: MultivariateNormal,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
+        """The exact value, until the count has run out."""
+        if self.remaining <= 0:
+            raise RuntimeError("The covariance is not positive definite.")
+        self.remaining -= 1
+        return super().expected_log_prob(observations, function_dist, *args, **kwargs)
 
 
 def hyperparameters(model: Model) -> dict[str, Tensor]:

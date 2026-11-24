@@ -18,6 +18,7 @@ from gpytorch.mlls import (
 from gpytorch.models import ExactGP
 
 from planexs.surrogates.fitters.AbstractFitter import AbstractFitter
+from planexs.surrogates.fitters.drawSeed import drawSeed
 from planexs.surrogates.fitters.FitterError import FitterError
 from planexs.surrogates.fitters.MapFitterConfig import MapFitterConfig
 from planexs.surrogates.fitters.registerFitter import registerFitter
@@ -79,7 +80,7 @@ class MapFitter(AbstractFitter[MapFitterConfig]):
                 gave up after `max_attempts` attempts.
         """
         marginal_likelihood = self._marginalLikelihood(model)
-        seed = _drawSeed(generator)
+        seed = drawSeed(generator)
         try:
             with manual_seed(seed):
                 fit_gpytorch_mll(
@@ -157,20 +158,3 @@ class MapFitter(AbstractFitter[MapFitterConfig]):
         if self.config.maxiter is None:
             return None
         return {"options": {"maxiter": self.config.maxiter}}
-
-
-def _drawSeed(generator: torch.Generator) -> int:
-    """Draws the seed of one fit from the generator that the fit is given.
-
-    The seed is drawn, and not read from the generator, so that a generator that has been used
-    does not give the same fit as a fresh one. The generator may live on another device than
-    the default one, and `randint` wants them to agree.
-
-    Args:
-        generator: The seeded generator.
-
-    Returns:
-        An integer that `torch.manual_seed` accepts.
-    """
-    high = torch.iinfo(torch.int32).max
-    return int(torch.randint(high, (1,), generator=generator, device=generator.device))
