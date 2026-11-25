@@ -503,6 +503,7 @@ class TestPropertyNaming:
 
         assert sorted(names) == [
             "encoder",
+            "link",
             "model",
             "outcome_names",
             "outcomes",
@@ -516,7 +517,7 @@ class TestPropertyNaming:
         assert model.calls == []
 
     def test_what_asks_the_model_is_a_method(self) -> None:
-        for name in ("predict", "sample"):
+        for name in ("predict", "sample", "latentLevel"):
             member = inspect.getattr_static(Surrogate, name)
 
             assert not isinstance(member, property)

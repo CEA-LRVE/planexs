@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +21,7 @@ from planexs.surrogates.BuiltSurrogate import BuiltSurrogate
 from planexs.surrogates.FitStatus import FitStatus
 from planexs.surrogates.Prediction import Prediction
 from planexs.surrogates.PredictionConfig import PredictionConfig
+from planexs.surrogates.ResponseLink import ResponseLink
 from planexs.surrogates.SamplingConfig import SamplingConfig
 from planexs.surrogates.SurrogateModelError import SurrogateModelError
 
@@ -46,6 +48,9 @@ class Surrogate:
       a `Prediction`.
     - `sample`: joint posterior samples at the parameterizations, drawn from a generator that
       the caller supplies (specification 3.7: no global random state).
+    - `latentLevel`: a level that is given in the response space, as the probability of a
+      classifier, converted into the threshold on the latent function that a level-set
+      acquisition or analysis works with.
     - `model`: the native model itself, never a copy or a different one (specification 5.13).
     - `status`: how the model was fitted, low-data flag included (specification 3.11).
     - `outcome_names` and `outcomes`: the outcomes it covers, in the order of the outputs of
@@ -62,8 +67,13 @@ class Surrogate:
     of the model, its epistemic uncertainty only (the default, FR8). With it, the prediction
     describes a new noisy measurement and its space is `"response"`. Noise is refused for an
     outcome whose kind has none, a binary label. The probability that a classifier reads from
-    its latent function through a link is a second kind of response, which comes with that
-    surrogate (roadmap task P3-16) as a new option in `PredictionConfig`.
+    its latent function through a link is a second kind of response: with `through_link` the
+    prediction describes the outcome as the link of the surrogate reads it (the predictive
+    probability and the standard deviation of the probability, for a probit link), its space
+    is `"response"` and it includes no observation noise. A surrogate whose model reads its
+    outcomes through a link says so in the `link` of its `BuiltSurrogate`; asking for the link
+    of one that has none is an error, and so is combining it with noise, which a label has no
+    meaning for.
 
     **Cost.** `predict` asks the model about each point on its own, so its cost grows
     linearly with the number of points. `sample` draws the points jointly, as one sample of a
@@ -141,6 +151,13 @@ class Surrogate:
         return self._built.status
 
     @property
+    def link(self) -> ResponseLink | None:
+        """How the outcomes are read from the latent function of the model, or `None` when the
+        model's own output is the outcome (a stored value: cheap, snake_case).
+        """
+        return self._built.link
+
+    @property
     def problem(self) -> Problem:
         """The problem the model was fitted for (a stored value: cheap, snake_case)."""
         return self._problem
@@ -181,16 +198,19 @@ class Surrogate:
             parameterizations: The points, each a mapping from parameter name to value on
                 natural values, legal for the problem (every constraint included). At least
                 one.
-            options: Whether the observation noise is included. `None` means
-                `PredictionConfig()`, the defaults of the schema.
+            options: Whether the observation noise is included and whether the prediction is
+                read through the link. `None` means `PredictionConfig()`, the defaults of the
+                schema.
 
         Returns:
             The prediction, in the order of the points. It states its space (`"latent"`
-            without noise, `"response"` with it) and whether the noise is included.
+            by default, `"response"` with noise or through the link) and whether the noise
+            is included.
 
         Raises:
-            ConfigError: if `parameterizations` is empty or is a single mapping, or noise is
-                asked for an outcome whose kind has none.
+            ConfigError: if `parameterizations` is empty or is a single mapping, noise is
+                asked for an outcome whose kind has none, or the link is asked for of a
+                surrogate that has none or together with noise.
             ParameterizationError: if a parameterization is not legal for the problem. The
                 message names its position.
             SurrogateModelError: if the model answers with a shape that does not fit the
@@ -198,6 +218,8 @@ class Surrogate:
         """
         settings = PredictionConfig() if options is None else options
         noisy = settings.include_observation_noise
+        linked = settings.through_link
+        self._requireLink(linked, noisy)
         self._requireNoiseMeaningful(noisy)
         inputs = self._encodeAll(parameterizations)
         expected = (inputs.shape[0], 1, len(self._outcomes))
@@ -209,12 +231,15 @@ class Surrogate:
             )
             mean = self._checkedTable(posterior.mean, expected, "mean")
             variance = self._checkedTable(posterior.variance, expected, "variance")
-        std = variance.clamp_min(0.0).sqrt()
+        if linked:
+            mean, std = self._requiredLink().marginal(mean, variance.clamp_min(0.0))
+        else:
+            std = variance.clamp_min(0.0).sqrt()
         return Prediction(
             outcomes=self.outcome_names,
             mean={name: tuple(mean[:, column].tolist()) for column, name in self._columns()},
             std={name: tuple(std[:, column].tolist()) for column, name in self._columns()},
-            space="response" if noisy else "latent",
+            space="response" if noisy or linked else "latent",
             includes_observation_noise=noisy,
         )
 
@@ -234,22 +259,27 @@ class Surrogate:
         The generator advances: a second call with it gives other samples.
 
         What the samples describe is what `options` says: the latent function without
-        observation noise, a new noisy measurement with it (see `PredictionConfig`).
+        observation noise, a new noisy measurement with it, or the response that the link
+        reads from each draw of the latent function with `through_link` (see
+        `PredictionConfig`).
 
         Args:
             parameterizations: The points, as for `predict`. At least one.
-            options: The number of samples and whether the noise is included. `None` means
-                `SamplingConfig()`, the defaults of the schema.
+            options: The number of samples, whether the noise is included and whether the
+                draws are read through the link. `None` means `SamplingConfig()`, the
+                defaults of the schema.
             generator: The seeded generator the base samples are drawn from. The study gives
                 each call one that it derived for the ask and the component.
 
         Returns:
             A tensor of shape `(n_samples, n_points, n_outcomes)`, in the units of the
-            outcomes, with the precision and on the device of the runtime settings.
+            outcomes (probabilities through a probit link), with the precision and on the
+            device of the runtime settings.
 
         Raises:
             ConfigError: if `parameterizations` is empty or is a single mapping, noise is
-                asked for an outcome whose kind has none, or `generator` is not a
+                asked for an outcome whose kind has none, the link is asked for of a
+                surrogate that has none or together with noise, or `generator` is not a
                 `torch.Generator`.
             ParameterizationError: if a parameterization is not legal for the problem.
             SurrogateModelError: if the model answers with a shape that does not fit the
@@ -265,6 +295,7 @@ class Surrogate:
                 suggestion="pass torchGenerator(seed, runtime), with a seed from RngTree.seed",
             )
         settings = SamplingConfig() if options is None else options
+        self._requireLink(settings.through_link, settings.include_observation_noise)
         self._requireNoiseMeaningful(settings.include_observation_noise)
         inputs = self._encodeAll(parameterizations)
         shape = torch.Size([settings.n_samples])
@@ -280,7 +311,98 @@ class Surrogate:
                 device=generator.device,
             ).to(self._device)
             draws = posterior.rsample_from_base_samples(shape, base_samples)
-        return self._checkedTable(draws, expected, "samples")
+        samples = self._checkedTable(draws, expected, "samples")
+        return self._requiredLink().inverse(samples) if settings.through_link else samples
+
+    def latentLevel(self, level: float) -> float:
+        """Converts a level of the response into the threshold on the latent function.
+
+        A level-set goal gives the level in the space of the outcome: in the outcome's units
+        for a continuous one, as a probability for a binary one. A level-set acquisition or
+        analysis compares the posterior of the latent function with it, so the level has to be
+        read in that space first: the latent threshold is the value of the latent function at
+        which the response equals the level, `link.forward(level)` (for a probit link,
+        `Phi^-1(level)`, which is 0 for the level 0.5). A surrogate with no link models the
+        outcome itself, and its latent function is in the units of the outcome, so the level
+        is returned as it is.
+
+        Args:
+            level: The level in the response space. For a surrogate with a link it must be
+                strictly between 0 and 1: the response never reaches the ends, so no latent
+                value has a response of 0 or 1.
+
+        Returns:
+            The threshold, in the units of the latent function.
+
+        Raises:
+            ConfigError: if the level is not a finite number, or, for a surrogate with a link,
+                is not strictly between 0 and 1.
+        """
+        link = self._built.link
+        if isinstance(level, bool) or not math.isfinite(level):
+            raise ConfigError(
+                f"The level must be a finite number; got {level!r}.",
+                component=_COMPONENT,
+                field_path="level",
+                suggestion="give the level as a number, a probability for a binary outcome",
+            )
+        if link is None:
+            return float(level)
+        if not 0.0 < level < 1.0:
+            raise ConfigError(
+                f"The level {level!r} is not strictly between 0 and 1, so no value of the "
+                f"latent function has it as its response: the {link.name} link reads the "
+                "latent function as a probability, which never reaches 0 or 1.",
+                component=_COMPONENT,
+                field_path="level",
+                suggestion="give a level for the probability of the label, between 0 and 1 "
+                "exclusive, such as 0.5",
+            )
+        probability = torch.tensor(level, dtype=self._dtype, device=self._device)
+        return float(link.forward(probability))
+
+    def _requiredLink(self) -> ResponseLink:
+        """The link of the surrogate, known to exist because `_requireLink` has checked.
+
+        Returns:
+            The link.
+        """
+        link = self._built.link
+        assert link is not None  # `_requireLink` refused the request otherwise
+        return link
+
+    def _requireLink(self, through_link: bool, include_noise: bool) -> None:
+        """Refuses a request for the response through a link that this surrogate cannot give.
+
+        Args:
+            through_link: Whether the caller asked for the response through the link.
+            include_noise: Whether the caller asked for the observation noise.
+
+        Raises:
+            ConfigError: if the link is asked for of a surrogate that has none, or together
+                with noise.
+        """
+        if not through_link:
+            return
+        if self._built.link is None:
+            raise ConfigError(
+                "The response through a link was asked for, but this surrogate has no link: "
+                "its model gives the outcome itself, so there is no further space to read "
+                "it in.",
+                component=_COMPONENT,
+                field_path="through_link",
+                suggestion="leave through_link False; the observation noise is what turns the "
+                "latent function of a Gaussian outcome into a measurement",
+            )
+        if include_noise:
+            raise ConfigError(
+                "through_link and include_observation_noise were both asked for: the "
+                "response that a link gives is not a noisy measurement of the latent "
+                "function, and a label has no observation noise.",
+                component=_COMPONENT,
+                field_path="through_link",
+                suggestion="ask for one of them",
+            )
 
     def _columns(self) -> list[tuple[int, str]]:
         """The position of each outcome among the outputs of the model, with its name."""

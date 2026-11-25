@@ -1,9 +1,9 @@
 """Fakes shared by the tests of `planexs.surrogates`: problems, contexts, models, builders.
 
-A fake builder stands for a real surrogate (roadmap tasks P3-14, P3-16) that does not exist
-yet, so that the contract of the kind (registration, tags, the build context) is tested on its
-own. Kept in a module of its own and not in `conftest.py`, so that the test files can import
-what is not a fixture.
+A fake builder stands for a real surrogate, so that the contract of the kind (registration,
+tags, the build context) is tested on its own, and does not change when a surrogate does.
+Kept in a module of its own and not in `conftest.py`, so that the test files can import what is
+not a fixture.
 """
 
 from __future__ import annotations

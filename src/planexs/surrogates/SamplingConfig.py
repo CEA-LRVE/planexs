@@ -8,16 +8,18 @@ from pydantic import BaseModel, ConfigDict, Field
 class SamplingConfig(BaseModel):
     """The options that `Surrogate.sample` takes (specification 3.4, 5.6, 10.8).
 
-    Two settings: how many joint posterior samples are drawn, and whether they include the
-    observation noise. They travel in an options object, and not in defaulted arguments of
-    `sample`, for the reason given by `PredictionConfig`. This class has no `type` field, is
-    not registered in any kind and is not a `ComponentConfig`.
+    Three settings: how many joint posterior samples are drawn, whether they include the
+    observation noise, and whether they are read through the link of the surrogate. They
+    travel in an options object, and not in defaulted arguments of `sample`, for the reason
+    given by `PredictionConfig`. This class has no `type` field, is not registered in any kind
+    and is not a `ComponentConfig`.
 
     A configuration is frozen: build a new one to change a setting.
 
     Attributes:
         n_samples: How many samples are drawn.
         include_observation_noise: Whether the samples include the observation noise.
+        through_link: Whether the samples are read through the link of the surrogate.
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -45,5 +47,18 @@ class SamplingConfig(BaseModel):
             "only). When True they are draws of new noisy measurements of the outcomes. It "
             "is refused for an outcome whose kind has no observation noise (a binary "
             "label). The default is False, for the reason given by `PredictionConfig`."
+        ),
+    )
+    through_link: bool = Field(
+        default=False,
+        strict=True,
+        description=(
+            "Whether the samples are read through the link of the surrogate, a flag. When "
+            "False they are draws of the latent function. When True each draw of the latent "
+            "function is mapped through the inverse link, so the samples are draws of the "
+            "response (for a classifier, probabilities between 0 and 1) and keep the "
+            "correlation between points. It cannot be combined with "
+            "'include_observation_noise' and it is refused for a surrogate that has no link, "
+            "as for `PredictionConfig`. The default is False, for the reason given there."
         ),
     )

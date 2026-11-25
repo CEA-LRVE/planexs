@@ -23,6 +23,7 @@ from planexs.domain.Problem import Problem
 from planexs.encoding.SearchSpaceEncoder import SearchSpaceEncoder
 from planexs.surrogates.BuiltSurrogate import BuiltSurrogate
 from planexs.surrogates.FitStatus import FitStatus
+from planexs.surrogates.ResponseLink import ResponseLink
 from planexs.surrogates.Surrogate import Surrogate
 
 #: The variance that observation noise adds, for every point and outcome.
@@ -98,6 +99,7 @@ def makeSurrogate(
     problem: Problem | None = None,
     outcome_names: Sequence[str] = OUTCOME_NAMES,
     runtime: RuntimeConfig | None = None,
+    link: ResponseLink | None = None,
 ) -> Surrogate:
     """A `Surrogate` over a fake model.
 
@@ -106,6 +108,7 @@ def makeSurrogate(
         problem: The problem. `None` means `makeProblem()`.
         outcome_names: The outcomes the surrogate covers.
         runtime: The runtime settings. `None` means `RuntimeConfig()`.
+        link: How the outcomes are read from the latent function. `None` means no link.
 
     Returns:
         The surrogate, whose fit status is a low-data one of four observations.
@@ -116,6 +119,7 @@ def makeSurrogate(
     built = BuiltSurrogate(
         model=native,  # type: ignore[arg-type]
         status=FitStatus(n_observations=4, is_low_data=True, warnings=("few points",)),
+        link=link,
     )
     return Surrogate(
         built,

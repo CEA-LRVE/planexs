@@ -27,6 +27,8 @@ _CAPABILITY_TAGS = {
     "outputs:multi": "The surrogate can model a problem with several outcomes.",
     "noise:known": "The surrogate can use the observation noise that the caller reports.",
     "noise:inferred": "The surrogate can infer the observation noise from the data.",
+    "link:probit": "The outcomes are read from the latent function through a probit link: the "
+    "standard normal distribution function.",
 }
 
 

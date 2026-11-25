@@ -10,6 +10,7 @@ from surrogate_fakes import FakeModel
 
 from planexs.surrogates.BuiltSurrogate import BuiltSurrogate
 from planexs.surrogates.FitStatus import FitStatus
+from planexs.surrogates.probitLink import probitLink
 
 
 def status() -> FitStatus:
@@ -35,7 +36,32 @@ class TestABuiltSurrogate:
 
         assert built.model is model
 
-    @pytest.mark.parametrize("field", ["model", "status"])
+    def test_it_has_no_link_unless_it_is_given_one(self) -> None:
+        assert BuiltSurrogate(FakeModel(), status()).link is None  # type: ignore[arg-type]
+
+    def test_it_holds_the_link_that_the_builder_gives(self) -> None:
+        link = probitLink()
+
+        built = BuiltSurrogate(FakeModel(), status(), link=link)  # type: ignore[arg-type]
+
+        assert built.link is link
+
+    def test_the_link_is_the_third_field_and_after_the_two_that_were_always_there(
+        self,
+    ) -> None:
+        names = [field.name for field in dataclasses.fields(BuiltSurrogate)]
+
+        assert names == ["model", "status", "link"]
+
+    def test_a_built_surrogate_with_a_link_is_not_equal_to_one_without(self) -> None:
+        model = FakeModel()
+
+        assert BuiltSurrogate(model, status(), link=probitLink()) != BuiltSurrogate(  # type: ignore[arg-type]
+            model,
+            status(),  # type: ignore[arg-type]
+        )
+
+    @pytest.mark.parametrize("field", ["model", "status", "link"])
     def test_it_is_frozen(self, field: str) -> None:
         built = BuiltSurrogate(FakeModel(), status())  # type: ignore[arg-type]
 

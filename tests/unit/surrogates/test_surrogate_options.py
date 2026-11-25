@@ -50,6 +50,37 @@ class TestTheOptions:
         with pytest.raises(ValidationError):
             schema(include_observation_noise="yes")
 
+    @pytest.mark.parametrize("schema", OPTIONS)
+    def test_the_response_is_not_read_through_a_link_by_default(
+        self, schema: type[BaseModel]
+    ) -> None:
+        # Specification 5.6: a prediction describes the latent function unless asked.
+        assert schema().through_link is False  # type: ignore[attr-defined]
+
+    @pytest.mark.parametrize("schema", OPTIONS)
+    @pytest.mark.parametrize("value", ["yes", "true", 1, 0, None])
+    def test_the_link_flag_must_be_a_boolean(
+        self, schema: type[BaseModel], value: Any
+    ) -> None:
+        with pytest.raises(ValidationError, match="through_link"):
+            schema(through_link=value)
+
+    @pytest.mark.parametrize("schema", OPTIONS)
+    def test_the_link_flag_can_be_set_and_survives_json(self, schema: type[BaseModel]) -> None:
+        options = schema(through_link=True)
+
+        assert options.through_link is True  # type: ignore[attr-defined]
+        assert schema.model_validate_json(options.model_dump_json()) == options
+
+    @pytest.mark.parametrize("schema", OPTIONS)
+    def test_the_link_flag_is_described_with_what_it_cannot_be_combined_with(
+        self, schema: type[BaseModel]
+    ) -> None:
+        description = schema.model_fields["through_link"].description or ""
+
+        assert "include_observation_noise" in description
+        assert len(description.split()) >= 10
+
     @pytest.mark.parametrize("n_samples", [0, -3, 1.5, "10", True])
     def test_the_number_of_samples_is_a_whole_number_of_one_or_more(
         self, n_samples: Any

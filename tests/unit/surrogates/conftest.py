@@ -16,7 +16,7 @@ def isolatedSurrogateKind(monkeypatch: pytest.MonkeyPatch) -> KindTable:
     what a test registers must never reach the real registry or the real vocabulary: it would
     be there for every test that runs after it, and for the registry contract test. The table
     that this fixture swaps in holds a copy of every kind of the real one, with the very same
-    entries (the `surrogate` kind has none yet, the surrogates arrive with later tasks), so a
+    entries (the `surrogate` kind holds the real surrogates, the classifier among them), so a
     test can register a fake next to them. Every kind is copied, and not the `surrogate` kind
     alone, because a surrogate test builds a `Problem`, whose outcomes look their kind up in
     the `outcome_kind` registry of the process-wide table. Its capability tags are checked

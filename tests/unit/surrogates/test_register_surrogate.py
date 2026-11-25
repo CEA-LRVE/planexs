@@ -29,6 +29,11 @@ from planexs.surrogates.FitStatus import FitStatus
 from planexs.surrogates.registerSurrogate import registerSurrogate
 from planexs.surrogates.surrogateRegistry import surrogateRegistry
 
+#: The surrogates that the package registers itself, read before any test swaps the table. A
+#: test of registration must hold them next to the fakes it defines, and must not name them, so
+#: that a new surrogate does not break it.
+REAL_SURROGATES = tuple(surrogateRegistry().names())
+
 
 class TestRegistering:
     def test_the_entry_holds_everything_the_decorator_was_given(
@@ -72,7 +77,8 @@ class TestRegistering:
         defineFake("a_v1")
         defineFake("b_v1")
 
-        assert surrogateRegistry().names() == ["a_v1", "b_v1"]
+        # The real surrogates are in the isolated table too, and the fakes sort among them.
+        assert surrogateRegistry().names() == sorted(["a_v1", "b_v1", *REAL_SURROGATES])
 
     def test_registering_builds_nothing(self, isolatedSurrogateKind: KindTable) -> None:
         # A builder is free of side effects at import and registration time (specification 6).
@@ -182,7 +188,7 @@ class TestFromAConfigurationToAFittedModel:
         defineFake("a_v1")
         defineFake("b_v1")
 
-        with pytest.raises(ConfigError, match="Registered names: a_v1, b_v1") as caught:
+        with pytest.raises(ConfigError, match="Registered names: a_v1, b_v1, ") as caught:
             resolveComponent(surrogateRegistry(), {"type": "c_v1"})
 
         assert caught.value.field_path == "type"
@@ -190,7 +196,7 @@ class TestFromAConfigurationToAFittedModel:
 
 class TestARegistrationThatIsRefused:
     def assertNothingWasRegistered(self, table: KindTable) -> None:
-        assert table.registry("surrogate").names() == []
+        assert table.registry("surrogate").names() == list(REAL_SURROGATES)
 
     @pytest.mark.parametrize(
         "name", ["Upper", "1st_v1", "with space", "trailing_", "", "a__b"]

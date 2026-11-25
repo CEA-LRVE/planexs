@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from planexs.surrogates.FitStatus import FitStatus
+from planexs.surrogates.ResponseLink import ResponseLink
 
 if TYPE_CHECKING:
     from botorch.models.model import Model
@@ -16,8 +17,10 @@ class BuiltSurrogate:
     """A fitted native model together with its fit status (specification 5.6).
 
     This is the result of `AbstractSurrogateBuilder.build`. The `Surrogate` wrapper (roadmap
-    task P3-09) binds it to the encoding and the outcomes and offers the surrogate operations;
-    until then this pair is all a builder has to deliver.
+    task P3-09) binds it to the encoding and the outcomes and offers the surrogate operations.
+    A builder of a surrogate whose outcomes are read from a latent function through a link (a
+    classifier) adds the link, so that the wrapper can speak of both spaces; the others leave
+    it out.
 
     It is a frozen record, and the model it holds is the native object itself, not a copy: it
     is the BoTorch model that the policy really uses and that the escape hatch returns
@@ -27,7 +30,11 @@ class BuiltSurrogate:
     Attributes:
         model: The fitted native model, in evaluation mode.
         status: How it was fitted.
+        link: How the outcomes are read from the latent function of the model, or `None` when
+            the model's own output is the outcome (a Gaussian likelihood). It applies to every
+            output of the model.
     """
 
     model: Model
     status: FitStatus
+    link: ResponseLink | None = None

@@ -1,8 +1,9 @@
-"""Unit tests for the capability tags of the surrogate layer (roadmap task P3-07,
+"""Unit tests for the capability tags of the surrogate layer (roadmap tasks P3-07 and P3-16,
 specification 5.12).
 
-The layer introduces seven tags, and registers them next to its kind. They are what a surrogate
-passes as `needs` and `supports`, and what acquisitions and analyses will need from one.
+The layer introduces seven tags, and registers them next to its kind, and the classifier of
+P3-16 brings an eighth, the link that reads its outcomes. They are what a surrogate passes as
+`needs` and `supports`, and what acquisitions and analyses will need from one.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from planexs.core.KindTable import KindTable
 from planexs.core.RegistryError import RegistryError
 from planexs.surrogates.surrogateRegistry import surrogateRegistry
 
-#: The tags of roadmap task P3-07, by group.
+#: The tags of roadmap tasks P3-07 and P3-16, by group.
 TAGS = {
     "posterior": [
         "posterior:gaussian",
@@ -25,6 +26,7 @@ TAGS = {
     ],
     "outputs": ["outputs:multi", "outputs:single"],
     "noise": ["noise:inferred", "noise:known"],
+    "link": ["link:probit"],
 }
 ALL_TAGS = [tag for group in TAGS.values() for tag in group]
 
