@@ -24,12 +24,16 @@ builds the native `ExplorationExploitationFunction` over a reference set that th
 draws) and its version for several objectives, `exploration_exploitation_multi_v1`
 (`ExplorationExploitationMultiBuilder`, with its settings in
 `ExplorationExploitationMultiConfig`, which builds `ExplorationExploitationMultiFunction` and
-reads its reference point from the same two forms as `qlog_nehvi_v1`). The acquisitions that
-score the value of one objective share `requireOptimizeGoalConfig` (the optimize goal of a
-build context) and `objectiveWeights` (the goal's scalar objective as a weight for each output
-of the model); the one for a Pareto problem reads the objectives apart instead
-(`selectParetoObjectives`, `ParetoObjectives`) and resolves the reference point
-(`resolveReferencePoint`, `predictedParetoFront`). The Monte Carlo ones also share
+reads its reference point from the same two forms as `qlog_nehvi_v1`), and the straddle of the
+level of a level-set goal, `straddle_v1` (`StraddleBuilder`, with its settings in
+`StraddleConfig`, which builds the native `StraddleFunction`, an analytic function that scores
+one point at a time; the goal is read by `requireLevelSetGoal`, and the surrogate converts the
+level to its latent space). The acquisitions that score the value of one objective share
+`requireOptimizeGoalConfig` (the optimize goal of a build context) and `objectiveWeights` (the
+goal's scalar objective as a weight for each output of the model); the one for a Pareto problem
+reads the objectives apart instead (`selectParetoObjectives`, `ParetoObjectives`) and resolves
+the reference point (`resolveReferencePoint`, `predictedParetoFront`). The Monte Carlo ones
+also share
 `baselinePoints` (the observed points of a model), `outcomeConstraintCallables` (the goal's
 constraints as BoTorch feasibility constraints), `outcomeSpreads` (the scale of each outcome)
 and `drawSeed` (a seed for a sampler, drawn from the generator of the build).
@@ -62,6 +66,7 @@ from planexs.acquisition import (
     NegIntegratedVarianceBuilder,
     QLogNEHVIBuilder,
     QLogNEIBuilder,
+    StraddleBuilder,
     UCBBuilder,
     acquisitionRegistry,
 )
@@ -72,6 +77,7 @@ __all__ = [
     "NegIntegratedVarianceBuilder",
     "QLogNEHVIBuilder",
     "QLogNEIBuilder",
+    "StraddleBuilder",
     "UCBBuilder",
     "acquisitionRegistry",
 ]
