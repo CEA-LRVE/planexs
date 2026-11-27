@@ -21,15 +21,18 @@ goal (`requireExploreGoal`, `exploreOutcomeWeights`), and the blend of exploitat
 exploration with a single weight, `exploration_exploitation_v1`
 (`ExplorationExploitationBuilder`, with its settings in `ExplorationExploitationConfig`, which
 builds the native `ExplorationExploitationFunction` over a reference set that the policy
-draws). The acquisitions that score the value of
-one objective share `requireOptimizeGoalConfig` (the optimize goal of a build context) and
-`objectiveWeights` (the goal's scalar objective as a weight for each output of the model); the
-one for a Pareto problem reads the objectives apart instead (`selectParetoObjectives`,
-`ParetoObjectives`) and resolves the reference point (`resolveReferencePoint`,
-`predictedParetoFront`). The Monte Carlo ones also share `baselinePoints` (the observed points
-of a model), `outcomeConstraintCallables` (the goal's constraints as BoTorch feasibility
-constraints), `outcomeSpreads` (the scale of each outcome) and `drawSeed` (a seed for a
-sampler, drawn from the generator of the build).
+draws) and its version for several objectives, `exploration_exploitation_multi_v1`
+(`ExplorationExploitationMultiBuilder`, with its settings in
+`ExplorationExploitationMultiConfig`, which builds `ExplorationExploitationMultiFunction` and
+reads its reference point from the same two forms as `qlog_nehvi_v1`). The acquisitions that
+score the value of one objective share `requireOptimizeGoalConfig` (the optimize goal of a
+build context) and `objectiveWeights` (the goal's scalar objective as a weight for each output
+of the model); the one for a Pareto problem reads the objectives apart instead
+(`selectParetoObjectives`, `ParetoObjectives`) and resolves the reference point
+(`resolveReferencePoint`, `predictedParetoFront`). The Monte Carlo ones also share
+`baselinePoints` (the observed points of a model), `outcomeConstraintCallables` (the goal's
+constraints as BoTorch feasibility constraints), `outcomeSpreads` (the scale of each outcome)
+and `drawSeed` (a seed for a sampler, drawn from the generator of the build).
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain`, `planexs.encoding`,
 `planexs.surrogates` and `planexs.goals`, and no higher layer. Like `encoding`, it may import
@@ -46,13 +49,16 @@ The modules of the legacy alpha layer that this package still holds (`Acquisitio
 `AlphaAcquisitionStrategy`, `ExplorationExploitationAcquisition`,
 `MultiObjectiveExplorationExploitationAcquisition` and `modelParetoFront`: the blend with its
 single weight, FR5, and the optimization of it) are not imported here and are not registered.
-The single-objective blend is ported as `exploration_exploitation_v1` (roadmap task P5-07),
-and its legacy class stays only for the parity test; the multi-objective one is ported by
-P5-08. The rest is deleted with the legacy layer (P11-02).
+The single-objective blend is ported as `exploration_exploitation_v1` (roadmap task P5-07) and
+the multi-objective one as `exploration_exploitation_multi_v1` (P5-08), whose front is
+`predictedParetoFront`, the port of `modelParetoFront`. The two legacy classes and
+`modelParetoFront` stay only for the parity tests. The rest is deleted with the legacy layer
+(P11-02).
 """
 
 from planexs.acquisition import (
     ExplorationExploitationBuilder,
+    ExplorationExploitationMultiBuilder,
     NegIntegratedVarianceBuilder,
     QLogNEHVIBuilder,
     QLogNEIBuilder,
@@ -62,6 +68,7 @@ from planexs.acquisition import (
 
 __all__ = [
     "ExplorationExploitationBuilder",
+    "ExplorationExploitationMultiBuilder",
     "NegIntegratedVarianceBuilder",
     "QLogNEHVIBuilder",
     "QLogNEIBuilder",
