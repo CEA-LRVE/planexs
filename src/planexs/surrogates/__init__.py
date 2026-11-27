@@ -14,8 +14,9 @@ not answer as a surrogate needs. The nested kinds that a surrogate is composed o
 subpackages, imported here: `fitters` holds the `fitter` kind (`map_v1`,
 `variational_elbo_v1`), `kernels` the `kernel` kind, `likelihoods` the `likelihood` kind
 (`gaussian_v1`, `bernoulli_v1`) and `outcome_transforms` the `outcome_transform` kind. The
-surrogates are modules of the package itself: `VariationalGPClassifierBuilder` registers
-`variational_gp_classifier_v1`, and the others come with the later tasks of roadmap Phase 3.
+surrogates are modules of the package itself: `SingleTaskGPBuilder` registers
+`single_task_gp_v1`, the exact GP, and `VariationalGPClassifierBuilder` registers
+`variational_gp_classifier_v1`, the classifier of the binary outcomes.
 
 The rule of this layer: it may import `planexs.core`, `planexs.domain` and `planexs.encoding`,
 and no higher layer. Like `encoding`, it may import torch and BoTorch; only `adapters` may
@@ -29,6 +30,7 @@ imported here, one line per module, or the surrogate is silently unregistered
 """
 
 from planexs.surrogates import (
+    SingleTaskGPBuilder,
     VariationalGPClassifierBuilder,
     fitters,
     kernels,
@@ -38,6 +40,7 @@ from planexs.surrogates import (
 )
 
 __all__ = [
+    "SingleTaskGPBuilder",
     "VariationalGPClassifierBuilder",
     "fitters",
     "kernels",

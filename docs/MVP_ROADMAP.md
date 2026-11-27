@@ -114,7 +114,7 @@ A wave is a set of cards whose needs (outside the ignored edges and the cards al
 | 7    | P3-13 | MAP fitter                                             | S    | full  | done   |
 | 7    | P4-03 | optimize_v1 goal                                       | M    | full  | done   |
 | 7    | P6-01 | Policy contract and study-state view                   | S    | full  | done   |
-| 8    | P3-14 | single_task_gp_v1 surrogate                            | M    | full  | todo   |
+| 8    | P3-14 | single_task_gp_v1 surrogate                            | M    | full  | done   |
 | 8    | P3-17 | Surrogate cache                                        | S    | full  | todo   |
 | 8    | P5-01 | Acquisition contract and registry                      | S    | full  | todo   |
 | 8    | P7-01 | Analysis contract and registry                         | S    | full  | todo   |
