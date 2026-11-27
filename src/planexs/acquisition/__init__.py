@@ -17,7 +17,11 @@ point of the hypervolume is either explicit, `ExplicitReferencePointConfig`, or 
 data by a named rule, `InferredReferencePointConfig`), and the negative integrated posterior
 variance, `neg_integrated_variance_v1` (`NegIntegratedVarianceBuilder`, with its settings in
 `NegIntegratedVarianceConfig`), which has no direction and learns the outcomes of an explore
-goal (`requireExploreGoal`, `exploreOutcomeWeights`). The acquisitions that score the value of
+goal (`requireExploreGoal`, `exploreOutcomeWeights`), and the blend of exploitation and
+exploration with a single weight, `exploration_exploitation_v1`
+(`ExplorationExploitationBuilder`, with its settings in `ExplorationExploitationConfig`, which
+builds the native `ExplorationExploitationFunction` over a reference set that the policy
+draws). The acquisitions that score the value of
 one objective share `requireOptimizeGoalConfig` (the optimize goal of a build context) and
 `objectiveWeights` (the goal's scalar objective as a weight for each output of the model); the
 one for a Pareto problem reads the objectives apart instead (`selectParetoObjectives`,
@@ -42,11 +46,13 @@ The modules of the legacy alpha layer that this package still holds (`Acquisitio
 `AlphaAcquisitionStrategy`, `ExplorationExploitationAcquisition`,
 `MultiObjectiveExplorationExploitationAcquisition` and `modelParetoFront`: the blend with its
 single weight, FR5, and the optimization of it) are not imported here and are not registered.
-They are ported as registered builders (roadmap tasks P5-07 and P5-08), and deleted with the
-rest of the legacy layer (P11-02).
+The single-objective blend is ported as `exploration_exploitation_v1` (roadmap task P5-07),
+and its legacy class stays only for the parity test; the multi-objective one is ported by
+P5-08. The rest is deleted with the legacy layer (P11-02).
 """
 
 from planexs.acquisition import (
+    ExplorationExploitationBuilder,
     NegIntegratedVarianceBuilder,
     QLogNEHVIBuilder,
     QLogNEIBuilder,
@@ -55,6 +61,7 @@ from planexs.acquisition import (
 )
 
 __all__ = [
+    "ExplorationExploitationBuilder",
     "NegIntegratedVarianceBuilder",
     "QLogNEHVIBuilder",
     "QLogNEIBuilder",
